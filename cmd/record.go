@@ -23,7 +23,9 @@ package cmd
 import (
 	"context"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -82,7 +84,8 @@ func runRecordCmd(cmd *cobra.Command, args []string) {
 	interval := allCliFlags.sweepInterval
 	pred := valet.RequiresChecksum
 
-	cancelCtx, _ := context.WithCancel(context.Background())
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	setupSignalHandler(cancel)
 
 	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred)
 	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, interval)
@@ -108,6 +111,28 @@ func runRecordCmd(cmd *cobra.Command, args []string) {
 	}
 
 	wg.Wait()
+}
+
+func setupSignalHandler(cancel context.CancelFunc) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		s:= <-signals
+		log := logfacade.GetLogger()
+
+		switch s {
+		case syscall.SIGINT:
+			log.Info().Msg("got SIGINT, shutting down")
+			cancel()
+		case syscall.SIGTERM:
+			log.Info().Msg("got SIGTERM, shutting down")
+			cancel()
+		default:
+			log.Error().Str("signal", s.String()).
+				Msg("got unexpected signal, exiting")
+			os.Exit(1)
+		}
+	}()
 }
 
 func mergeFileChannels(x <-chan valet.FilePath, y <-chan valet.FilePath) chan valet.FilePath {
