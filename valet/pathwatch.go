@@ -63,7 +63,7 @@ func WatchFiles(
 
 			case event := <-watcher.Events:
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					return nil
+					continue
 				}
 
 				p, ferr := NewFilePath(event.Name)
@@ -75,15 +75,11 @@ func WatchFiles(
 					if ferr = handleCreateDir(p, watcher); ferr != nil {
 						return ferr
 					}
-				}
-
-				if event.Op&fsnotify.Close == fsnotify.Close {
+				} else if event.Op&fsnotify.Close == fsnotify.Close {
 					if ferr = handleCloseFile(p, pred, paths); ferr != nil {
 						return ferr
 					}
-				}
-
-				if event.Op&fsnotify.Movedto == fsnotify.Movedto {
+				} else if event.Op&fsnotify.Movedto == fsnotify.Movedto {
 					if ferr = handleMovedtoFile(p, pred, paths); ferr != nil {
 						return ferr
 					}
@@ -178,7 +174,6 @@ func handleCloseFile(target FilePath, pred FilePredicate,
 
 	ok, err := pred(target)
 	if err != nil {
-		log.Debug().Msgf("Oops on %s", target.Location)
 		return err
 	}
 	if ok {
@@ -187,7 +182,9 @@ func handleCloseFile(target FilePath, pred FilePredicate,
 			Msg("accepted for processing")
 		paths <- target
 	} else {
-		log.Debug().Msgf("Rejected (predicate false) %s", target.Location)
+		log.Debug().
+			Str("path", target.Location).
+			Msg("rejected (predicate false)")
 	}
 
 	return err
@@ -203,7 +200,6 @@ func handleMovedtoFile(target FilePath, pred FilePredicate,
 
 	ok, err := pred(target)
 	if err != nil {
-		log.Debug().Msgf("Oops on %s", target.Location)
 		return err
 	}
 	if ok {
@@ -212,7 +208,9 @@ func handleMovedtoFile(target FilePath, pred FilePredicate,
 			Msg("accepted for processing")
 		paths <- target
 	} else {
-		log.Debug().Msgf("Rejected (predicate false) %s", target.Location)
+		log.Debug().
+			Str("path", target.Location).
+			Msg("rejected (predicate false)")
 	}
 
 	return err
