@@ -125,7 +125,7 @@ func FindFilesInterval(
 	paths, errs := make(chan FilePath), make(chan error)
 
 	log := logf.GetLogger()
-	log.Debug().Str("root", root).Msg("started interval find")
+	log.Debug().Str("root", root).Msg("started interval sweep")
 
 	findTick := time.NewTicker(interval)
 
@@ -145,17 +145,17 @@ func FindFilesInterval(
 					Msg("about to consume channel")
 
 				for p := range ipaths {
-					log.Debug().Msg("sending path")
+					log.Debug().Msg("interval sweep sending path")
 					paths <- p
 				}
 				for e := range ierrs {
-					log.Debug().Msg("sending error")
+					log.Debug().Msg("interval sweep sending error")
 					errs <- e
 				}
 
 			case <-ctx.Done():
 				log.Debug().Str("root", root).
-					Msg("cancelled interval find")
+					Msg("cancelled interval sweep")
 				findTick.Stop()
 				return
 			}
