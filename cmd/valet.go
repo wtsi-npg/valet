@@ -56,8 +56,6 @@ SIGINT or SIGTERM, when it will stop gracefully.
 }
 
 func Execute() {
-	setupLogger(allCliFlags)
-
 	if err := valetCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
