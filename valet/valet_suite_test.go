@@ -30,19 +30,15 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/rs/zerolog"
 	"valet/utilities"
 	"valet/valet"
 
 	logf "valet/log/logfacade"
-	logz "valet/log/zlog"
+	logs "valet/log/slog"
 )
 
 func TestValet(t *testing.T) {
-	log := logz.New(os.Stderr, logf.ErrorLevel)
-	writer := GinkgoWriter
-	consoleLogger := log.Logger.Output(zerolog.SyncWriter(writer))
-	log.Logger = &consoleLogger
+	log := logs.New(GinkgoWriter, logf.ErrorLevel)
 	logf.InstallLogger(log)
 
 	RegisterFailHandler(Fail)
@@ -68,8 +64,11 @@ var _ = Describe("FindFiles/IsDir)", func() {
 			foundDirs = append(foundDirs, p)
 		}
 
-		err := <-errs
-		Expect(err).NotTo(HaveOccurred())
+		select {
+		case err := <-errs:
+			Expect(err).NotTo(HaveOccurred())
+		default:
+		}
 	})
 
 	Context("when using a directory predicate", func() {
@@ -110,8 +109,11 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 			foundFiles = append(foundFiles, p)
 		}
 
-		err := <-errs
-		Expect(err).NotTo(HaveOccurred())
+		select {
+		case err := <-errs:
+			Expect(err).NotTo(HaveOccurred())
+		default:
+		}
 	})
 
 	Context("when using a file predicate", func() {
@@ -156,18 +158,21 @@ var _ = Describe("FindFilesInterval", func() {
 		done := make(chan bool, 2)
 
 		go func() {
+			defer cancel()
+
 			timer := time.NewTimer(5 * interval)
 			<-timer.C
-			cancel()
 			done <- true // Timeout
+			return
 		}()
 
 		go func() {
-			i := 0
+			defer cancel()
+
 			for p := range paths {
 				foundFiles = append(foundFiles, p)
-				i++
-				if i >= len(expectedPaths) {
+
+				if len(foundFiles) >= len(expectedPaths) {
 					done <- true // Find files
 					return
 				}
@@ -176,8 +181,11 @@ var _ = Describe("FindFilesInterval", func() {
 
 		<-done
 
-		err := <-errs
-		Expect(err).NotTo(HaveOccurred())
+		select {
+		case err := <-errs:
+			Expect(err).NotTo(HaveOccurred())
+		default:
+		}
 	})
 
 	Context("when using a file predicate", func() {
@@ -236,19 +244,19 @@ var _ = Describe("WatchFiles", func() {
 		done := make(chan bool, 2)
 
 		go func() {
+			defer cancel()
+
 			timer := time.NewTimer(5 * interval)
 			<-timer.C
-			cancel()
 			done <- true // Timeout
 		}()
 
 		go func() {
-			i := 0
+			defer cancel()
+
 			for p := range paths {
 				foundFiles = append(foundFiles, p)
-				i++
-				if i >= len(expectedPaths) {
-					cancel()
+				if len(foundFiles) >= len(expectedPaths) {
 					done <- true // Detect files
 					return
 				}
@@ -257,8 +265,11 @@ var _ = Describe("WatchFiles", func() {
 
 		<-done
 
-		err := <-errs
-		Expect(err).NotTo(HaveOccurred())
+		select {
+		case err := <-errs:
+			Expect(err).NotTo(HaveOccurred())
+		default:
+		}
 	})
 
 	Context("when using a file predicate", func() {
