@@ -21,11 +21,20 @@
 package valet
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	logf "valet/log/logfacade"
+	logs "valet/log/slog"
 )
+
+func init() {
+	log := logs.New(os.Stderr, logf.ErrorLevel)
+	logf.InstallLogger(log)
+}
 
 func TestNewFilePath(t *testing.T) {
 	dir, derr := NewFilePath("./testdata/testdir")

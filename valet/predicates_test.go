@@ -29,7 +29,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"valet/utilities"
+
+	logf "valet/log/logfacade"
+	logs "valet/log/slog"
 )
+
+func init() {
+	log := logs.New(os.Stderr, logf.ErrorLevel)
+	logf.InstallLogger(log)
+}
 
 func TestIsDir(t *testing.T) {
 	fp, _ := NewFilePath("./testdata/testdir")
