@@ -4,5 +4,11 @@ language:
 go:
   - "1.2.5"
 
+cache:
+  directories:
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod
+
 script:
   - go test -v ./...
+
