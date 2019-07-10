@@ -142,5 +142,5 @@ func (msg *zeroMessage) Msg(val string) {
 }
 
 func (msg *zeroMessage) Msgf(format string, a ...interface{}) {
-	msg.Msg(fmt.Sprintf(format, a))
+	msg.Msg(fmt.Sprintf(format, a...))
 }
