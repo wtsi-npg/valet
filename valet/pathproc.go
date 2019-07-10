@@ -96,16 +96,77 @@ func DoNothing(path FilePath) error {
 	return nil
 }
 
-// RecordChecksum calculates a checksum for the file at path and writes it to a
-// new checksum file as a hex-encoded string. It raises an error if the
+// CreateOrUpdateMD5ChecksumFile calculates a checksum for the file at path and
+// writes it to a new checksum file as a hex-encoded string. This function only
+// operates when there is no existing checksum file, or when the existing
+// checksum file is stale (its last modified time is older than the last
+// modified time of path). If the checksum file is stale this function deletes
+// it before creating a new one.
+func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
+	log := logf.GetLogger()
+
+	ok, err := HasStaleChecksumFile(path)
+	if err != nil {
+		log.Error().Err(err).Msg("stale checksum detection failed")
+		return err
+	}
+
+	if ok {
+		log.Info().Str("path", path.Location).
+			Msg("detected stale MD5 file")
+
+		if rerr := RemoveMD5ChecksumFile(path); rerr != nil {
+			return err
+		}
+		log.Info().Str("path", path.Location).
+			Msg("removed stale MD5 file")
+
+		if cerr := CreateMD5ChecksumFile(path); cerr != nil {
+			log.Error().Err(cerr).
+				Str("path", path.Location).
+				Msg("failed to create a new MD5 file")
+			return cerr
+		}
+
+		return nil
+	}
+
+	ok, err = HasChecksumFile(path)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		err = CreateMD5ChecksumFile(path)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CreateMD5ChecksumFile calculates a checksum for the file at path and writes
+// it to a new checksum file as a hex-encoded string. It raises an error if the
 // checksum file already exists.
-func RecordChecksum(path FilePath) error {
+func CreateMD5ChecksumFile(path FilePath) error {
 	md5sum, err := CalculateFileMD5(path)
 	if err != nil {
 		return err
 	}
 
 	return createMD5File(ChecksumFilename(path), md5sum)
+}
+
+// RemoveMD5ChecksumFile removes the MD5 checksum file corresponding to path.
+// If the file does not exist by the time removal is attempted, no error is
+// raised.
+func RemoveMD5ChecksumFile(path FilePath) error {
+	err := os.Remove(ChecksumFilename(path))
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
 }
 
 // CalculateFileMD5 returns the MD5 checksum of the file at path.

@@ -98,7 +98,8 @@ func runRecordCmd(cmd *cobra.Command, args []string) {
 	go func() {
 		defer wg.Done()
 
-		err := valet.ProcessFiles(mpaths, valet.RecordChecksum, allCliFlags.maxProc)
+		err := valet.ProcessFiles(mpaths, valet.CreateOrUpdateMD5ChecksumFile,
+			allCliFlags.maxProc)
 		if err != nil {
 			log.Error().Err(err).Msg("failed processing")
 			os.Exit(1)

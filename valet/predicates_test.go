@@ -90,8 +90,8 @@ func TestHasChecksumFile(t *testing.T) {
 	}
 }
 
-func TestChecksumFileIsStale(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestChecksumFileIsStale")
+func TestHasStaleChecksumFile(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "TestHasStaleChecksumFile")
 	defer os.RemoveAll(tmpDir)
 	assert.NoError(t, err)
 
