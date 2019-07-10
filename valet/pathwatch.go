@@ -72,11 +72,13 @@ func WatchFiles(
 					if ferr = handleCreateDir(p, watcher); ferr != nil {
 						return ferr
 					}
-				} else if event.Op&fsnotify.Close == fsnotify.Close {
+				}
+				if event.Op&fsnotify.Close == fsnotify.Close {
 					if ferr = handleCloseFile(p, pred, paths); ferr != nil {
 						return ferr
 					}
-				} else if event.Op&fsnotify.Movedto == fsnotify.Movedto {
+				}
+				if event.Op&fsnotify.Movedto == fsnotify.Movedto {
 					if ferr = handleMovedtoFile(p, pred, paths); ferr != nil {
 						return ferr
 					}
