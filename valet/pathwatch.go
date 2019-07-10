@@ -36,7 +36,7 @@ func WatchFiles(
 	root string,
 	pred FilePredicate) (<-chan FilePath, <-chan error) {
 
-	paths, errs := make(chan FilePath), make(chan error)
+	paths, errs := make(chan FilePath), make(chan error, 1)
 
 	watcher, err := setupWatcher(root)
 	if err != nil {
@@ -57,12 +57,9 @@ func WatchFiles(
 
 		for {
 			select {
-			case <-ctx.Done():
-				log.Info().Str("root", root).Msg("cancelled watch")
-				return nil
-
 			case event := <-watcher.Events:
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
+					// Don't try to create FilePaths for removed files
 					continue
 				}
 
@@ -84,6 +81,10 @@ func WatchFiles(
 						return ferr
 					}
 				}
+
+			case <-ctx.Done():
+				log.Info().Str("root", root).Msg("cancelled watch")
+				return nil
 
 			case ferr = <-watcher.Errors:
 				return ferr
