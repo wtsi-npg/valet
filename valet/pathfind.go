@@ -107,10 +107,14 @@ func FindFiles(
 		}()
 
 		root, err := filepath.Abs(root)
-		if err == nil {
+		if err != nil {
+			errs <- err
+		} else {
 			err = filepath.Walk(root, walkFn)
+			if err != nil {
+				errs <- err
+			}
 		}
-		errs <- err
 	}()
 
 	return paths, errs
@@ -122,11 +126,9 @@ func FindFilesInterval(
 	pred FilePredicate,
 	interval time.Duration) (<-chan FilePath, <-chan error) {
 
-	paths, errs := make(chan FilePath), make(chan error)
+	paths, errs := make(chan FilePath), make(chan error, 1)
 
 	log := logf.GetLogger()
-	log.Debug().Str("root", root).Msg("started interval sweep")
-
 	findTick := time.NewTicker(interval)
 
 	go func() {
@@ -136,20 +138,17 @@ func FindFilesInterval(
 		}()
 
 		for {
-			log.Debug().Msg(".")
 			select {
 			case now := <-findTick.C:
+				log.Debug().Str("root", root).
+					Time("at", now).Msg("starting interval sweep")
+
 				ipaths, ierrs := FindFiles(ctx, root, pred)
-
-				log.Debug().Time("at", now).
-					Msg("about to consume channel")
-
 				for p := range ipaths {
 					log.Debug().Msg("interval sweep sending path")
 					paths <- p
 				}
 				for e := range ierrs {
-					log.Debug().Msg("interval sweep sending error")
 					errs <- e
 				}
 
