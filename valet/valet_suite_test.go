@@ -99,6 +99,7 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 		"./testdata/1/reads/fastq/reads1.fastq.md5",
 		"./testdata/1/reads/fastq/reads2.fastq",
 		"./testdata/1/reads/fastq/reads3.fastq",
+		"./testdata/testdir/.gitignore",
 	}
 
 	BeforeEach(func() {
