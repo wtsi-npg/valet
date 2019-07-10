@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+
+	"valet/log/logfacade"
 )
 
 type FilePredicate func(path FilePath) (bool, error)
@@ -123,15 +125,22 @@ func HasChecksumFile(path FilePath) (bool, error) {
 //
 // If the argument has no checksum file, this function returns false.
 func HasStaleChecksumFile(path FilePath) (bool, error) {
-	ok, err := HasChecksumFile(path)
-	if !ok {
-		return ok, err
-	}
-
 	chkInfo, err := os.Stat(ChecksumFilename(path))
 	if err != nil {
-		return false, err
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
 	}
 
-	return path.Info.ModTime().After(chkInfo.ModTime()), err
+	if path.Info.ModTime().After(chkInfo.ModTime()) {
+		logfacade.GetLogger().Debug().
+			Str("path", path.Location).
+			Time("data_time", path.Info.ModTime()).
+			Time("checksum_time", chkInfo.ModTime()).Msg("stale checksum")
+		return true, nil
+	}
+
+	return false, nil
 }
