@@ -27,7 +27,6 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/pkg/errors"
 	logf "valet/log/logfacade"
@@ -61,7 +60,7 @@ func ProcessFiles(paths <-chan FilePath, workFunc WorkFunc, maxThreads int) erro
 			}()
 
 			atomic.AddUint64(&jobCounter, 1)
-			log.Info().Str("path", p.Location).Msg("starting work")
+			log.Info().Str("path", p.Location).Msg("working on")
 
 			err := workFunc(p)
 			if err != nil {
@@ -86,13 +85,8 @@ func ProcessFiles(paths <-chan FilePath, workFunc WorkFunc, maxThreads int) erro
 }
 
 func DoNothing(path FilePath) error {
-	if path.Info.IsDir() {
-		return nil
-	}
-	log := logf.GetLogger()
-	log.Info().Str("path", path.Location).Msg("work started")
-	time.Sleep(5 * time.Second)
-	log.Info().Str("path", path.Location).Msg("work done")
+	logf.GetLogger().Debug().
+		Str("path", path.Location).Msg("would work on this")
 	return nil
 }
 

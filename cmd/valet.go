@@ -37,6 +37,7 @@ import (
 type cliFlags struct {
 	debug         bool          // Enable debug logging
 	verbose       bool          // Enable verbose logging
+	dryRun        bool          // Enable dry-run mode
 	maxProc       int           // The maximum number of threads to use
 	sweepInterval time.Duration // The interval at which to perform sweeps
 	rootDir       string        // The root directory to monitor

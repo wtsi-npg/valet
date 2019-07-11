@@ -75,6 +75,9 @@ func init() {
 	checksumCmd.Flags().DurationVarP(&allCliFlags.sweepInterval, "interval",
 		"i", defaultSweep, "directory sweep interval, minimum 30s")
 
+	checksumCmd.Flags().BoolVar(&allCliFlags.dryRun, "dry-run", false,
+		"dry-run (make no changes)")
+
 	valetCmd.AddCommand(checksumCmd)
 }
 
@@ -83,6 +86,8 @@ func runChecksumCmd(cmd *cobra.Command, args []string) {
 	root := allCliFlags.rootDir
 	interval := allCliFlags.sweepInterval
 	pred := valet.RequiresChecksum
+	maxProc := allCliFlags.maxProc
+	dryRun := allCliFlags.dryRun
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
@@ -92,14 +97,20 @@ func runChecksumCmd(cmd *cobra.Command, args []string) {
 	mpaths := mergeFileChannels(wpaths, fpaths)
 	errs := mergeErrorChannels(werrs, ferrs)
 
+	var workFn valet.WorkFunc
+	if dryRun {
+		workFn = valet.DoNothing
+	} else {
+		workFn = valet.CreateOrUpdateMD5ChecksumFile
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
 
-		err := valet.ProcessFiles(mpaths, valet.CreateOrUpdateMD5ChecksumFile,
-			allCliFlags.maxProc)
+		err := valet.ProcessFiles(mpaths, workFn, maxProc)
 		if err != nil {
 			log.Error().Err(err).Msg("failed processing")
 			os.Exit(1)
