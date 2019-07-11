@@ -170,17 +170,15 @@ func RemoveMD5ChecksumFile(path FilePath) error {
 }
 
 // CalculateFileMD5 returns the MD5 checksum of the file at path.
-func CalculateFileMD5(path FilePath) ([16]byte, error) {
-	var md5sum [16]byte
-
+func CalculateFileMD5(path FilePath) (md5sum [16]byte, err error) {
 	f, err := os.Open(path.Location)
-	defer func() {
-		err = utilities.CombineErrors(err, f.Close())
-	}()
-
 	if err != nil {
 		return md5sum, err
 	}
+
+	defer func() {
+		err = utilities.CombineErrors(err, f.Close())
+	}()
 
 	h := md5.New()
 	if _, err := io.Copy(h, f); err != nil {
@@ -190,15 +188,15 @@ func CalculateFileMD5(path FilePath) ([16]byte, error) {
 	return md5.Sum(nil), err
 }
 
-func createMD5File(path string, md5sum [16]byte) error {
+func createMD5File(path string, md5sum [16]byte) (err error) {
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-	defer func() {
-		err = utilities.CombineErrors(err, f.Close())
-	}()
-
 	if err != nil {
 		return errors.Wrap(err, "will not overwrite an existing MD5 file")
 	}
+
+	defer func() {
+		err = utilities.CombineErrors(err, f.Close())
+	}()
 
 	encoded := make([]byte, hex.EncodedLen(len(md5sum)))
 	hex.Encode(encoded, md5sum[:16])

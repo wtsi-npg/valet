@@ -47,8 +47,7 @@ func WatchFiles(
 	log := logf.GetLogger()
 	log.Info().Str("root", root).Msg("started watch")
 
-	watchFn := func(ctx context.Context) error {
-		var ferr error
+	watchFn := func(ctx context.Context) (ferr error) {
 		defer func() {
 			if werr := watcher.Close(); werr != nil {
 				ferr = utilities.CombineErrors(ferr, werr)
@@ -109,12 +108,12 @@ func WatchFiles(
 	return paths, errs
 }
 
-func setupWatcher(root string) (*fsnotify.Watcher, error) {
+func setupWatcher(root string) (watcher *fsnotify.Watcher, err error) {
 	if err := ensureIsDir(root); err != nil {
 		return nil, err
 	}
 
-	watcher, err := fsnotify.NewWatcher()
+	watcher, err = fsnotify.NewWatcher()
 	if err != nil {
 		if watcher != nil {
 			return watcher, utilities.CombineErrors(err, watcher.Close())
