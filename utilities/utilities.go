@@ -21,7 +21,7 @@
 package utilities
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 )
@@ -37,13 +37,28 @@ func Abs(x int) int {
 	return x
 }
 
-func CopyFile(from string, to string, perm os.FileMode) error {
-	bytes, err := ioutil.ReadFile(from)
+func CopyFile(from string, to string, perm os.FileMode) (err error) {
+	src, err := os.Open(from)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(to, bytes, perm)
+	defer func() {
+		err = CombineErrors(err, src.Close())
+	}()
+
+	dst, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, perm)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = CombineErrors(err, dst.Close())
+	}()
+
+	_, err = io.Copy(dst, src)
+
+	return err
 }
 
 func CombineErrors(errors ...error) error {
@@ -53,11 +68,10 @@ func CombineErrors(errors ...error) error {
 			errs = append(errs, e)
 		}
 	}
-
-	if len(errors) == 0 {
+	if len(errs) == 0 {
 		return nil
 	}
-	return &combinedError{errors}
+	return &combinedError{errs}
 }
 
 func (err *combinedError) Error() string {
