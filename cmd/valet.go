@@ -29,6 +29,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"valet/utilities"
+	"valet/valet"
 
 	logf "valet/log/logfacade"
 	logz "valet/log/zlog"
@@ -41,6 +42,7 @@ type cliFlags struct {
 	maxProc       int           // The maximum number of threads to use
 	sweepInterval time.Duration // The interval at which to perform sweeps
 	rootDir       string        // The root directory to monitor
+	excludeDirs   []string      // Directories to exclude from monitoring
 }
 
 var allCliFlags = &cliFlags{}
@@ -53,7 +55,7 @@ automatically. Once started, valet will continue working until interrupted by
 SIGINT or SIGTERM, when it will stop gracefully.
 `,
 	Run:     runValetCmd,
-	Version: "devel",
+	Version: valet.Version,
 }
 
 func Execute() {

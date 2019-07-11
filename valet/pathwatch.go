@@ -144,6 +144,21 @@ func setupWatcher(root string) (watcher *fsnotify.Watcher, err error) {
 	return watcher, err
 }
 
+// TODO: Prune watched directories.
+//
+// This function currently adds directories to watch unconditionally. This is
+// not always what we want.
+//
+// Case in point: GridION
+//
+// If we watch /data (which is now where run data it written), we also watch
+// many irrelevant (and possibly dangerous) directories
+//
+// e.g. /data/intermediate, /data/queued_reads
+//
+// There should be a predicate test for these paths, as for the files being
+// processed. Can we roll these into one, or should the tree-pruning predicate
+// be separate?
 func handleCreateDir(target FilePath, watcher *fsnotify.Watcher) error {
 
 	log := logf.GetLogger()

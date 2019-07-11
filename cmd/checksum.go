@@ -64,7 +64,7 @@ valet will then calculate the checksum and create or update the checksum file.
 
 func init() {
 	checksumCmd.Flags().StringVarP(&allCliFlags.rootDir, "root",
-		"r", "", "root directory to search")
+		"r", "", "the root directory of the search")
 	err := checksumCmd.MarkFlagRequired("root")
 	if err != nil {
 		logfacade.GetLogger().Error().
@@ -77,6 +77,9 @@ func init() {
 
 	checksumCmd.Flags().BoolVar(&allCliFlags.dryRun, "dry-run", false,
 		"dry-run (make no changes)")
+
+	checksumCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs, "exclude",
+		[]string{}, "names of directories to exclude from the search")
 
 	valetCmd.AddCommand(checksumCmd)
 }
