@@ -19,31 +19,3 @@
  */
 
 package valet
-
-import (
-	"encoding/hex"
-	"os"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	logf "valet/log/logfacade"
-	logs "valet/log/slog"
-)
-
-func init() {
-	log := logs.New(os.Stderr, logf.ErrorLevel)
-	logf.InstallLogger(log)
-}
-
-func TestCalculateFileMD5(t *testing.T) {
-	file, ferr := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
-	assert.NoError(t, ferr, "expected to create file path")
-
-	md5sum, err := CalculateFileMD5(file)
-	encoded := make([]byte, hex.EncodedLen(len(md5sum)))
-	hex.Encode(encoded, md5sum)
-
-	if assert.NoError(t, err) {
-		assert.Equal(t, string(encoded), "5c9597f3c8245907ea71a89d9d39d08e")
-	}
-}
