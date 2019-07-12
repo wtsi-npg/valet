@@ -58,7 +58,8 @@ var _ = Describe("FindFiles/IsDir)", func() {
 
 	BeforeEach(func() {
 		cancelCtx, _ := context.WithCancel(context.Background())
-		paths, errs := valet.FindFiles(cancelCtx, "./testdata", valet.IsDir)
+		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
+			valet.IsDir, valet.IsIdentity)
 
 		for p := range paths {
 			foundDirs = append(foundDirs, p)
@@ -75,13 +76,13 @@ var _ = Describe("FindFiles/IsDir)", func() {
 		It("should find directories", func() {
 			Expect(len(foundDirs)).To(Equal(len(paths)))
 
-			for i, p := range paths {
-				a, err := filepath.Abs(p)
+			for i, ep := range paths {
+				a, err := filepath.Abs(ep)
 				Expect(err).NotTo(HaveOccurred())
 
-				x, _ := valet.NewFilePath(a)
+				fp, _ := valet.NewFilePath(a)
 
-				Expect(foundDirs[i].Location).To(Equal(x.Location))
+				Expect(foundDirs[i].Location).To(Equal(fp.Location))
 				Expect(foundDirs[i].Info).ToNot(BeNil())
 			}
 		})
@@ -104,7 +105,8 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 
 	BeforeEach(func() {
 		cancelCtx, _ := context.WithCancel(context.Background())
-		paths, errs := valet.FindFiles(cancelCtx, "./testdata", valet.IsRegular)
+		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
+			valet.IsRegular, valet.IsIdentity)
 
 		for p := range paths {
 			foundFiles = append(foundFiles, p)
@@ -122,13 +124,13 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 
 			Expect(len(foundFiles)).To(Equal(len(paths)))
 
-			for i, p := range paths {
-				a, err := filepath.Abs(p)
+			for i, ep := range paths {
+				a, err := filepath.Abs(ep)
 				Expect(err).NotTo(HaveOccurred())
 
-				x, _ := valet.NewFilePath(a)
+				fp, _ := valet.NewFilePath(a)
 
-				Expect(foundFiles[i].Location).To(Equal(x.Location))
+				Expect(foundFiles[i].Location).To(Equal(fp.Location))
 				Expect(foundFiles[i].Info).ToNot(BeNil())
 			}
 		})
@@ -193,13 +195,13 @@ var _ = Describe("FindFilesInterval", func() {
 		It("should find files", func() {
 			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
 
-			for i, p := range expectedPaths {
-				a, err := filepath.Abs(p)
+			for i, ep := range expectedPaths {
+				a, err := filepath.Abs(ep)
 				Expect(err).NotTo(HaveOccurred())
 
-				x, _ := valet.NewFilePath(a)
+				fp, _ := valet.NewFilePath(a)
 
-				Expect(foundFiles[i].Location).To(Equal(x.Location))
+				Expect(foundFiles[i].Location).To(Equal(fp.Location))
 				Expect(foundFiles[i].Info).ToNot(BeNil())
 			}
 		})
@@ -236,7 +238,7 @@ var _ = Describe("WatchFiles", func() {
 		derr := mkdirAllRelative(tmpDir, expectedDirs)
 		Expect(derr).NotTo(HaveOccurred())
 
-		paths, errs := valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular)
+		paths, errs := valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, nil)
 
 		cerr := copyFilesRelative(tmpDir, expectedPaths, moveFile)
 		Expect(cerr).NotTo(HaveOccurred())
@@ -277,12 +279,12 @@ var _ = Describe("WatchFiles", func() {
 		It("should find files", func() {
 			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
 
-			for i, p := range expectedPaths {
-				a := filepath.Join(tmpDir, p)
+			for i, ep := range expectedPaths {
+				a := filepath.Join(tmpDir, ep)
 
-				x, _ := valet.NewFilePath(a)
+				fp, _ := valet.NewFilePath(a)
 
-				Expect(foundFiles[i].Location).To(Equal(x.Location))
+				Expect(foundFiles[i].Location).To(Equal(fp.Location))
 				Expect(foundFiles[i].Info).ToNot(BeNil())
 			}
 		})
