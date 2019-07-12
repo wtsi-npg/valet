@@ -42,9 +42,14 @@ var RequiresChecksum = And(
 	Or(IsFast5Match, IsFastqMatch),
 	Or(Not(HasChecksumFile), HasStaleChecksumFile))
 
-// IsIdentity always returns true.
-func IsIdentity(path FilePath) (bool, error) {
+// IsTrue always returns true.
+func IsTrue(path FilePath) (bool, error) {
 	return true, nil
+}
+
+// IsFalse always returns false
+func IsFalse(path FilePath) (bool, error) {
+	return false, nil
 }
 
 // IsDir returns true if the argument is a directory.

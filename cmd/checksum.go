@@ -24,12 +24,14 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"regexp"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
-	"valet/log/logfacade"
+	logf "valet/log/logfacade"
+	"valet/utilities"
 	"valet/valet"
 )
 
@@ -67,7 +69,7 @@ func init() {
 		"r", "", "the root directory of the search")
 	err := checksumCmd.MarkFlagRequired("root")
 	if err != nil {
-		logfacade.GetLogger().Error().
+		logf.GetLogger().Error().
 			Err(err).Msg("failed to mark --root required")
 		os.Exit(1)
 	}
@@ -79,7 +81,8 @@ func init() {
 		"dry-run (make no changes)")
 
 	checksumCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs, "exclude",
-		[]string{}, "names of directories to exclude from the search")
+		[]string{}, "regular expressions to match directories to prune " +
+		"from both monitoring and interval sweeps")
 
 	valetCmd.AddCommand(checksumCmd)
 }
@@ -95,8 +98,14 @@ func runChecksumCmd(cmd *cobra.Command, args []string) {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
 
-	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred)
-	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, interval)
+	pruneFn, err := makePruneFn(allCliFlags.excludeDirs)
+	if err != nil {
+		log.Error().Err(err).Msg("error in exclusion patterns")
+		os.Exit(1)
+	}
+
+	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred, pruneFn)
+	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn, interval)
 	mpaths := mergeFileChannels(wpaths, fpaths)
 	errs := mergeErrorChannels(werrs, ferrs)
 
@@ -133,7 +142,7 @@ func setupSignalHandler(cancel context.CancelFunc) {
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		s := <-signals
-		log := logfacade.GetLogger()
+		log := logf.GetLogger()
 
 		switch s {
 		case syscall.SIGINT:
@@ -150,10 +159,41 @@ func setupSignalHandler(cancel context.CancelFunc) {
 	}()
 }
 
+func makePruneFn(patterns []string) (valet.FilePredicate, error) {
+	log := logf.GetLogger()
+
+	var regexes []*regexp.Regexp
+	var errors []error
+	for _, pattern := range patterns {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			errors = append(errors, err)
+		} else {
+			regexes = append(regexes, re)
+		}
+	}
+
+	if len(errors) > 0 {
+		return nil, utilities.CombineErrors(errors...)
+	}
+
+	return func(fp valet.FilePath) (bool, error) {
+		for _, regex := range regexes {
+			if regex.MatchString(fp.Location) {
+				log.Info().Str("path", fp.Location).Msg("pruning path")
+				return true, nil
+			}
+		}
+
+		log.Debug().Str("path", fp.Location).Msg("not pruning path")
+		return false, nil
+	}, nil
+}
+
 func mergeFileChannels(x <-chan valet.FilePath, y <-chan valet.FilePath) chan valet.FilePath {
 	merged := make(chan valet.FilePath)
 
-	log := logfacade.GetLogger()
+	log := logf.GetLogger()
 
 	go func() {
 		defer close(merged)

@@ -61,7 +61,8 @@ func NewFilePath(path string) (FilePath, error) {
 func FindFiles(
 	ctx context.Context,
 	root string,
-	pred FilePredicate) (<-chan FilePath, <-chan error) {
+	pred FilePredicate,
+	prune FilePredicate) (<-chan FilePath, <-chan error) {
 	paths, errs := make(chan FilePath), make(chan error, 1)
 
 	log := logf.GetLogger()
@@ -74,14 +75,19 @@ func FindFiles(
 
 		p := FilePath{FileResource{path}, info}
 
-		ok, perr := pred(p)
-		if perr != nil {
-			if perr == filepath.SkipDir {
+		if _, perr := prune(p); perr != nil {
+			if perr == filepath.SkipDir{
 				log.Info().
 					Str("path", path).
 					Str("reason", perr.Error()).Msg("skipped path")
 				return perr
 			}
+		}
+
+		ok, perr := pred(p)
+
+		if perr != nil {
+			return perr
 		} else if ok {
 			log.Debug().Str("path", path).Msg("accepted")
 			paths <- p
@@ -122,8 +128,8 @@ func FindFiles(
 
 func FindFilesInterval(
 	ctx context.Context,
-	root string,
-	pred FilePredicate,
+	root string, pred FilePredicate,
+	prune FilePredicate,
 	interval time.Duration) (<-chan FilePath, <-chan error) {
 
 	paths, errs := make(chan FilePath), make(chan error, 1)
@@ -143,7 +149,7 @@ func FindFilesInterval(
 				log.Debug().Str("root", root).
 					Time("at", now).Msg("starting interval sweep")
 
-				ipaths, ierrs := FindFiles(ctx, root, pred)
+				ipaths, ierrs := FindFiles(ctx, root, pred, prune)
 				for p := range ipaths {
 					log.Debug().Msg("interval sweep sending path")
 					paths <- p

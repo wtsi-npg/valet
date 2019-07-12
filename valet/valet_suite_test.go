@@ -22,6 +22,7 @@ package valet_test
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -38,7 +39,7 @@ import (
 )
 
 func TestValet(t *testing.T) {
-	log := logs.New(GinkgoWriter, logf.ErrorLevel)
+	log := logs.New(GinkgoWriter, logf.DebugLevel)
 	logf.InstallLogger(log)
 
 	RegisterFailHandler(Fail)
@@ -46,8 +47,7 @@ func TestValet(t *testing.T) {
 }
 
 var _ = Describe("FindFiles/IsDir)", func() {
-	var foundDirs []valet.FilePath
-	var paths = []string{
+	var expectedPaths = []string{
 		"./testdata",
 		"./testdata/1",
 		"./testdata/1/reads",
@@ -56,10 +56,12 @@ var _ = Describe("FindFiles/IsDir)", func() {
 		"./testdata/testdir",
 	}
 
+	var foundDirs []valet.FilePath
+
 	BeforeEach(func() {
 		cancelCtx, _ := context.WithCancel(context.Background())
 		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
-			valet.IsDir, valet.IsIdentity)
+			valet.IsDir, valet.IsFalse)
 
 		for p := range paths {
 			foundDirs = append(foundDirs, p)
@@ -74,9 +76,9 @@ var _ = Describe("FindFiles/IsDir)", func() {
 
 	Context("when using a directory predicate", func() {
 		It("should find directories", func() {
-			Expect(len(foundDirs)).To(Equal(len(paths)))
+			Expect(len(foundDirs)).To(Equal(len(expectedPaths)))
 
-			for i, ep := range paths {
+			for i, ep := range expectedPaths {
 				a, err := filepath.Abs(ep)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -90,8 +92,7 @@ var _ = Describe("FindFiles/IsDir)", func() {
 })
 
 var _ = Describe("FindFiles/IsRegular)", func() {
-	var foundFiles []valet.FilePath
-	var paths = []string{
+	var expectedPaths = []string{
 		"./testdata/1/reads/fast5/reads1.fast5",
 		"./testdata/1/reads/fast5/reads1.fast5.md5",
 		"./testdata/1/reads/fast5/reads2.fast5",
@@ -103,10 +104,12 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 		"./testdata/testdir/.gitignore",
 	}
 
+	var foundFiles []valet.FilePath
+
 	BeforeEach(func() {
 		cancelCtx, _ := context.WithCancel(context.Background())
 		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
-			valet.IsRegular, valet.IsIdentity)
+			valet.IsRegular, valet.IsFalse)
 
 		for p := range paths {
 			foundFiles = append(foundFiles, p)
@@ -122,9 +125,9 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 	Context("when using a file predicate", func() {
 		It("should find files", func() {
 
-			Expect(len(foundFiles)).To(Equal(len(paths)))
+			Expect(len(foundFiles)).To(Equal(len(expectedPaths)))
 
-			for i, ep := range paths {
+			for i, ep := range expectedPaths {
 				a, err := filepath.Abs(ep)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -137,8 +140,63 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 	})
 })
 
+var _ = Describe("FindFiles/Prune)", func() {
+	var expectedPaths = []string{
+		"./testdata",
+		"./testdata/1",
+		"./testdata/testdir",
+	}
+
+	var foundDirs []valet.FilePath
+
+	pruneFn := func(pf valet.FilePath) (bool, error) {
+		pattern, err := filepath.Abs("./testdata/1/reads")
+		if err != nil {
+			return false, err
+		}
+
+		match, err := filepath.Match(pattern, pf.Location)
+		if err == nil && match {
+			return match, filepath.SkipDir
+		}
+
+		return match, err
+	}
+
+	BeforeEach(func() {
+		cancelCtx, _ := context.WithCancel(context.Background())
+		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
+			valet.IsDir, pruneFn)
+
+		for p := range paths {
+			foundDirs = append(foundDirs, p)
+		}
+
+		select {
+		case err := <-errs:
+			Expect(err).NotTo(HaveOccurred())
+		default:
+		}
+	})
+
+	Context("when using a prune function", func() {
+		It("should find paths, except those pruned", func() {
+			Expect(len(foundDirs)).To(Equal(len(expectedPaths)))
+
+			for i, ep := range expectedPaths {
+				a, err := filepath.Abs(ep)
+				Expect(err).NotTo(HaveOccurred())
+
+				fp, _ := valet.NewFilePath(a)
+
+				Expect(foundDirs[i].Location).To(Equal(fp.Location))
+				Expect(foundDirs[i].Info).ToNot(BeNil())
+			}
+		})
+	})
+})
+
 var _ = Describe("FindFilesInterval", func() {
-	var foundFiles []valet.FilePath
 	var expectedPaths = []string{
 		"./testdata/1/reads/fast5/reads1.fast5",
 		"./testdata/1/reads/fast5/reads1.fast5.md5",
@@ -150,12 +208,14 @@ var _ = Describe("FindFilesInterval", func() {
 		"./testdata/1/reads/fastq/reads3.fastq",
 	}
 
+	var foundFiles = map[string]bool{}
+
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
-		interval := 1 * time.Second
+		interval := 500 * time.Millisecond
 
-		paths, errs := valet.FindFilesInterval(cancelCtx,
-			"./testdata", valet.IsRegular, interval)
+		paths, errs := valet.FindFilesInterval(cancelCtx, "./testdata",
+			valet.IsRegular, valet.IsFalse, interval)
 
 		// Find files or timeout and cancel
 		done := make(chan bool, 2)
@@ -172,9 +232,9 @@ var _ = Describe("FindFilesInterval", func() {
 		go func() {
 			defer cancel()
 
+			foundFiles = make(map[string]bool) // FilePaths are not comparable
 			for p := range paths {
-				foundFiles = append(foundFiles, p)
-
+				foundFiles[p.Location] = true
 				if len(foundFiles) >= len(expectedPaths) {
 					done <- true // Find files
 					return
@@ -195,21 +255,16 @@ var _ = Describe("FindFilesInterval", func() {
 		It("should find files", func() {
 			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
 
-			for i, ep := range expectedPaths {
+			for _, ep := range expectedPaths {
 				a, err := filepath.Abs(ep)
 				Expect(err).NotTo(HaveOccurred())
-
-				fp, _ := valet.NewFilePath(a)
-
-				Expect(foundFiles[i].Location).To(Equal(fp.Location))
-				Expect(foundFiles[i].Info).ToNot(BeNil())
+				Expect(foundFiles[a]).To(BeTrue())
 			}
 		})
 	})
 })
 
 var _ = Describe("WatchFiles", func() {
-	var foundFiles []valet.FilePath
 	var expectedPaths = []string{
 		"./testdata/1/reads/fast5/reads1.fast5",
 		"./testdata/1/reads/fast5/reads2.fast5",
@@ -223,11 +278,13 @@ var _ = Describe("WatchFiles", func() {
 		"./testdata/1/reads/fastq/",
 	}
 
+	var foundFiles = map[string]bool{}
+
 	var tmpDir string
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
-		interval := 1 * time.Second
+		interval := 500 * time.Millisecond
 
 		td, terr := ioutil.TempDir("", "TestWatchFiles")
 		Expect(terr).NotTo(HaveOccurred())
@@ -238,7 +295,8 @@ var _ = Describe("WatchFiles", func() {
 		derr := mkdirAllRelative(tmpDir, expectedDirs)
 		Expect(derr).NotTo(HaveOccurred())
 
-		paths, errs := valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, nil)
+		paths, errs :=
+		 	valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, valet.IsFalse)
 
 		cerr := copyFilesRelative(tmpDir, expectedPaths, moveFile)
 		Expect(cerr).NotTo(HaveOccurred())
@@ -257,8 +315,9 @@ var _ = Describe("WatchFiles", func() {
 		go func() {
 			defer cancel()
 
+			foundFiles = make(map[string]bool) // FilePaths are not comparable
 			for p := range paths {
-				foundFiles = append(foundFiles, p)
+				foundFiles[p.Location] = true
 				if len(foundFiles) >= len(expectedPaths) {
 					done <- true // Detect files
 					return
@@ -279,13 +338,108 @@ var _ = Describe("WatchFiles", func() {
 		It("should find files", func() {
 			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
 
-			for i, ep := range expectedPaths {
+			for _, ep := range expectedPaths {
 				a := filepath.Join(tmpDir, ep)
+				Expect(foundFiles[a]).To(BeTrue())
+			}
+		})
+	})
+})
 
-				fp, _ := valet.NewFilePath(a)
+var _ = Describe("WatchFiles/Prune", func() {
+	var allPaths = []string{
+		"./testdata/1/reads/fast5/reads1.fast5",
+		"./testdata/1/reads/fast5/reads2.fast5",
+		"./testdata/1/reads/fast5/reads3.fast5",
+		"./testdata/1/reads/fastq/reads1.fastq",
+		"./testdata/1/reads/fastq/reads2.fastq",
+		"./testdata/1/reads/fastq/reads3.fastq",
+	}
+	var allDirs = []string{
+		"./testdata/1/reads/fast5/",
+		"./testdata/1/reads/fastq/",
+	}
 
-				Expect(foundFiles[i].Location).To(Equal(fp.Location))
-				Expect(foundFiles[i].Info).ToNot(BeNil())
+	var tmpDir string
+
+	expectedPaths := allPaths[:4]
+
+	var foundFiles = map[string]bool{}
+
+	pruneFn := func(pf valet.FilePath) (bool, error) {
+		pattern, err := filepath.Abs("./testdata/1/reads/fastq")
+		if err != nil {
+			return false, err
+		}
+
+		match, err := filepath.Match(pattern, pf.Location)
+		if err == nil && match {
+			fmt.Println(fmt.Sprintf("matched %s", pf.Location))
+			return match, filepath.SkipDir
+		}
+
+		return match, err
+	}
+
+	BeforeEach(func() {
+		cancelCtx, cancel := context.WithCancel(context.Background())
+		interval := 1 * time.Second
+
+		td, terr := ioutil.TempDir("", "TestWatchFiles")
+		Expect(terr).NotTo(HaveOccurred())
+		tmpDir = td
+		defer os.RemoveAll(tmpDir)
+
+		// Set up dirs to watch first
+		derr := mkdirAllRelative(tmpDir, allDirs)
+		Expect(derr).NotTo(HaveOccurred())
+
+		paths, errs :=
+			valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, pruneFn)
+
+		cerr := copyFilesRelative(tmpDir, allPaths, moveFile)
+		Expect(cerr).NotTo(HaveOccurred())
+
+		// Detect updated files or timeout and cancel
+		done := make(chan bool, 2)
+
+		go func() {
+			defer cancel()
+
+			timer := time.NewTimer(5 * interval)
+			<-timer.C
+			done <- true // Timeout
+		}()
+
+		go func() {
+			defer cancel()
+
+			foundFiles = make(map[string]bool)
+			for p := range paths {
+				foundFiles[p.Location] = true
+				if len(foundFiles) >= len(expectedPaths) {
+					done <- true // Detect files
+					return
+				}
+			}
+		}()
+
+		<-done
+
+		select {
+		case err := <-errs:
+			Expect(err).NotTo(HaveOccurred())
+		default:
+		}
+	})
+
+	Context("when using a file predicate", func() {
+		It("should find files", func() {
+			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
+
+			for _, ep := range expectedPaths {
+				a := filepath.Join(tmpDir, ep)
+				Expect(foundFiles[a]).To(BeTrue())
 			}
 		})
 	})

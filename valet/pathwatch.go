@@ -34,11 +34,12 @@ import (
 func WatchFiles(
 	cancelCtx context.Context,
 	root string,
-	pred FilePredicate) (<-chan FilePath, <-chan error) {
+	pred FilePredicate,
+	prune FilePredicate) (<-chan FilePath, <-chan error) {
 
 	paths, errs := make(chan FilePath), make(chan error, 1)
 
-	watcher, err := setupWatcher(root)
+	watcher, err := setupWatcher(root, prune)
 	if err != nil {
 		errs <- err
 		return paths, errs
@@ -68,7 +69,7 @@ func WatchFiles(
 				}
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					if ferr = handleCreateDir(p, watcher); ferr != nil {
+					if ferr = handleCreateDir(p, prune, watcher); ferr != nil {
 						return ferr
 					}
 				}
@@ -108,7 +109,8 @@ func WatchFiles(
 	return paths, errs
 }
 
-func setupWatcher(root string) (watcher *fsnotify.Watcher, err error) {
+func setupWatcher(root string,
+	prune FilePredicate) (watcher *fsnotify.Watcher, err error) {
 	if err := ensureIsDir(root); err != nil {
 		return nil, err
 	}
@@ -123,13 +125,20 @@ func setupWatcher(root string) (watcher *fsnotify.Watcher, err error) {
 	}
 
 	log := logf.GetLogger()
+	include := And(IsDir, Not(prune)) //////// FIXME
 
 	walkFn := func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 
-		if info.IsDir() {
+		fp := FilePath{FileResource{path}, info}
+		ok, err := include(fp)
+		if err != nil {
+			return err
+		}
+
+		if ok {
 			walkErr = watcher.Add(path)
 			if walkErr == nil {
 				log.Info().Str("path", path).Msg("added watcher")
@@ -159,14 +168,15 @@ func setupWatcher(root string) (watcher *fsnotify.Watcher, err error) {
 // There should be a predicate test for these paths, as for the files being
 // processed. Can we roll these into one, or should the tree-pruning predicate
 // be separate?
-func handleCreateDir(target FilePath, watcher *fsnotify.Watcher) error {
+func handleCreateDir(target FilePath, prune FilePredicate,
+	watcher *fsnotify.Watcher) error {
 
 	log := logf.GetLogger()
 	log.Debug().
 		Str("path", target.Location).
 		Str("op", "Create").Msg("handled event")
 
-	ok, err := IsDir(target)
+	ok, err := And(IsDir, Not(prune))(target)
 	if err != nil {
 		return err
 	}
