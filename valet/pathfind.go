@@ -70,6 +70,11 @@ func FindFiles(
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
+			if os.IsNotExist(err) {
+				log.Warn().Err(err).Msg("file was deleted")
+				return nil
+			}
+
 			return err
 		}
 
@@ -112,13 +117,13 @@ func FindFiles(
 			close(errs)
 		}()
 
-		root, err := filepath.Abs(root)
-		if err != nil {
-			errs <- err
+		root, rerr := filepath.Abs(root)
+		if rerr != nil {
+			errs <- rerr
 		} else {
-			err = filepath.Walk(root, walkFn)
-			if err != nil {
-				errs <- err
+			werr := filepath.Walk(root, walkFn)
+			if werr != nil {
+				errs <- werr
 			}
 		}
 	}()

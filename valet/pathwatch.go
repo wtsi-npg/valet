@@ -65,6 +65,11 @@ func WatchFiles(
 
 				p, ferr := NewFilePath(event.Name)
 				if ferr != nil {
+					if os.IsNotExist(ferr) {
+						log.Warn().Err(ferr).Msg("path deleted externally")
+						return nil
+					}
+
 					return ferr
 				}
 
@@ -164,21 +169,6 @@ func setupWatcher(root string,
 	return watcher, err
 }
 
-// TODO: Prune watched directories.
-//
-// This function currently adds directories to watch unconditionally. This is
-// not always what we want.
-//
-// Case in point: GridION
-//
-// If we watch /data (which is now where run data it written), we also watch
-// many irrelevant (and possibly dangerous) directories
-//
-// e.g. /data/intermediate, /data/queued_reads
-//
-// There should be a predicate test for these paths, as for the files being
-// processed. Can we roll these into one, or should the tree-pruning predicate
-// be separate?
 func handleCreateDir(target FilePath, prune FilePredicate,
 	watcher *fsnotify.Watcher) error {
 

@@ -25,7 +25,7 @@ import (
 	"os"
 	"regexp"
 
-	"valet/log/logfacade"
+	logf "valet/log/logfacade"
 )
 
 type FilePredicate func(path FilePath) (bool, error)
@@ -115,20 +115,22 @@ func IsFastqMatch(path FilePath) (bool, error) {
 // HasChecksumFile returns true if the argument has a corresponding checksum
 // file.
 func HasChecksumFile(path FilePath) (bool, error) {
-	if _, err := os.Stat(ChecksumFilename(path)); err == nil {
+	_, err := os.Stat(ChecksumFilename(path))
+	if err == nil {
 		return true, err
 	} else if os.IsNotExist(err) {
 		return false, nil
-	} else {
-		return false, err
 	}
+
+	return false, err
 }
 
 // HasStaleChecksumFile returns true if the argument has a checksum file with a
 // timestamp older than the argument file i.e. the argument file appears to
 // have been modified since the checksum file was last modified.
 //
-// If the argument has no checksum file, this function returns false.
+// If the argument path does not exist, or has no checksum file, this function
+// returns false.
 func HasStaleChecksumFile(path FilePath) (bool, error) {
 	chkInfo, err := os.Stat(ChecksumFilename(path))
 	if err != nil {
@@ -139,8 +141,16 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 		return false, err
 	}
 
+	if path.Info == nil {
+		path.Info, err = os.Stat(path.Location)
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
 	if path.Info.ModTime().After(chkInfo.ModTime()) {
-		logfacade.GetLogger().Debug().
+		logf.GetLogger().Debug().
 			Str("path", path.Location).
 			Time("data_time", path.Info.ModTime()).
 			Time("checksum_time", chkInfo.ModTime()).Msg("stale checksum")
