@@ -22,9 +22,12 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -89,16 +92,17 @@ func setupLogger(flags *cliFlags) logf.Logger {
 	}
 
 	// Choose a Zerolog logging backend
-	log := logz.New(os.Stderr, level)
-	writer := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	var writer io.Writer
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		writer = zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	} else {
+		writer = os.Stderr
+	}
 
-	// Synchronize writes to from the global logger
-	consoleLogger := log.Logger.Output(zerolog.SyncWriter(writer))
-	log.Logger = &consoleLogger
+	// Synchronize writes to the global logger
+	zlogger := logz.New(zerolog.SyncWriter(writer), level)
 
-	// consoleLogger.Level(zerolog.Disabled)
-
-	return logf.InstallLogger(log)
+	return logf.InstallLogger(zlogger)
 }
 
 func runValetCmd(cmd *cobra.Command, args []string) {

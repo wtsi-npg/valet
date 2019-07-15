@@ -10,4 +10,5 @@ require (
 	github.com/rs/zerolog v1.14.3
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0
+	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 )
