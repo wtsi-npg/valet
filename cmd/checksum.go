@@ -24,6 +24,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"syscall"
@@ -61,12 +62,16 @@ valet will then calculate the checksum and create or update the checksum file.
 
     - (data file name).md5
 `,
+	Example: `
+valet checksum --root /data --exclude /data/intermediate \
+    --exclude /data/queued_reads --exclude /data/reports \
+    --interval 20m --verbose`,
 	Run: runChecksumCmd,
 }
 
 func init() {
 	checksumCmd.Flags().StringVarP(&allCliFlags.rootDir, "root",
-		"r", "", "the root directory of the search")
+		"r", "", "the root directory of the monitor")
 	err := checksumCmd.MarkFlagRequired("root")
 	if err != nil {
 		logf.GetLogger().Error().
@@ -81,7 +86,7 @@ func init() {
 		"dry-run (make no changes)")
 
 	checksumCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs, "exclude",
-		[]string{}, "regular expressions to match directories to prune " +
+		[]string{}, "patterns matching directories to prune " +
 		"from both monitoring and interval sweeps")
 
 	valetCmd.AddCommand(checksumCmd)
@@ -98,7 +103,8 @@ func runChecksumCmd(cmd *cobra.Command, args []string) {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
 
-	pruneFn, err := makePruneFn(allCliFlags.excludeDirs)
+	// pruneFn, err := makeRegexPruneFn(allCliFlags.excludeDirs)
+	pruneFn, err := makeGlobPruneFn(allCliFlags.excludeDirs)
 	if err != nil {
 		log.Error().Err(err).Msg("error in exclusion patterns")
 		os.Exit(1)
@@ -159,7 +165,7 @@ func setupSignalHandler(cancel context.CancelFunc) {
 	}()
 }
 
-func makePruneFn(patterns []string) (valet.FilePredicate, error) {
+func makeRegexPruneFn(patterns []string) (valet.FilePredicate, error) {
 	log := logf.GetLogger()
 
 	var regexes []*regexp.Regexp
@@ -180,12 +186,40 @@ func makePruneFn(patterns []string) (valet.FilePredicate, error) {
 	return func(fp valet.FilePath) (bool, error) {
 		for _, regex := range regexes {
 			if regex.MatchString(fp.Location) {
-				log.Info().Str("path", fp.Location).Msg("pruning path")
-				return true, nil
+				log.Debug().
+					Str("path", fp.Location).
+					Msg("match path for pruning")
+				return true, filepath.SkipDir // return SkipDir to cause walk to skip
 			}
 		}
+		return false, nil
+	}, nil
+}
 
-		log.Debug().Str("path", fp.Location).Msg("not pruning path")
+func makeGlobPruneFn(patterns []string) (valet.FilePredicate, error) {
+	log := logf.GetLogger()
+
+	for _, pattern := range patterns {
+		if _, err := filepath.Match(pattern, "."); err != nil {
+			return nil, err
+		}
+	}
+
+	return func(fp valet.FilePath) (bool, error) {
+		for _, pattern := range patterns {
+			match, err := filepath.Match(pattern, fp.Location)
+			if err != nil {
+				log.Error().Err(err).Msg("invalid match pattern")
+				continue
+			}
+
+			if match {
+				log.Debug().
+					Str("path", fp.Location).
+					Msg("matched path for pruning")
+				return true, filepath.SkipDir // return SkipDir to cause walk to skip
+			}
+		}
 		return false, nil
 	}, nil
 }
