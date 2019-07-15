@@ -125,7 +125,18 @@ func setupWatcher(root string,
 	}
 
 	log := logf.GetLogger()
-	include := And(IsDir, Not(prune)) //////// FIXME
+
+	// Pruning/skipping in go works by throwing the special error SkipDir, This
+	// means that the main return value of the prune predicate is ignored.
+	// Therefore we can say
+	//
+	// include := And(IsDir, prune)
+	//
+	// or
+	//
+	// include := And(IsDir, Not(prune))
+	//
+	include := And(IsDir, Not(prune))
 
 	walkFn := func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
