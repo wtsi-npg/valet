@@ -107,16 +107,17 @@ func TestHasStaleChecksumFile(t *testing.T) {
 		filepath.Join(tmpDir, "reads1.fast5"),
 		filepath.Join(tmpDir, "reads1.fast5.md5")
 
-	// First write the checkum file
+	// First write the checksum file
 	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5.md5",
 		checkSumFile, 0600)
 	assert.NoError(t, err)
 
 	time.Sleep(1 * time.Second)
 
-	// Then write a newer reads file
+	// Then update with a newer reads file
 	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5",
 		dataFile, 0600)
+	assert.NoError(t, err)
 
 	f5With, _ := NewFilePath(dataFile)
 	ok, err := HasChecksumFile(f5With)

@@ -31,6 +31,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"valet/cmd"
 	"valet/utilities"
 	"valet/valet"
 
@@ -59,7 +60,7 @@ var _ = Describe("FindFiles/IsDir)", func() {
 	var foundDirs []valet.FilePath
 
 	BeforeEach(func() {
-		cancelCtx, _ := context.WithCancel(context.Background())
+		cancelCtx, cancel := context.WithCancel(context.Background())
 		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
 			valet.IsDir, valet.IsFalse)
 
@@ -72,6 +73,8 @@ var _ = Describe("FindFiles/IsDir)", func() {
 			Expect(err).NotTo(HaveOccurred())
 		default:
 		}
+
+		cancel()
 	})
 
 	Context("when using a directory predicate", func() {
@@ -107,7 +110,7 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 	var foundFiles []valet.FilePath
 
 	BeforeEach(func() {
-		cancelCtx, _ := context.WithCancel(context.Background())
+		cancelCtx, cancel := context.WithCancel(context.Background())
 		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
 			valet.IsRegular, valet.IsFalse)
 
@@ -120,6 +123,8 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 			Expect(err).NotTo(HaveOccurred())
 		default:
 		}
+
+		cancel()
 	})
 
 	Context("when using a file predicate", func() {
@@ -164,7 +169,7 @@ var _ = Describe("FindFiles/Prune)", func() {
 	}
 
 	BeforeEach(func() {
-		cancelCtx, _ := context.WithCancel(context.Background())
+		cancelCtx, cancel := context.WithCancel(context.Background())
 		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
 			valet.IsDir, pruneFn)
 
@@ -177,6 +182,8 @@ var _ = Describe("FindFiles/Prune)", func() {
 			Expect(err).NotTo(HaveOccurred())
 		default:
 		}
+
+		cancel()
 	})
 
 	Context("when using a prune function", func() {
@@ -226,7 +233,6 @@ var _ = Describe("FindFilesInterval", func() {
 			timer := time.NewTimer(5 * interval)
 			<-timer.C
 			done <- true // Timeout
-			return
 		}()
 
 		go func() {
@@ -441,6 +447,23 @@ var _ = Describe("WatchFiles/Prune", func() {
 				a := filepath.Join(tmpDir, ep)
 				Expect(foundFiles[a]).To(BeTrue())
 			}
+		})
+	})
+})
+
+var _ = Describe("CountFilesWithoutChecksum", func() {
+	var numFilesFound uint64
+	var numFilesExpected uint64 = 4
+
+	BeforeEach(func() {
+		n, err := cmd.CountFilesWithoutChecksum("./testdata", []string{})
+		Expect(err).NotTo(HaveOccurred())
+		numFilesFound = n
+	})
+
+	Context("when there are data files without checksum files", func() {
+		It("should count those files", func() {
+			Expect(numFilesFound).Should(Equal(numFilesExpected))
 		})
 	})
 })
