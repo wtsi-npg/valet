@@ -86,8 +86,8 @@ func init() {
 		"dry-run (make no changes)")
 
 	checksumCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs, "exclude",
-		[]string{}, "patterns matching directories to prune " +
-		"from both monitoring and interval sweeps")
+		[]string{}, "patterns matching directories to prune "+
+			"from both monitoring and interval sweeps")
 
 	valetCmd.AddCommand(checksumCmd)
 }
@@ -224,7 +224,9 @@ func makeGlobPruneFn(patterns []string) (valet.FilePredicate, error) {
 	}, nil
 }
 
-func mergeFileChannels(x <-chan valet.FilePath, y <-chan valet.FilePath) chan valet.FilePath {
+func mergeFileChannels(
+	x <-chan valet.FilePath,
+	y <-chan valet.FilePath) chan valet.FilePath {
 	merged := make(chan valet.FilePath)
 
 	log := logf.GetLogger()
@@ -232,8 +234,7 @@ func mergeFileChannels(x <-chan valet.FilePath, y <-chan valet.FilePath) chan va
 	go func() {
 		defer close(merged)
 
-		xOpen, yOpen := true, true
-		for xOpen || yOpen {
+		for x != nil || y != nil {
 			select {
 			case p, ok := <-x:
 				if ok {
@@ -241,7 +242,6 @@ func mergeFileChannels(x <-chan valet.FilePath, y <-chan valet.FilePath) chan va
 					merged <- p
 				} else {
 					log.Debug().Msg("x was closed")
-					xOpen = false
 					x = nil
 				}
 
@@ -251,7 +251,6 @@ func mergeFileChannels(x <-chan valet.FilePath, y <-chan valet.FilePath) chan va
 					merged <- p
 				} else {
 					log.Debug().Msg("y was closed")
-					yOpen = false
 					y = nil
 				}
 			}
@@ -267,21 +266,20 @@ func mergeErrorChannels(x <-chan error, y <-chan error) chan error {
 	go func() {
 		defer close(merged)
 
-		xOpen, yOpen := true, true
-		for xOpen || yOpen {
+		for x != nil || y != nil {
 			select {
 			case p, ok := <-x:
 				if ok {
 					merged <- p
 				} else {
-					xOpen = false
+					x = nil
 				}
 
 			case p, ok := <-y:
 				if ok {
 					merged <- p
 				} else {
-					yOpen = false
+					y = nil
 				}
 			}
 		}
