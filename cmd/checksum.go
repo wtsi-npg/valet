@@ -21,18 +21,12 @@
 package cmd
 
 import (
-	"context"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"regexp"
-	"sync"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
 	logf "valet/log/logfacade"
-	"valet/utilities"
 	"valet/valet"
 )
 
@@ -41,130 +35,27 @@ const minSweep = 30 * time.Second
 
 var checksumCmd = &cobra.Command{
 	Use:   "checksum",
-	Short: "Record checksums under a root directory",
+	Short: "Manage checksum files under a root directory",
 	Long: `
-valet checksum will monitor a directory hierarchy and locate data files within it
-that have no accompanying checksum file, or have a checksum file that is stale.
-valet will then calculate the checksum and create or update the checksum file.
-
-- Creating up-to-date checksum files
-  
-  - Directory hierarchy styles supported
-
-    - Any
-  
-  - File patterns supported
-
-    - *.fast5$
-    - *.fastq$
-
-  - Checksum file patterns supported
-
-    - (data file name).md5
+valet checksum provides commands to manage checksum files that accompany data
+files.
 `,
-	Example: `
-valet checksum --root /data --exclude /data/intermediate \
-    --exclude /data/queued_reads --exclude /data/reports \
-    --interval 20m --verbose`,
 	Run: runChecksumCmd,
 }
 
 func init() {
-	checksumCmd.Flags().StringVarP(&allCliFlags.rootDir, "root",
-		"r", "", "the root directory of the monitor")
-	err := checksumCmd.MarkFlagRequired("root")
-	if err != nil {
-		logf.GetLogger().Error().
-			Err(err).Msg("failed to mark --root required")
-		os.Exit(1)
-	}
-
-	checksumCmd.Flags().DurationVarP(&allCliFlags.sweepInterval, "interval",
-		"i", defaultSweep, "directory sweep interval, minimum 30s")
-
-	checksumCmd.Flags().BoolVar(&allCliFlags.dryRun, "dry-run", false,
-		"dry-run (make no changes)")
-
-	checksumCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs, "exclude",
-		[]string{}, "patterns matching directories to prune "+
-			"from both monitoring and interval sweeps")
-
+	setupLogger(allCliFlags)
 	valetCmd.AddCommand(checksumCmd)
 }
 
 func runChecksumCmd(cmd *cobra.Command, args []string) {
-	log := setupLogger(allCliFlags)
-	root := allCliFlags.rootDir
-	interval := allCliFlags.sweepInterval
-	pred := valet.RequiresChecksum
-	maxProc := allCliFlags.maxProc
-	dryRun := allCliFlags.dryRun
-
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	setupSignalHandler(cancel)
-
-	// pruneFn, err := makeRegexPruneFn(allCliFlags.excludeDirs)
-	pruneFn, err := makeGlobPruneFn(allCliFlags.excludeDirs)
-	if err != nil {
-		log.Error().Err(err).Msg("error in exclusion patterns")
+	if err := cmd.Help(); err != nil {
+		logf.GetLogger().Error().Err(err).Msg("help command failed")
 		os.Exit(1)
 	}
-
-	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred, pruneFn)
-	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn, interval)
-	mpaths := mergeFileChannels(wpaths, fpaths)
-	errs := mergeErrorChannels(werrs, ferrs)
-
-	var workFn valet.WorkFunc
-	if dryRun {
-		workFn = valet.DoNothing
-	} else {
-		workFn = valet.CreateOrUpdateMD5ChecksumFile
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		err := valet.ProcessFiles(mpaths, workFn, maxProc)
-		if err != nil {
-			log.Error().Err(err).Msg("failed processing")
-			os.Exit(1)
-		}
-	}()
-
-	if err := <-errs; err != nil {
-		log.Error().Err(err).Msg("failed to complete processing")
-		os.Exit(1)
-	}
-
-	wg.Wait()
 }
 
-func setupSignalHandler(cancel context.CancelFunc) {
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		s := <-signals
-		log := logf.GetLogger()
-
-		switch s {
-		case syscall.SIGINT:
-			log.Info().Msg("got SIGINT, shutting down")
-			cancel()
-		case syscall.SIGTERM:
-			log.Info().Msg("got SIGTERM, shutting down")
-			cancel()
-		default:
-			log.Error().Str("signal", s.String()).
-				Msg("got unexpected signal, exiting")
-			os.Exit(1)
-		}
-	}()
-}
-
+/*
 func makeRegexPruneFn(patterns []string) (valet.FilePredicate, error) {
 	log := logf.GetLogger()
 
@@ -195,6 +86,7 @@ func makeRegexPruneFn(patterns []string) (valet.FilePredicate, error) {
 		return false, nil
 	}, nil
 }
+*/
 
 func makeGlobPruneFn(patterns []string) (valet.FilePredicate, error) {
 	log := logf.GetLogger()

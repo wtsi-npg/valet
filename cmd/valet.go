@@ -21,10 +21,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -69,16 +72,24 @@ func Execute() {
 }
 
 func init() {
-	valetCmd.PersistentFlags().BoolVar(&allCliFlags.debug, "debug",
-		false,
+	defaultMaxProc := utilities.Abs(runtime.GOMAXPROCS(runtime.NumCPU()))
+
+	valetCmd.PersistentFlags().BoolVar(&allCliFlags.debug,
+		"debug", false,
 		"enable debug output")
-	valetCmd.PersistentFlags().BoolVar(&allCliFlags.verbose, "verbose",
-		false,
+	valetCmd.PersistentFlags().BoolVar(&allCliFlags.verbose,
+		"verbose", false,
 		"enable verbose output")
-	valetCmd.PersistentFlags().IntVarP(&allCliFlags.maxProc, "max-proc",
-		"m",
-		utilities.Abs(runtime.GOMAXPROCS(runtime.NumCPU())),
+	valetCmd.PersistentFlags().IntVarP(&allCliFlags.maxProc,
+		"max-proc", "m", defaultMaxProc,
 		"set the maximum number of processes to use")
+}
+
+func runValetCmd(cmd *cobra.Command, args []string) {
+	if err := cmd.Help(); err != nil {
+		logf.GetLogger().Error().Err(err).Msg("help command failed")
+		os.Exit(1)
+	}
 }
 
 func setupLogger(flags *cliFlags) logf.Logger {
@@ -105,9 +116,24 @@ func setupLogger(flags *cliFlags) logf.Logger {
 	return logf.InstallLogger(zlogger)
 }
 
-func runValetCmd(cmd *cobra.Command, args []string) {
-	if err := cmd.Help(); err != nil {
-		logf.GetLogger().Error().Err(err).Msg("help command failed")
-		os.Exit(1)
-	}
+func setupSignalHandler(cancel context.CancelFunc) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		s := <-signals
+		log := logf.GetLogger()
+
+		switch s {
+		case syscall.SIGINT:
+			log.Info().Msg("got SIGINT, shutting down")
+			cancel()
+		case syscall.SIGTERM:
+			log.Info().Msg("got SIGTERM, shutting down")
+			cancel()
+		default:
+			log.Error().Str("signal", s.String()).
+				Msg("got unexpected signal, exiting")
+			os.Exit(1)
+		}
+	}()
 }
