@@ -35,7 +35,7 @@ type levelName string
 const (
 	errorLevel  levelName = "ERROR"
 	warnLevel   levelName = "WARN"
-	noticeLevel levelName = "NOTICE"
+	// noticeLevel levelName = "NOTICE"
 	infoLevel   levelName = "INFO"
 	debugLevel  levelName = "DEBUG"
 )
