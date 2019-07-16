@@ -1,7 +1,7 @@
 VERSION := $(shell git describe --always --tags --dirty)
 ldflags := "-X valet/valet.Version=${VERSION}"
 
-.PHONY: build clean install lint test
+.PHONY: build install lint test check clean
 
 all: build
 
@@ -15,8 +15,11 @@ build:
 lint:
 	golangci-lint run ./...
 
+check: test
+
 test:
-	go test -v ./...
+	go test -coverprofile=coverage.out -race -v ./...
+#	go tool cover -func=coverage.out
 
 clean:
 	go clean

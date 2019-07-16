@@ -59,23 +59,7 @@ func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
 	}
 
 	if ok {
-		log.Info().Str("path", path.Location).
-			Msg("detected stale MD5 file")
-
-		if rerr := RemoveMD5ChecksumFile(path); rerr != nil {
-			return err
-		}
-		log.Info().Str("path", path.Location).
-			Msg("removed stale MD5 file")
-
-		if cerr := CreateMD5ChecksumFile(path); cerr != nil {
-			log.Error().Err(cerr).
-				Str("path", path.Location).
-				Msg("failed to create a new MD5 file")
-			return cerr
-		}
-
-		return nil
+		return UpdateMD5ChecksumFile(path)
 	}
 
 	ok, err = HasChecksumFile(path)
@@ -93,9 +77,9 @@ func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
 	return nil
 }
 
-// CreateMD5ChecksumFile calculates a checksum for the file at path and writes
-// it to a new checksum file as a hex-encoded string. It raises an error if the
-// checksum file already exists.
+// CreateMD5ChecksumFile calculates a checksum file for the data file at path
+// with contents as a hex-encoded string. It raises an error if the checksum
+// file already exists.
 func CreateMD5ChecksumFile(path FilePath) error {
 	md5sum, err := CalculateFileMD5(path)
 	if err != nil {
@@ -103,6 +87,27 @@ func CreateMD5ChecksumFile(path FilePath) error {
 	}
 
 	return createMD5File(ChecksumFilename(path), md5sum)
+}
+
+// UpdateMD5ChecksumFile removes the existing checksum file, if it exists and
+// creates a new one.
+func UpdateMD5ChecksumFile(path FilePath) error {
+	log := logf.GetLogger()
+
+	if rerr := RemoveMD5ChecksumFile(path); rerr != nil {
+		return rerr
+	}
+	log.Info().Str("path", path.Location).
+		Msg("removed stale MD5 file")
+
+	if cerr := CreateMD5ChecksumFile(path); cerr != nil {
+		log.Error().Err(cerr).
+			Str("path", path.Location).
+			Msg("failed to create a new MD5 file")
+		return cerr
+	}
+
+	return nil
 }
 
 // RemoveMD5ChecksumFile removes the MD5 checksum file corresponding to path.

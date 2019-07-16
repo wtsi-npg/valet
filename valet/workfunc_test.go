@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @file workfunc.go
+ * @file workfunc_test.go
  * @author Keith James <kdj@sanger.ac.uk>
  */
 
@@ -22,12 +22,16 @@ package valet
 
 import (
 	"encoding/hex"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	logf "valet/log/logfacade"
 	logs "valet/log/slog"
+	"valet/utilities"
 )
 
 func init() {
@@ -36,30 +40,73 @@ func init() {
 }
 
 func TestDoNothing(t *testing.T) {
-	t.Skip("TODO")
-}
-
-func TestCreateOrUpdateMD5ChecksumFile(t *testing.T) {
-	t.Skip("TODO")
+	path, _ := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
+	assert.NoError(t, DoNothing(path))
 }
 
 func TestCreateMD5ChecksumFile(t *testing.T) {
-	t.Skip("TODO")
+	tmpDir, err := ioutil.TempDir("", "TestCreateMD5ChecksumFile")
+	defer os.RemoveAll(tmpDir)
+	assert.NoError(t, err)
+
+	dataFile, checkSumFile :=
+		filepath.Join(tmpDir, "reads1.fast5"),
+		filepath.Join(tmpDir, "reads1.fast5.md5")
+
+	// First write the data file
+	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5",
+		dataFile, 0600)
+	assert.NoError(t, err)
+
+	time.Sleep(1 * time.Second)
+
+	path, _ := NewFilePath(dataFile)
+	err = CreateMD5ChecksumFile(path)
+
+	if assert.NoError(t, err) {
+		assert.FileExists(t, checkSumFile)
+	}
 }
 
 func TestRemoveMD5ChecksumFile(t *testing.T) {
-	t.Skip("TODO")
+	tmpDir, err := ioutil.TempDir("", "TestCreateMD5ChecksumFile")
+	defer os.RemoveAll(tmpDir)
+	assert.NoError(t, err)
+
+	dataFile, checkSumFile :=
+		filepath.Join(tmpDir, "reads1.fast5"),
+		filepath.Join(tmpDir, "reads1.fast5.md5")
+
+	// First write the filea
+	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5",
+		dataFile, 0600)
+	assert.NoError(t, err)
+	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5.md5",
+		checkSumFile, 0600)
+	assert.NoError(t, err)
+
+	time.Sleep(1 * time.Second)
+
+	path, _ := NewFilePath(dataFile)
+	err = RemoveMD5ChecksumFile(path)
+
+	if assert.NoError(t, err) {
+		assert.FileExists(t, dataFile)
+
+		_, err := os.Lstat(checkSumFile)
+		assert.Error(t, err)
+		assert.True(t, os.IsNotExist(err))
+	}
 }
 
 func TestCalculateFileMD5(t *testing.T) {
-	file, ferr := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
-	assert.NoError(t, ferr, "expected to create file path")
+	path, _ := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
 
-	md5sum, err := CalculateFileMD5(file)
-	encoded := make([]byte, hex.EncodedLen(len(md5sum)))
-	hex.Encode(encoded, md5sum)
+	md5sum, err := CalculateFileMD5(path)
 
 	if assert.NoError(t, err) {
+		encoded := make([]byte, hex.EncodedLen(len(md5sum)))
+		hex.Encode(encoded, md5sum)
 		assert.Equal(t, string(encoded), "5c9597f3c8245907ea71a89d9d39d08e")
 	}
 }
