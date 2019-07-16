@@ -22,7 +22,6 @@ package valet
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -55,9 +54,18 @@ func NewFilePath(path string) (FilePath, error) {
 	return fp, err
 }
 
-// FindFiles walks the directory tree under root, applying pred to each path
-// found. When pred returns true, the path is sent to the paths channel. Any
-// error is sent to the errs channel.
+// FindFiles walks the directory tree under root recursively, except into
+// directories where pruneFn returns filepath.SkipDir, which prunes the
+// directory traversal at that point.
+//
+// Files encountered are reported to the caller on the first returned (output)
+// channel and any errors on the second (error) channel. Files are filtered by
+// testing with the predicate pred; only where the predicate returns true are
+// the files sent to the channel.
+//
+// The walking goroutine will continue to run until the directory tree is
+// fully traversed, or the cancel function of cancelCtx is called. Either will
+// close the output and error channels and exit the goroutine cleanly.
 func FindFiles(
 	ctx context.Context,
 	root string,
@@ -173,10 +181,4 @@ func FindFilesInterval(
 	}()
 
 	return paths, errs
-}
-
-// ChecksumFilename returns the expected path of the checksum file
-// corresponding to the argument
-func ChecksumFilename(path FilePath) string {
-	return fmt.Sprintf("%s.%s", path.Location, MD5Suffix)
 }

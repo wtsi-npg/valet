@@ -20,4 +20,5 @@
 
 package valet
 
+// Version is the valet version reported by the --version CLI option.
 var Version string

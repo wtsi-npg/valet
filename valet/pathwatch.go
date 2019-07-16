@@ -31,15 +31,30 @@ import (
 	"valet/utilities"
 )
 
+// WatchFiles reports filesystem events on the directories below root. Watches
+// are set up recursively on every directory, except those for which pruneFn
+// returns filepath.SkipDir, which prunes the directory traversal at that
+// point. WatchFiles uses an internal event handler to add watches to any new
+// directories added to the tree while is is operating, except those pruned as
+// described.
+//
+// Events on files are reported to the caller on the first returned (output)
+// channel and any errors on the second (error) channel. Events are filtered by
+// testing the event file with the predicate pred; only where the predicate
+// returns true are the events sent to the channel.
+//
+// The watching goroutine will continue to run until the cancel function of
+// cancelCtx is called. This will close the output and error channels and exit
+// the goroutine cleanly.
 func WatchFiles(
 	cancelCtx context.Context,
 	root string,
 	pred FilePredicate,
-	prune FilePredicate) (<-chan FilePath, <-chan error) {
+	pruneFn FilePredicate) (<-chan FilePath, <-chan error) {
 
 	paths, errs := make(chan FilePath), make(chan error, 1)
 
-	watcher, err := setupWatcher(root, prune)
+	watcher, err := setupWatcher(root, pruneFn)
 	if err != nil {
 		errs <- err
 		return paths, errs
@@ -74,7 +89,7 @@ func WatchFiles(
 				}
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					if ferr = handleCreateDir(p, prune, watcher); ferr != nil {
+					if ferr = handleCreateDir(p, pruneFn, watcher); ferr != nil {
 						return ferr
 					}
 				}
