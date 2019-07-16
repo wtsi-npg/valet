@@ -139,6 +139,9 @@ func FindFiles(
 	return paths, errs
 }
 
+// FindFilesInterval executes FindFiles every interval seconds. Aside from
+// having the additional intervals parameter, it behaves in the same way as
+// FindFiles.
 func FindFilesInterval(
 	ctx context.Context,
 	root string, pred FilePredicate,

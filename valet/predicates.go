@@ -37,6 +37,9 @@ const MD5Suffix string = "md5"     // The recognised suffix for MD5 checksum fil
 var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
 var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
 
+// RequiresChecksum returns true if the argument is a regular file that is
+// recognised as a checksum target and either has no checksum file, or has a
+// checksum file that is stale.
 var RequiresChecksum = And(
 	IsRegular,
 	Or(IsFast5Match, IsFastqMatch),
