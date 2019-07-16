@@ -52,16 +52,32 @@ func IsFalse(path FilePath) (bool, error) {
 	return false, nil
 }
 
-// IsDir returns true if the argument is a directory.
+// IsDir returns true if the argument is a directory (by os.Stat).
 func IsDir(path FilePath) (bool, error) {
+	if path.Info == nil {
+		if info, err := os.Stat(path.Location); err != nil {
+			return false, err
+		} else {
+			path.Info = info
+		}
+	}
 	return path.Info.IsDir(), nil
 }
 
 // IsRegular returns true if the argument is a regular file (by os.Stat).
 func IsRegular(path FilePath) (bool, error) {
+	if path.Info == nil {
+		if info, err := os.Stat(path.Location); err != nil {
+			return false, err
+		} else {
+			path.Info = info
+		}
+	}
 	return path.Info.Mode().IsRegular(), nil
 }
 
+// And returns a predicate that returns true if all its arguments return true,
+// or returns false otherwise.
 func And(predicates ...FilePredicate) FilePredicate {
 	return func(path FilePath) (bool, error) {
 		for _, p := range predicates {
@@ -76,6 +92,8 @@ func And(predicates ...FilePredicate) FilePredicate {
 	}
 }
 
+// And returns a predicate that returns true if any of its arguments return
+// true, or returns false otherwise.
 func Or(predicates ...FilePredicate) FilePredicate {
 	return func(path FilePath) (bool, error) {
 		for _, p := range predicates {
@@ -90,6 +108,8 @@ func Or(predicates ...FilePredicate) FilePredicate {
 	}
 }
 
+// Not returns a predicate that returns true if its argument returns false, or
+// returns false otherwise.
 func Not(predicate FilePredicate) FilePredicate {
 	return func(path FilePath) (bool, error) {
 		val, err := predicate(path)
@@ -158,4 +178,10 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// ChecksumFilename returns the expected path of the checksum file
+// corresponding to the argument
+func ChecksumFilename(path FilePath) string {
+	return fmt.Sprintf("%s.%s", path.Location, MD5Suffix)
 }
