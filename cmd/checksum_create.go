@@ -91,7 +91,7 @@ func init() {
 }
 
 func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
-	log := logf.GetLogger()
+	log := setupLogger(allCliFlags)
 	root := allCliFlags.rootDir
 	exclude := allCliFlags.excludeDirs
 	interval := allCliFlags.sweepInterval

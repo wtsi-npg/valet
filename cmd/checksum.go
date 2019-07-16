@@ -44,7 +44,6 @@ files.
 }
 
 func init() {
-	setupLogger(allCliFlags)
 	valetCmd.AddCommand(checksumCmd)
 }
 
