@@ -100,7 +100,7 @@ var installOnce sync.Once
 
 func InstallLogger(lg Logger) Logger {
 	installOnce.Do(func() {
-		lg.Info().Msgf("installing %s as global logger", lg.Name())
+		lg.Debug().Msgf("installing %s as global logger", lg.Name())
 		logger = lg
 	})
 	return GetLogger()
