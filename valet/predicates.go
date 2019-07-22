@@ -58,11 +58,11 @@ func IsFalse(path FilePath) (bool, error) {
 // IsDir returns true if the argument is a directory (by os.Stat).
 func IsDir(path FilePath) (bool, error) {
 	if path.Info == nil {
-		if info, err := os.Stat(path.Location); err != nil {
+		info, err := os.Stat(path.Location)
+		if err != nil {
 			return false, err
-		} else {
-			path.Info = info
 		}
+		path.Info = info
 	}
 	return path.Info.IsDir(), nil
 }
@@ -70,11 +70,11 @@ func IsDir(path FilePath) (bool, error) {
 // IsRegular returns true if the argument is a regular file (by os.Stat).
 func IsRegular(path FilePath) (bool, error) {
 	if path.Info == nil {
-		if info, err := os.Stat(path.Location); err != nil {
+		info, err := os.Stat(path.Location)
+		if err != nil {
 			return false, err
-		} else {
-			path.Info = info
 		}
+		path.Info = info
 	}
 	return path.Info.Mode().IsRegular(), nil
 }

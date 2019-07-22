@@ -23,6 +23,7 @@ package cmd
 import (
 	"context"
 	"os"
+	"sync/atomic"
 
 	"github.com/spf13/cobra"
 	logf "valet/log/logfacade"
@@ -89,7 +90,7 @@ func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 	setupSignalHandler(cancel)
 	log := logf.GetLogger()
 
-	var numWithoutChecksum uint64 = 0
+	var numWithoutChecksum uint64
 	var err error
 
 	pred := valet.RequiresChecksum
@@ -100,14 +101,33 @@ func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 	}
 
 	paths, errs := valet.FindFiles(cancelCtx, root, pred, pruneFn)
-	for path := range paths {
-		log.Warn().Str("path", path.Location).Msg("without checksum file")
-		numWithoutChecksum++
+
+	countFunc := func(path valet.FilePath) error {
+		log.Warn().Str("path", path.Location).Msg("missing checksum")
+		atomic.AddUint64(&numWithoutChecksum, 1)
+		return nil
 	}
 
-	if err = <-errs; err != nil {
+	maxProcs := 1
+	done := make(chan bool)
+
+	go func() {
+		defer func() { done <- true }()
+
+		err := valet.ProcessFiles(paths,
+			valet.ChecksumStateWorkPlan(countFunc), maxProcs)
+		if err != nil {
+			log.Error().Err(err).Msg("failed processing")
+			os.Exit(1)
+		}
+	}()
+
+	<-done
+
+	if err := <-errs; err != nil {
 		log.Error().Err(err).Msg("failed to complete processing")
+		os.Exit(1)
 	}
 
-	return numWithoutChecksum, err
+	return atomic.LoadUint64(&numWithoutChecksum), err
 }

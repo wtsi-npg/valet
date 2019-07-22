@@ -302,7 +302,7 @@ var _ = Describe("WatchFiles", func() {
 		Expect(derr).NotTo(HaveOccurred())
 
 		paths, errs :=
-		 	valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, valet.IsFalse)
+			valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, valet.IsFalse)
 
 		cerr := copyFilesRelative(tmpDir, expectedPaths, moveFile)
 		Expect(cerr).NotTo(HaveOccurred())

@@ -33,7 +33,7 @@ type semaphore chan token
 
 // ProcessFiles operates by applying workFunc to each FilePath in the paths
 // channel. An error is raised if any workFunc itself encounters an error.
-func ProcessFiles(paths <-chan FilePath, workFunc WorkFunc, maxThreads int) error {
+func ProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) error {
 	var wg sync.WaitGroup
 	var jobCounter uint64
 	var errCounter uint64
@@ -54,15 +54,26 @@ func ProcessFiles(paths <-chan FilePath, workFunc WorkFunc, maxThreads int) erro
 			atomic.AddUint64(&jobCounter, 1)
 			log.Info().Str("path", p.Location).Msg("working on")
 
-			err := workFunc(p)
-			if err != nil {
-				log.Error().Err(err).
+			work, derr := DispatchWork(p, workPlan)
+			if derr != nil {
+				log.Error().Err(derr).
+					Str("path", p.Location).
+					Msg("work dispatch failed")
+				atomic.AddUint64(&errCounter, 1)
+				return
+			}
+
+			werr := work.WorkFunc(p)
+			if werr != nil {
+				log.Error().Err(werr).
 					Str("path", p.Location).
 					Msg("worker function failed")
 				atomic.AddUint64(&errCounter, 1)
 			}
 		}(path)
 	}
+
+	wg.Wait()
 
 	jobCount := atomic.LoadUint64(&jobCounter)
 	errCount := atomic.LoadUint64(&errCounter)

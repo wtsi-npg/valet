@@ -23,7 +23,6 @@ package cmd
 import (
 	"context"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -124,24 +123,24 @@ func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 	}
 
 	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred, pruneFn)
-	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn, interval)
+	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn,
+		interval)
 	mpaths := mergeFileChannels(wpaths, fpaths)
 	errs := mergeErrorChannels(werrs, ferrs)
 
-	var workFn valet.WorkFunc
+	var workPlan valet.WorkPlan
 	if dryRun {
-		workFn = valet.DoNothing
+		workPlan = valet.DryRunWorkPlan()
 	} else {
-		workFn = valet.CreateOrUpdateMD5ChecksumFile
+		workPlan = valet.CreateChecksumWorkPlan()
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	done := make(chan bool)
 
 	go func() {
-		defer wg.Done()
+		defer func() { done <- true }()
 
-		err := valet.ProcessFiles(mpaths, workFn, maxProc)
+		err := valet.ProcessFiles(mpaths, workPlan, maxProc)
 		if err != nil {
 			log.Error().Err(err).Msg("failed processing")
 			os.Exit(1)
@@ -153,5 +152,5 @@ func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 		os.Exit(1)
 	}
 
-	wg.Wait()
+	<-done
 }

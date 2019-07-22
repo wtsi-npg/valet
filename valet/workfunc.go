@@ -25,6 +25,7 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"sort"
 
 	"github.com/pkg/errors"
 	"valet/utilities"
@@ -34,6 +35,110 @@ import (
 
 // WorkFunc is a worker function used by ProcessFiles.
 type WorkFunc func(path FilePath) error
+
+// Work describes a function to be executed and the rank of the execution. When
+// there is a choice of Work to be executed, Work with a smallest Rank value
+// (i.e. highest rank) is performed first. In the case of a tie, either Work
+// may be selected for execution.
+type Work struct {
+	WorkFunc WorkFunc // A WorkFunc to execute
+	Rank     uint16   // The rank of the work
+}
+
+// WorkArr is a series of Work to be executed in order.
+type WorkArr []Work
+
+func (s WorkArr) Len() int {
+	return len(s)
+}
+
+func (s WorkArr) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s WorkArr) Less(i, j int) bool {
+	return s[i].Rank > s[j].Rank
+}
+
+func (s WorkArr) IsEmpty() bool {
+	return len(s) == 0
+}
+
+// WorkMatch is an association between a FilePredicate and Work to be done. If
+// the predicate returns true then the work will be done.
+type WorkMatch struct {
+	pred FilePredicate // Predicate to match against candidate FilePath
+	work Work          // Work to be executed on a matching FilePath.
+}
+
+// WorkPlan is a slice of WorkMatches. Where more than one Work is matched,
+// they will be done in rank order.
+type WorkPlan []WorkMatch
+
+// DryRunWorkPlan matches any FilePath and does DoNothing Work.
+func DryRunWorkPlan() WorkPlan {
+	var plan []WorkMatch
+	plan = append(plan, WorkMatch{IsTrue, Work{WorkFunc: DoNothing}})
+	return plan
+}
+
+// CreateChecksumWorkPlan manages checksum files.
+func CreateChecksumWorkPlan() WorkPlan {
+	var plan []WorkMatch
+	plan = append(plan, WorkMatch{RequiresChecksum,
+		Work{WorkFunc: CreateOrUpdateMD5ChecksumFile}})
+	return plan
+}
+
+// ChecksumStateWorkPlan counts files that do not have checksums.
+func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
+	var plan []WorkMatch
+	plan = append(plan, WorkMatch{RequiresChecksum,
+		Work{WorkFunc: countFunc}})
+	return plan
+}
+
+// DispatchWork accepts a candidate FilePath and a WorkPlan and returns Work
+// encapsulating all the work in the WorkPlan. If no work is required for the
+// FilePath, it returns DoNothing Work.
+func DispatchWork(path FilePath, plan WorkPlan) (Work, error) {
+	var work Work
+
+	var matchedWork WorkArr
+	for _, m := range plan {
+		add, err := m.pred(path)
+		if err != nil {
+			return work, err
+		}
+		if add {
+			matchedWork = append(matchedWork, m.work)
+		}
+	}
+	work = combineWork(matchedWork)
+
+	return work, nil
+}
+
+func combineWork(work WorkArr) Work {
+	var workFunc WorkFunc
+
+	if work.IsEmpty() {
+		workFunc = DoNothing
+	} else {
+		sort.Sort(work)
+
+		workFunc = func(path FilePath) error {
+			for _, w := range work {
+				if err := w.WorkFunc(path); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
+	return Work{WorkFunc: workFunc}
+}
 
 // DoNothing does nothing apart from log at debug level that it has been
 // called. It is used to implement dry-run operations.
