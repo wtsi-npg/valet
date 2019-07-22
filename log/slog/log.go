@@ -33,11 +33,11 @@ import (
 type levelName string
 
 const (
-	errorLevel  levelName = "ERROR"
-	warnLevel   levelName = "WARN"
+	errorLevel levelName = "ERROR"
+	warnLevel  levelName = "WARN"
 	// noticeLevel levelName = "NOTICE"
-	infoLevel   levelName = "INFO"
-	debugLevel  levelName = "DEBUG"
+	infoLevel  levelName = "INFO"
+	debugLevel levelName = "DEBUG"
 )
 
 func translateLevel(level logf.Level) (levelName, error) {
