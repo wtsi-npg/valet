@@ -25,15 +25,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/logshim/dlog"
 
-	logf "valet/log/logfacade"
-	logs "valet/log/slog"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	log := logs.New(os.Stderr, logf.ErrorLevel)
-	logf.InstallLogger(log)
+	log := dlog.New(os.Stderr, logs.ErrorLevel)
+	logs.InstallLogger(log)
 }
 
 func TestNewFilePath(t *testing.T) {

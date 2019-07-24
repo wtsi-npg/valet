@@ -26,13 +26,15 @@ import (
 	"path/filepath"
 	"time"
 
-	logf "valet/log/logfacade"
+	logs "github.com/kjsanger/logshim"
 )
 
+// FileResource is a locatable file.
 type FileResource struct {
-	Location string // raw URL or file path
+	Location string // Raw URL or file path
 }
 
+// FilePath is a FileResource that is on a local filesystem.
 type FilePath struct {
 	FileResource
 	Info os.FileInfo
@@ -73,7 +75,7 @@ func FindFiles(
 	pruneFn FilePredicate) (<-chan FilePath, <-chan error) {
 	paths, errs := make(chan FilePath), make(chan error, 1)
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 	log.Debug().Str("root", root).Msg("started find")
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
@@ -97,7 +99,7 @@ func FindFiles(
 			}
 		}
 
-		ok, perr := pred(p)
+		ok, perr := pred(p) // Predicate test
 
 		if perr != nil {
 			return perr
@@ -129,7 +131,7 @@ func FindFiles(
 		if rerr != nil {
 			errs <- rerr
 		} else {
-			werr := filepath.Walk(root, walkFn)
+			werr := filepath.Walk(root, walkFn) // Directory walk
 			if werr != nil {
 				errs <- werr
 			}
@@ -150,7 +152,7 @@ func FindFilesInterval(
 
 	paths, errs := make(chan FilePath), make(chan error, 1)
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 	findTick := time.NewTicker(interval)
 
 	go func() {

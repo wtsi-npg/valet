@@ -27,10 +27,10 @@ import (
 	"os"
 	"sort"
 
+	"github.com/kjsanger/valet/utilities"
 	"github.com/pkg/errors"
-	"valet/utilities"
 
-	logf "valet/log/logfacade"
+	logs "github.com/kjsanger/logshim"
 )
 
 // WorkFunc is a worker function used by ProcessFiles.
@@ -143,7 +143,7 @@ func combineWork(work WorkArr) Work {
 // DoNothing does nothing apart from log at debug level that it has been
 // called. It is used to implement dry-run operations.
 func DoNothing(path FilePath) error {
-	logf.GetLogger().Debug().
+	logs.GetLogger().Debug().
 		Str("path", path.Location).Msg("would work on this")
 	return nil
 }
@@ -155,7 +155,7 @@ func DoNothing(path FilePath) error {
 // modified time of path). If the checksum file is stale this function deletes
 // it before creating a new one.
 func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	ok, err := HasStaleChecksumFile(path)
 	if err != nil {
@@ -197,7 +197,7 @@ func CreateMD5ChecksumFile(path FilePath) error {
 // UpdateMD5ChecksumFile removes the existing checksum file, if it exists and
 // creates a new one.
 func UpdateMD5ChecksumFile(path FilePath) error {
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	if rerr := RemoveMD5ChecksumFile(path); rerr != nil {
 		return rerr

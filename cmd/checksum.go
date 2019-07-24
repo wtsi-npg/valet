@@ -25,9 +25,9 @@ import (
 	"path/filepath"
 	"time"
 
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/valet/valet"
 	"github.com/spf13/cobra"
-	logf "valet/log/logfacade"
-	"valet/valet"
 )
 
 const defaultSweep = 5 * time.Minute
@@ -49,14 +49,14 @@ func init() {
 
 func runChecksumCmd(cmd *cobra.Command, args []string) {
 	if err := cmd.Help(); err != nil {
-		logf.GetLogger().Error().Err(err).Msg("help command failed")
+		logs.GetLogger().Error().Err(err).Msg("help command failed")
 		os.Exit(1)
 	}
 }
 
 /*
 func makeRegexPruneFn(patterns []string) (valet.FilePredicate, error) {
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	var regexes []*regexp.Regexp
 	var errors []error
@@ -88,7 +88,7 @@ func makeRegexPruneFn(patterns []string) (valet.FilePredicate, error) {
 */
 
 func makeGlobPruneFn(patterns []string) (valet.FilePredicate, error) {
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	for _, pattern := range patterns {
 		if _, err := filepath.Match(pattern, "."); err != nil {
@@ -108,7 +108,7 @@ func makeGlobPruneFn(patterns []string) (valet.FilePredicate, error) {
 				log.Debug().
 					Str("path", fp.Location).
 					Msg("matched path for pruning")
-				return true, filepath.SkipDir // return SkipDir to cause walk to skip
+				return true, filepath.SkipDir // return SkipDir to prune here
 			}
 		}
 		return false, nil
@@ -120,7 +120,7 @@ func mergeFileChannels(
 	y <-chan valet.FilePath) chan valet.FilePath {
 	merged := make(chan valet.FilePath)
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	go func() {
 		defer close(merged)

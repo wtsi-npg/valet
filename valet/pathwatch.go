@@ -26,9 +26,9 @@ import (
 	"path/filepath"
 
 	"github.com/kjsanger/fsnotify"
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/valet/utilities"
 	"github.com/pkg/errors"
-	logf "valet/log/logfacade"
-	"valet/utilities"
 )
 
 // WatchFiles reports filesystem events on the directories below root. Watches
@@ -60,7 +60,7 @@ func WatchFiles(
 		return paths, errs
 	}
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 	log.Info().Str("root", root).Msg("started watch")
 
 	watchFn := func(ctx context.Context) (ferr error) {
@@ -144,7 +144,7 @@ func setupWatcher(root string,
 		return watcher, err
 	}
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	// Pruning/skipping in go works by throwing the special error SkipDir, This
 	// means that the main return value of the prune predicate is ignored.
@@ -187,7 +187,7 @@ func setupWatcher(root string,
 func handleCreateDir(target FilePath, prune FilePredicate,
 	watcher *fsnotify.Watcher) error {
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 	log.Debug().
 		Str("path", target.Location).
 		Str("op", "Create").Msg("handled event")
@@ -210,7 +210,7 @@ func handleCreateDir(target FilePath, prune FilePredicate,
 func handleCloseFile(target FilePath, pred FilePredicate,
 	paths chan FilePath) error {
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 	log.Debug().
 		Str("path", target.Location).
 		Str("op", "Close").Msg("handled event")
@@ -236,7 +236,7 @@ func handleCloseFile(target FilePath, pred FilePredicate,
 func handleMovedtoFile(target FilePath, pred FilePredicate,
 	paths chan FilePath) error {
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 	log.Debug().
 		Str("path", target.Location).
 		Str("op", "Movedto").Msg("handled event")

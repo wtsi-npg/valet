@@ -28,15 +28,15 @@ import (
 	"testing"
 	"time"
 
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/logshim/dlog"
+	"github.com/kjsanger/valet/utilities"
 	"github.com/stretchr/testify/assert"
-	logf "valet/log/logfacade"
-	logs "valet/log/slog"
-	"valet/utilities"
 )
 
 func init() {
-	log := logs.New(os.Stderr, logf.ErrorLevel)
-	logf.InstallLogger(log)
+	log := dlog.New(os.Stderr, logs.ErrorLevel)
+	logs.InstallLogger(log)
 }
 
 func TestDoNothing(t *testing.T) {

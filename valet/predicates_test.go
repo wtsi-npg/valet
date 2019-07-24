@@ -27,16 +27,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kjsanger/valet/utilities"
 	"github.com/stretchr/testify/assert"
-	"valet/utilities"
 
-	logf "valet/log/logfacade"
-	logs "valet/log/slog"
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/logshim/dlog"
 )
 
 func init() {
-	log := logs.New(os.Stderr, logf.ErrorLevel)
-	logf.InstallLogger(log)
+	log := dlog.New(os.Stderr, logs.ErrorLevel)
+	logs.InstallLogger(log)
 }
 
 func TestIsDir(t *testing.T) {

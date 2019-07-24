@@ -32,13 +32,13 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
+	"github.com/kjsanger/valet/utilities"
+	"github.com/kjsanger/valet/valet"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
-	"valet/utilities"
-	"valet/valet"
 
-	logf "valet/log/logfacade"
-	logz "valet/log/zlog"
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/logshim-zerolog/zlog"
 )
 
 type cliFlags struct {
@@ -87,19 +87,19 @@ func init() {
 
 func runValetCmd(cmd *cobra.Command, args []string) {
 	if err := cmd.Help(); err != nil {
-		logf.GetLogger().Error().Err(err).Msg("help command failed")
+		logs.GetLogger().Error().Err(err).Msg("help command failed")
 		os.Exit(1)
 	}
 }
 
-func setupLogger(flags *cliFlags) logf.Logger {
-	var level logf.Level
+func setupLogger(flags *cliFlags) logs.Logger {
+	var level logs.Level
 	if flags.debug {
-		level = logf.DebugLevel
+		level = logs.DebugLevel
 	} else if flags.verbose {
-		level = logf.InfoLevel
+		level = logs.InfoLevel
 	} else {
-		level = logf.ErrorLevel
+		level = logs.ErrorLevel
 	}
 
 	// Choose a Zerolog logging backend
@@ -111,9 +111,9 @@ func setupLogger(flags *cliFlags) logf.Logger {
 	}
 
 	// Synchronize writes to the global logger
-	zlogger := logz.New(zerolog.SyncWriter(writer), level)
+	logger := zlog.New(zerolog.SyncWriter(writer), level)
 
-	return logf.InstallLogger(zlogger)
+	return logs.InstallLogger(logger)
 }
 
 func setupSignalHandler(cancel context.CancelFunc) {
@@ -121,7 +121,7 @@ func setupSignalHandler(cancel context.CancelFunc) {
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		s := <-signals
-		log := logf.GetLogger()
+		log := logs.GetLogger()
 
 		switch s {
 		case syscall.SIGINT:

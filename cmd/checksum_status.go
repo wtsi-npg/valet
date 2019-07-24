@@ -25,9 +25,9 @@ import (
 	"os"
 	"sync/atomic"
 
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/valet/valet"
 	"github.com/spf13/cobra"
-	logf "valet/log/logfacade"
-	"valet/valet"
 )
 
 var checksumStatusCmd = &cobra.Command{
@@ -52,7 +52,7 @@ func init() {
 
 	err := checksumStatusCmd.MarkFlagRequired("root")
 	if err != nil {
-		logf.GetLogger().Error().
+		logs.GetLogger().Error().
 			Err(err).Msg("failed to mark --root required")
 		os.Exit(1)
 	}
@@ -88,7 +88,7 @@ func runChecksumStatusCmd(cmd *cobra.Command, args []string) {
 func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	var numWithoutChecksum uint64
 	var err error

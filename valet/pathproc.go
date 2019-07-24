@@ -24,8 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
-	logf "valet/log/logfacade"
 )
 
 type token struct{}
@@ -39,7 +39,7 @@ func ProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) erro
 	var errCounter uint64
 	sem := make(semaphore, maxThreads)
 
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	for path := range paths {
 		wg.Add(1)

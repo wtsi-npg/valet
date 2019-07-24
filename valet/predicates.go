@@ -25,7 +25,7 @@ import (
 	"os"
 	"regexp"
 
-	logf "valet/log/logfacade"
+	logs "github.com/kjsanger/logshim"
 )
 
 type FilePredicate func(path FilePath) (bool, error)
@@ -173,7 +173,7 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 	}
 
 	if path.Info.ModTime().After(chkInfo.ModTime()) {
-		logf.GetLogger().Debug().
+		logs.GetLogger().Debug().
 			Str("path", path.Location).
 			Time("data_time", path.Info.ModTime()).
 			Time("checksum_time", chkInfo.ModTime()).Msg("stale checksum")

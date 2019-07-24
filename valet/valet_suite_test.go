@@ -29,19 +29,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kjsanger/valet/cmd"
+	"github.com/kjsanger/valet/utilities"
+	"github.com/kjsanger/valet/valet"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"valet/cmd"
-	"valet/utilities"
-	"valet/valet"
 
-	logf "valet/log/logfacade"
-	logs "valet/log/slog"
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/logshim/dlog"
 )
 
 func TestValet(t *testing.T) {
-	log := logs.New(GinkgoWriter, logf.DebugLevel)
-	logf.InstallLogger(log)
+	log := dlog.New(GinkgoWriter, logs.DebugLevel)
+	logs.InstallLogger(log)
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Valet Suite")

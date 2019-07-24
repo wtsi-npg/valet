@@ -25,9 +25,9 @@ import (
 	"os"
 	"time"
 
+	logs "github.com/kjsanger/logshim"
+	"github.com/kjsanger/valet/valet"
 	"github.com/spf13/cobra"
-	logf "valet/log/logfacade"
-	"valet/valet"
 )
 
 var checksumCreateCmd = &cobra.Command{
@@ -68,7 +68,7 @@ func init() {
 
 	err := checksumCreateCmd.MarkFlagRequired("root")
 	if err != nil {
-		logf.GetLogger().Error().
+		logs.GetLogger().Error().
 			Err(err).Msg("failed to mark --root required")
 		os.Exit(1)
 	}
@@ -108,7 +108,7 @@ func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
 
 func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 	maxProc int, dryRun bool) {
-	log := logf.GetLogger()
+	log := logs.GetLogger()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)

@@ -21,7 +21,7 @@
 package main
 
 import (
-	"valet/cmd"
+	"github.com/kjsanger/valet/cmd"
 )
 
 func main() {
