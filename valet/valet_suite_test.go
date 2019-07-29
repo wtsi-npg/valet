@@ -47,7 +47,7 @@ func TestValet(t *testing.T) {
 	RunSpecs(t, "Valet Suite")
 }
 
-var _ = Describe("FindFiles/IsDir)", func() {
+var _ = Describe("Find directories)", func() {
 	var expectedPaths = []string{
 		"./testdata",
 		"./testdata/1",
@@ -94,7 +94,7 @@ var _ = Describe("FindFiles/IsDir)", func() {
 	})
 })
 
-var _ = Describe("FindFiles/IsRegular)", func() {
+var _ = Describe("Find regular files)", func() {
 	var expectedPaths = []string{
 		"./testdata/1/reads/fast5/reads1.fast5",
 		"./testdata/1/reads/fast5/reads1.fast5.md5",
@@ -145,7 +145,7 @@ var _ = Describe("FindFiles/IsRegular)", func() {
 	})
 })
 
-var _ = Describe("FindFiles/Prune)", func() {
+var _ = Describe("Find files with pruning", func() {
 	var expectedPaths = []string{
 		"./testdata",
 		"./testdata/1",
@@ -203,7 +203,7 @@ var _ = Describe("FindFiles/Prune)", func() {
 	})
 })
 
-var _ = Describe("FindFilesInterval", func() {
+var _ = Describe("Find files at intervals", func() {
 	var expectedPaths = []string{
 		"./testdata/1/reads/fast5/reads1.fast5",
 		"./testdata/1/reads/fast5/reads1.fast5.md5",
@@ -270,7 +270,7 @@ var _ = Describe("FindFilesInterval", func() {
 	})
 })
 
-var _ = Describe("WatchFiles", func() {
+var _ = Describe("Watch for file changes", func() {
 	var expectedPaths = []string{
 		"./testdata/1/reads/fast5/reads1.fast5",
 		"./testdata/1/reads/fast5/reads2.fast5",
@@ -292,7 +292,7 @@ var _ = Describe("WatchFiles", func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		interval := 500 * time.Millisecond
 
-		td, terr := ioutil.TempDir("", "TestWatchFiles")
+		td, terr := ioutil.TempDir("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
 		defer os.RemoveAll(tmpDir)
@@ -352,7 +352,7 @@ var _ = Describe("WatchFiles", func() {
 	})
 })
 
-var _ = Describe("WatchFiles/Prune", func() {
+var _ = Describe("Watch for file changes with pruning", func() {
 	var allPaths = []string{
 		"./testdata/1/reads/fast5/reads1.fast5",
 		"./testdata/1/reads/fast5/reads2.fast5",
@@ -391,7 +391,7 @@ var _ = Describe("WatchFiles/Prune", func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		interval := 1 * time.Second
 
-		td, terr := ioutil.TempDir("", "TestWatchFiles")
+		td, terr := ioutil.TempDir("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
 		defer os.RemoveAll(tmpDir)
@@ -451,7 +451,7 @@ var _ = Describe("WatchFiles/Prune", func() {
 	})
 })
 
-var _ = Describe("CountFilesWithoutChecksum", func() {
+var _ = Describe("Count files without a checksum", func() {
 	var numFilesFound uint64
 	var numFilesExpected uint64 = 4
 
@@ -505,7 +505,7 @@ func readWriteFile(from string, to string) error {
 
 // A copyFn using os.Rename
 func moveFile(from string, to string) error {
-	stagingDir, err := ioutil.TempDir("", "TestWatchFiles")
+	stagingDir, err := ioutil.TempDir("", "ValetTests")
 	defer os.RemoveAll(stagingDir)
 	if err != nil {
 		return err
