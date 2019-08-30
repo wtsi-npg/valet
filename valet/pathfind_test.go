@@ -37,17 +37,17 @@ func init() {
 }
 
 func TestNewFilePath(t *testing.T) {
-	dir, derr := NewFilePath("./testdata/testdir")
+	dir, derr := NewFilePath("./testdata/valet/testdir")
 	assert.NoError(t, derr, "expected to create directory path")
 
-	absDir, _ := filepath.Abs("./testdata/testdir")
+	absDir, _ := filepath.Abs("./testdata/valet/testdir")
 	assert.Equal(t, dir.Location, absDir)
 	assert.NotNil(t, dir.Info, "expected Info to be populated")
 
-	file, ferr := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
+	file, ferr := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
 	assert.NoError(t, ferr, "expected to create file path")
 
-	absFile, _ := filepath.Abs("./testdata/1/reads/fastq/reads1.fastq")
+	absFile, _ := filepath.Abs("./testdata/valet/1/reads/fastq/reads1.fastq")
 	assert.Equal(t, file.Location, absFile)
 	assert.NotNil(t, file.Info, "expected Info to be populated")
 

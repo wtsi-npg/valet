@@ -23,6 +23,7 @@ package valet
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	logs "github.com/kjsanger/logshim"
@@ -36,6 +37,13 @@ const MD5Suffix string = "md5"     // The recognised suffix for MD5 checksum fil
 
 var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
 var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
+
+// Matches the run ID of MinKNOW c. August 2019 for GridION and PromethION
+// i.e. of the form:
+//
+// 20190701_1522_GA10000_FAK83493_3bba1763
+//
+var MinKNOWRunIDRegex = regexp.MustCompile(`\d+_\d+_GA\d+_F[A-Za-z0-9]+_[A-Za-z0-9]+`)
 
 // RequiresChecksum returns true if the argument is a regular file that is
 // recognised as a checksum target and either has no checksum file, or has a
@@ -181,6 +189,63 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func IsMinKNOWRunDir(path FilePath) (bool, error) {
+	return MinKNOWRunIDRegex.MatchString(filepath.Base(path.Location)), nil
+}
+
+// MakeMinKNOWExptDirPred returns a predicate that tests a directory to see
+// whether it is a MinKNOW run directory.
+//
+// A run directory is defined as:
+//
+// - a directory
+// - that is directly contained in the MinNKOW data directory (usually /data)
+// - that contains one or more directories (sample directories) that themselves
+//   contain MinKNOW run directories.
+// - where a MinKNOW run directory is defined by the directory name matching
+//   MinKNOWRunIDRegex.
+//
+// e.g. /data/27 is an experiment directory
+//
+// /data/27/ABCD123456/20190701_1522_GA10000_FAK83493_3bba1763
+//
+// This function is useful because the MinKNOW data directory may contain
+// directories other than those containing sequencing results.
+func MakeMinKNOWExptDirPred(dataDir string) (FilePredicate, error) {
+	root, err := filepath.Abs(dataDir)
+	if err != nil {
+		return nil, err
+	}
+
+	runPattern :=  fmt.Sprintf("%s/*/*", filepath.Clean(root))
+
+	pred := func(path FilePath) (bool, error) {
+		var err error
+
+		if path.Info == nil {
+			path.Info, err = os.Stat(path.Location)
+			if os.IsNotExist(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		if !path.Info.IsDir() {
+			return false, nil
+		}
+
+		contents, err := filepath.Glob(runPattern)
+		for _, path := range contents {
+			if MinKNOWRunIDRegex.MatchString(path) {
+				return true, err
+			}
+		}
+
+		return false, err
+	}
+
+	return pred, err
 }
 
 // ChecksumFilename returns the expected path of the checksum file

@@ -30,8 +30,9 @@ import (
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/kjsanger/logshim/dlog"
-	"github.com/kjsanger/valet/utilities"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kjsanger/valet/utilities"
 )
 
 func init() {
@@ -40,7 +41,7 @@ func init() {
 }
 
 func TestDoNothing(t *testing.T) {
-	path, _ := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
+	path, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
 	assert.NoError(t, DoNothing(path))
 }
 
@@ -54,7 +55,7 @@ func TestCreateMD5ChecksumFile(t *testing.T) {
 		filepath.Join(tmpDir, "reads1.fast5.md5")
 
 	// First write the data file
-	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5",
+	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5",
 		dataFile, 0600)
 	assert.NoError(t, err)
 
@@ -78,10 +79,10 @@ func TestRemoveMD5ChecksumFile(t *testing.T) {
 		filepath.Join(tmpDir, "reads1.fast5.md5")
 
 	// First write the filea
-	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5",
+	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5",
 		dataFile, 0600)
 	assert.NoError(t, err)
-	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5.md5",
+	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5.md5",
 		checkSumFile, 0600)
 	assert.NoError(t, err)
 
@@ -100,7 +101,7 @@ func TestRemoveMD5ChecksumFile(t *testing.T) {
 }
 
 func TestCalculateFileMD5(t *testing.T) {
-	path, _ := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
+	path, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
 
 	md5sum, err := CalculateFileMD5(path)
 

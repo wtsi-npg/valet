@@ -27,8 +27,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kjsanger/valet/utilities"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kjsanger/valet/utilities"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/kjsanger/logshim/dlog"
@@ -40,7 +41,7 @@ func init() {
 }
 
 func TestIsDir(t *testing.T) {
-	fp, _ := NewFilePath("./testdata/testdir")
+	fp, _ := NewFilePath("./testdata/valet/testdir")
 
 	ok, err := IsDir(fp)
 	if assert.NoError(t, err) {
@@ -49,7 +50,7 @@ func TestIsDir(t *testing.T) {
 }
 
 func TestIsRegular(t *testing.T) {
-	fq, _ := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
+	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
 	ok, err := IsRegular(fq)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a file")
@@ -57,7 +58,7 @@ func TestIsRegular(t *testing.T) {
 }
 
 func TestIsFast5Match(t *testing.T) {
-	f5, _ := NewFilePath("./testdata/1/reads/fast5/reads1.fast5")
+	f5, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
 	ok, err := IsFast5Match(f5)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fast5 file")
@@ -65,7 +66,7 @@ func TestIsFast5Match(t *testing.T) {
 }
 
 func TestIsFastqMatch(t *testing.T) {
-	fq, _ := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
+	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
 	ok, err := IsFastqMatch(fq)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fastq file")
@@ -73,25 +74,25 @@ func TestIsFastqMatch(t *testing.T) {
 }
 
 func TestHasChecksumFile(t *testing.T) {
-	f5With, _ := NewFilePath("./testdata/1/reads/fast5/reads1.fast5")
+	f5With, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
 	ok, err := HasChecksumFile(f5With)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fast5 file with checksum")
 	}
 
-	f5Without, _ := NewFilePath("./testdata/1/reads/fast5/reads2.fast5")
+	f5Without, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads2.fast5")
 	ok, err = HasChecksumFile(f5Without)
 	if assert.NoError(t, err) {
 		assert.False(t, ok, "expected false for a fast5 file without checksum")
 	}
 
-	fqWith, _ := NewFilePath("./testdata/1/reads/fastq/reads1.fastq")
+	fqWith, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
 	ok, err = HasChecksumFile(fqWith)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fastq file with checksum")
 	}
 
-	fqWithout, _ := NewFilePath("./testdata/1/reads/fastq/reads2.fastq")
+	fqWithout, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads2.fastq")
 	ok, err = HasChecksumFile(fqWithout)
 	if assert.NoError(t, err) {
 		assert.False(t, ok, "expected false for a fastq file without checksum")
@@ -108,14 +109,14 @@ func TestHasStaleChecksumFile(t *testing.T) {
 		filepath.Join(tmpDir, "reads1.fast5.md5")
 
 	// First write the checksum file
-	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5.md5",
+	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5.md5",
 		checkSumFile, 0600)
 	assert.NoError(t, err)
 
 	time.Sleep(1 * time.Second)
 
 	// Then update with a newer reads file
-	err = utilities.CopyFile("./testdata/1/reads/fast5/reads1.fast5",
+	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5",
 		dataFile, 0600)
 	assert.NoError(t, err)
 
@@ -128,5 +129,14 @@ func TestHasStaleChecksumFile(t *testing.T) {
 	ok, err = HasStaleChecksumFile(f5With)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fast5 file with stale checksum")
+	}
+}
+
+func TestIsMinKNOWRunDir(t *testing.T) {
+	dir, _ := NewFilePath(filepath.Join("testdata/platform/ont/minknow",
+		"20190701_1234_GA10000_FAK12345_12abcdef"))
+	ok, err := IsMinKNOWRunDir(dir)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected some truth")
 	}
 }

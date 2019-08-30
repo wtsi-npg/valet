@@ -29,18 +29,39 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/kjsanger/valet/cmd"
 	"github.com/kjsanger/valet/utilities"
 	"github.com/kjsanger/valet/valet"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/kjsanger/logshim/dlog"
 )
 
+var dataFiles = []string{
+	"./testdata/valet/1/reads/fast5/reads1.fast5",
+	"./testdata/valet/1/reads/fast5/reads1.fast5.md5",
+	"./testdata/valet/1/reads/fast5/reads2.fast5",
+	"./testdata/valet/1/reads/fast5/reads3.fast5",
+	"./testdata/valet/1/reads/fastq/reads1.fastq",
+	"./testdata/valet/1/reads/fastq/reads1.fastq.md5",
+	"./testdata/valet/1/reads/fastq/reads2.fastq",
+	"./testdata/valet/1/reads/fastq/reads3.fastq",
+	"./testdata/valet/testdir/.gitignore",
+}
+var dataDirs = []string{
+	"./testdata/valet",
+	"./testdata/valet/1",
+	"./testdata/valet/1/reads",
+	"./testdata/valet/1/reads/fast5",
+	"./testdata/valet/1/reads/fastq",
+	"./testdata/valet/testdir",
+}
+
 func TestValet(t *testing.T) {
-	log := dlog.New(GinkgoWriter, logs.DebugLevel)
+	log := dlog.New(GinkgoWriter, logs.ErrorLevel)
 	logs.InstallLogger(log)
 
 	RegisterFailHandler(Fail)
@@ -48,20 +69,12 @@ func TestValet(t *testing.T) {
 }
 
 var _ = Describe("Find directories)", func() {
-	var expectedPaths = []string{
-		"./testdata",
-		"./testdata/1",
-		"./testdata/1/reads",
-		"./testdata/1/reads/fast5",
-		"./testdata/1/reads/fastq",
-		"./testdata/testdir",
-	}
-
+	var expectedPaths = dataDirs
 	var foundDirs []valet.FilePath
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
-		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
+		paths, errs := valet.FindFiles(cancelCtx, "./testdata/valet",
 			valet.IsDir, valet.IsFalse)
 
 		for p := range paths {
@@ -95,23 +108,12 @@ var _ = Describe("Find directories)", func() {
 })
 
 var _ = Describe("Find regular files)", func() {
-	var expectedPaths = []string{
-		"./testdata/1/reads/fast5/reads1.fast5",
-		"./testdata/1/reads/fast5/reads1.fast5.md5",
-		"./testdata/1/reads/fast5/reads2.fast5",
-		"./testdata/1/reads/fast5/reads3.fast5",
-		"./testdata/1/reads/fastq/reads1.fastq",
-		"./testdata/1/reads/fastq/reads1.fastq.md5",
-		"./testdata/1/reads/fastq/reads2.fastq",
-		"./testdata/1/reads/fastq/reads3.fastq",
-		"./testdata/testdir/.gitignore",
-	}
-
+	var expectedPaths = dataFiles
 	var foundFiles []valet.FilePath
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
-		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
+		paths, errs := valet.FindFiles(cancelCtx, "./testdata/valet",
 			valet.IsRegular, valet.IsFalse)
 
 		for p := range paths {
@@ -147,15 +149,15 @@ var _ = Describe("Find regular files)", func() {
 
 var _ = Describe("Find files with pruning", func() {
 	var expectedPaths = []string{
-		"./testdata",
-		"./testdata/1",
-		"./testdata/testdir",
+		"./testdata/valet",
+		"./testdata/valet/1",
+		"./testdata/valet/testdir",
 	}
 
 	var foundDirs []valet.FilePath
 
 	pruneFn := func(pf valet.FilePath) (bool, error) {
-		pattern, err := filepath.Abs("./testdata/1/reads")
+		pattern, err := filepath.Abs("./testdata/valet/1/reads")
 		if err != nil {
 			return false, err
 		}
@@ -170,7 +172,7 @@ var _ = Describe("Find files with pruning", func() {
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
-		paths, errs := valet.FindFiles(cancelCtx, "./testdata",
+		paths, errs := valet.FindFiles(cancelCtx, "./testdata/valet",
 			valet.IsDir, pruneFn)
 
 		for p := range paths {
@@ -204,17 +206,7 @@ var _ = Describe("Find files with pruning", func() {
 })
 
 var _ = Describe("Find files at intervals", func() {
-	var expectedPaths = []string{
-		"./testdata/1/reads/fast5/reads1.fast5",
-		"./testdata/1/reads/fast5/reads1.fast5.md5",
-		"./testdata/1/reads/fast5/reads2.fast5",
-		"./testdata/1/reads/fast5/reads3.fast5",
-		"./testdata/1/reads/fastq/reads1.fastq",
-		"./testdata/1/reads/fastq/reads1.fastq.md5",
-		"./testdata/1/reads/fastq/reads2.fastq",
-		"./testdata/1/reads/fastq/reads3.fastq",
-	}
-
+	var expectedPaths = dataFiles[:len(dataFiles) -1]
 	var foundFiles = map[string]bool{}
 
 	BeforeEach(func() {
@@ -272,16 +264,16 @@ var _ = Describe("Find files at intervals", func() {
 
 var _ = Describe("Watch for file changes", func() {
 	var expectedPaths = []string{
-		"./testdata/1/reads/fast5/reads1.fast5",
-		"./testdata/1/reads/fast5/reads2.fast5",
-		"./testdata/1/reads/fast5/reads3.fast5",
-		"./testdata/1/reads/fastq/reads1.fastq",
-		"./testdata/1/reads/fastq/reads2.fastq",
-		"./testdata/1/reads/fastq/reads3.fastq",
+		"./testdata/valet/1/reads/fast5/reads1.fast5",
+		"./testdata/valet/1/reads/fast5/reads2.fast5",
+		"./testdata/valet/1/reads/fast5/reads3.fast5",
+		"./testdata/valet/1/reads/fastq/reads1.fastq",
+		"./testdata/valet/1/reads/fastq/reads2.fastq",
+		"./testdata/valet/1/reads/fastq/reads3.fastq",
 	}
 	var expectedDirs = []string{
-		"./testdata/1/reads/fast5/",
-		"./testdata/1/reads/fastq/",
+		"./testdata/valet/1/reads/fast5/",
+		"./testdata/valet/1/reads/fastq/",
 	}
 
 	var foundFiles = map[string]bool{}
@@ -354,16 +346,16 @@ var _ = Describe("Watch for file changes", func() {
 
 var _ = Describe("Watch for file changes with pruning", func() {
 	var allPaths = []string{
-		"./testdata/1/reads/fast5/reads1.fast5",
-		"./testdata/1/reads/fast5/reads2.fast5",
-		"./testdata/1/reads/fast5/reads3.fast5",
-		"./testdata/1/reads/fastq/reads1.fastq",
-		"./testdata/1/reads/fastq/reads2.fastq",
-		"./testdata/1/reads/fastq/reads3.fastq",
+		"./testdata/valet/1/reads/fast5/reads1.fast5",
+		"./testdata/valet/1/reads/fast5/reads2.fast5",
+		"./testdata/valet/1/reads/fast5/reads3.fast5",
+		"./testdata/valet/1/reads/fastq/reads1.fastq",
+		"./testdata/valet/1/reads/fastq/reads2.fastq",
+		"./testdata/valet/1/reads/fastq/reads3.fastq",
 	}
 	var allDirs = []string{
-		"./testdata/1/reads/fast5/",
-		"./testdata/1/reads/fastq/",
+		"./testdata/valet/1/reads/fast5/",
+		"./testdata/valet/1/reads/fastq/",
 	}
 
 	var tmpDir string
@@ -373,7 +365,7 @@ var _ = Describe("Watch for file changes with pruning", func() {
 	var foundFiles = map[string]bool{}
 
 	pruneFn := func(pf valet.FilePath) (bool, error) {
-		pattern, err := filepath.Abs("./testdata/1/reads/fastq")
+		pattern, err := filepath.Abs("./testdata/valet/1/reads/fastq")
 		if err != nil {
 			return false, err
 		}
@@ -456,7 +448,7 @@ var _ = Describe("Count files without a checksum", func() {
 	var numFilesExpected uint64 = 4
 
 	BeforeEach(func() {
-		n, err := cmd.CountFilesWithoutChecksum("./testdata", []string{})
+		n, err := cmd.CountFilesWithoutChecksum("./testdata/valet", []string{})
 		Expect(err).NotTo(HaveOccurred())
 		numFilesFound = n
 	})
