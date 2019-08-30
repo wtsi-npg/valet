@@ -27,8 +27,9 @@ import (
 	"os"
 	"sort"
 
-	"github.com/kjsanger/valet/utilities"
 	"github.com/pkg/errors"
+
+	"github.com/kjsanger/valet/utilities"
 
 	logs "github.com/kjsanger/logshim"
 )

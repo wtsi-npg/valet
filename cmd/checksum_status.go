@@ -26,8 +26,9 @@ import (
 	"sync/atomic"
 
 	logs "github.com/kjsanger/logshim"
-	"github.com/kjsanger/valet/valet"
 	"github.com/spf13/cobra"
+
+	"github.com/kjsanger/valet/valet"
 )
 
 var checksumStatusCmd = &cobra.Command{

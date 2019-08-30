@@ -27,8 +27,9 @@ import (
 
 	"github.com/kjsanger/fsnotify"
 	logs "github.com/kjsanger/logshim"
-	"github.com/kjsanger/valet/utilities"
 	"github.com/pkg/errors"
+
+	"github.com/kjsanger/valet/utilities"
 )
 
 // WatchFiles reports filesystem events on the directories below root. Watches

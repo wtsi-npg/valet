@@ -32,10 +32,11 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/kjsanger/valet/utilities"
-	"github.com/kjsanger/valet/valet"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+
+	"github.com/kjsanger/valet/utilities"
+	"github.com/kjsanger/valet/valet"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/kjsanger/logshim-zerolog/zlog"
