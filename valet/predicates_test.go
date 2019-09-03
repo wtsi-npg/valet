@@ -30,15 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kjsanger/valet/utilities"
-
-	logs "github.com/kjsanger/logshim"
-	"github.com/kjsanger/logshim/dlog"
 )
-
-func init() {
-	log := dlog.New(os.Stderr, logs.ErrorLevel)
-	logs.InstallLogger(log)
-}
 
 func TestIsDir(t *testing.T) {
 	fp, _ := NewFilePath("./testdata/valet/testdir")

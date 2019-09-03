@@ -29,15 +29,22 @@ import (
 	"time"
 
 	logs "github.com/kjsanger/logshim"
-	"github.com/kjsanger/logshim/dlog"
+	"github.com/kjsanger/logshim-zerolog/zlog"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kjsanger/valet/utilities"
 )
 
-func init() {
-	log := dlog.New(os.Stderr, logs.ErrorLevel)
-	logs.InstallLogger(log)
+func TestMain(m *testing.M) {
+	loggerImpl := zlog.New(os.Stderr, logs.ErrorLevel)
+
+	writer := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	consoleLogger := loggerImpl.Logger.Output(zerolog.SyncWriter(writer))
+	loggerImpl.Logger = &consoleLogger
+	logs.InstallLogger(loggerImpl)
+
+	os.Exit(m.Run())
 }
 
 func TestDoNothing(t *testing.T) {

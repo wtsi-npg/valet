@@ -21,20 +21,11 @@
 package valet
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
-	logs "github.com/kjsanger/logshim"
-	"github.com/kjsanger/logshim/dlog"
-
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	log := dlog.New(os.Stderr, logs.ErrorLevel)
-	logs.InstallLogger(log)
-}
 
 func TestNewFilePath(t *testing.T) {
 	dir, derr := NewFilePath("./testdata/valet/testdir")

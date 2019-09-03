@@ -26,7 +26,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -35,9 +34,6 @@ import (
 	"github.com/kjsanger/valet/cmd"
 	"github.com/kjsanger/valet/utilities"
 	"github.com/kjsanger/valet/valet"
-
-	logs "github.com/kjsanger/logshim"
-	"github.com/kjsanger/logshim/dlog"
 )
 
 var dataFiles = []string{
@@ -58,14 +54,6 @@ var dataDirs = []string{
 	"./testdata/valet/1/reads/fast5",
 	"./testdata/valet/1/reads/fastq",
 	"./testdata/valet/testdir",
-}
-
-func TestValet(t *testing.T) {
-	log := dlog.New(GinkgoWriter, logs.ErrorLevel)
-	logs.InstallLogger(log)
-
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Valet Suite")
 }
 
 var _ = Describe("Find directories)", func() {
@@ -287,7 +275,6 @@ var _ = Describe("Watch for file changes", func() {
 		td, terr := ioutil.TempDir("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
-		defer os.RemoveAll(tmpDir)
 
 		// Set up dirs to watch first
 		derr := mkdirAllRelative(tmpDir, expectedDirs)
@@ -330,6 +317,11 @@ var _ = Describe("Watch for file changes", func() {
 			Expect(err).NotTo(HaveOccurred())
 		default:
 		}
+	})
+
+	AfterEach(func() {
+		err := os.RemoveAll(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Context("when using a file predicate", func() {
@@ -386,7 +378,6 @@ var _ = Describe("Watch for file changes with pruning", func() {
 		td, terr := ioutil.TempDir("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
-		defer os.RemoveAll(tmpDir)
 
 		// Set up dirs to watch first
 		derr := mkdirAllRelative(tmpDir, allDirs)
@@ -429,6 +420,11 @@ var _ = Describe("Watch for file changes with pruning", func() {
 			Expect(err).NotTo(HaveOccurred())
 		default:
 		}
+	})
+
+	AfterEach(func() {
+		err := os.RemoveAll(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Context("when using a file predicate", func() {
