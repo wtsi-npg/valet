@@ -22,7 +22,6 @@ package valet
 
 import (
 	"sync"
-	"sync/atomic"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
@@ -31,13 +30,25 @@ import (
 type token struct{}
 type semaphore chan token
 
-// ProcessFiles operates by applying workFunc to each FilePath in the paths
-// channel. An error is raised if any workFunc itself encounters an error.
+// ProcessFiles operates by applying workPlan to each FilePath in the paths
+// channel. Each WorkPlan is executed in its own goroutine, with no more than
+// maxThreads goroutines running in parallel.
+//
+// This function keeps track of the FilePaths being worked on. If a FilePath is
+// passed in subsequently, but before existing work has finished, it is skipped.
+//
+// If any WorkPlan encounters an error, the error is logged and counted. When
+// ProcessFiles exits, it will return an error if the error count across all
+// the WorkPlans was greater than 0.
 func ProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) error {
-	var wg sync.WaitGroup
-	var jobCounter uint64
-	var errCounter uint64
-	sem := make(semaphore, maxThreads)
+	var wg sync.WaitGroup // The group of
+
+	var mu = sync.Mutex{} // Protects running, jobCount, errCount
+	var running = make(map[string]struct{})
+	var jobCount uint64
+	var errCount uint64
+
+	sem := make(semaphore, maxThreads) // Ensure upper limit on thread count
 
 	log := logs.GetLogger()
 
@@ -45,38 +56,55 @@ func ProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) erro
 		wg.Add(1)
 		sem <- token{}
 
+		log.Info().Str("path", path.Location).Msg("dispatching")
+		mu.Lock()
+		if _, ok := running[path.Location]; ok {
+			mu.Unlock()
+			log.Info().Str("path", path.Location).
+				Msg("skipping (already working on)")
+			continue
+		}
+		mu.Unlock()
+
 		go func(p FilePath) {
 			defer func() {
 				<-sem
 				wg.Done()
 			}()
 
-			atomic.AddUint64(&jobCounter, 1)
-			log.Info().Str("path", p.Location).Msg("working on")
+			mu.Lock()
+			running[p.Location] = struct{}{}
+			jobCount++
 
 			work, derr := DispatchWork(p, workPlan)
 			if derr != nil {
+				mu.Unlock()
 				log.Error().Err(derr).
 					Str("path", p.Location).
 					Msg("work dispatch failed")
-				atomic.AddUint64(&errCounter, 1)
+				errCount++
 				return
 			}
+			mu.Unlock()
 
 			werr := work.WorkFunc(p)
+
+			mu.Lock()
+			delete(running, p.Location)
 			if werr != nil {
+				errCount++
+				mu.Unlock()
 				log.Error().Err(werr).
 					Str("path", p.Location).
 					Msg("worker function failed")
-				atomic.AddUint64(&errCounter, 1)
+				return
 			}
+			mu.Unlock()
 		}(path)
 	}
 
 	wg.Wait()
 
-	jobCount := atomic.LoadUint64(&jobCounter)
-	errCount := atomic.LoadUint64(&errCounter)
 	if errCount > 0 {
 		return errors.Errorf("encountered %d errors processing %d files",
 			errCount, jobCount)
