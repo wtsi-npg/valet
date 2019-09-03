@@ -120,16 +120,17 @@ func DispatchWork(path FilePath, plan WorkPlan) (Work, error) {
 	return work, nil
 }
 
-func combineWork(work WorkArr) Work {
+func combineWork(work []Work) Work {
 	var workFunc WorkFunc
+	var w WorkArr = work
 
-	if work.IsEmpty() {
+	if w.IsEmpty() {
 		workFunc = DoNothing
 	} else {
-		sort.Sort(work)
+		sort.Sort(w)
 
 		workFunc = func(path FilePath) error {
-			for _, w := range work {
+			for _, w := range w {
 				if err := w.WorkFunc(path); err != nil {
 					return err
 				}
@@ -158,22 +159,22 @@ func DoNothing(path FilePath) error {
 func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
 	log := logs.GetLogger()
 
-	ok, err := HasStaleChecksumFile(path)
+	staleFile, err := HasStaleChecksumFile(path)
 	if err != nil {
-		log.Error().Err(err).Msg("stale checksum detection failed")
+		log.Error().Err(err).Msg("staleFile checksum detection failed")
 		return err
 	}
 
-	if ok {
+	if staleFile {
 		return UpdateMD5ChecksumFile(path)
 	}
 
-	ok, err = HasChecksumFile(path)
+	hasFile, err := HasChecksumFile(path)
 	if err != nil {
 		return err
 	}
 
-	if !ok {
+	if !hasFile {
 		err = CreateMD5ChecksumFile(path)
 		if err != nil {
 			return err
