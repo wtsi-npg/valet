@@ -76,6 +76,15 @@ func TestCreateMD5ChecksumFile(t *testing.T) {
 	}
 }
 
+func TestReadMD5ChecksumFile(t *testing.T) {
+	f, err := NewFilePath("testdata/valet/1/reads/fast5/reads1.fast5.md5")
+	assert.NoError(t, err)
+
+	md5sum, err := ReadMD5ChecksumFile(f)
+	assert.NoError(t, err)
+	assert.Equal(t, "1181c1834012245d785120e3505ed169", string(md5sum))
+}
+
 func TestRemoveMD5ChecksumFile(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "TestCreateMD5ChecksumFile")
 	defer os.RemoveAll(tmpDir)

@@ -37,19 +37,21 @@ func Abs(x int) int {
 	return x
 }
 
-func CopyFile(from string, to string, perm os.FileMode) (err error) {
-	src, err := os.Open(from)
+func CopyFile(from string, to string, perm os.FileMode) (err error) { // NRV
+	var src, dst *os.File
+
+	src, err = os.Open(from)
 	if err != nil {
-		return err
+		return
 	}
 
 	defer func() {
 		err = CombineErrors(err, src.Close())
 	}()
 
-	dst, err := os.OpenFile(to, os.O_CREATE|os.O_RDWR, perm)
+	dst, err = os.OpenFile(to, os.O_CREATE|os.O_RDWR, perm)
 	if err != nil {
-		return err
+		return
 	}
 
 	defer func() {
@@ -58,7 +60,7 @@ func CopyFile(from string, to string, perm os.FileMode) (err error) {
 
 	_, err = io.Copy(dst, src)
 
-	return err
+	return
 }
 
 func CombineErrors(errors ...error) error {

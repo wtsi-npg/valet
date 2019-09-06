@@ -21,6 +21,8 @@
 package valet
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"io"
@@ -78,25 +80,23 @@ type WorkPlan []WorkMatch
 
 // DryRunWorkPlan matches any FilePath and does DoNothing Work.
 func DryRunWorkPlan() WorkPlan {
-	var plan []WorkMatch
-	plan = append(plan, WorkMatch{IsTrue, Work{WorkFunc: DoNothing}})
-	return plan
+	return []WorkMatch{{
+		pred: IsTrue,
+		work: Work{WorkFunc: DoNothing}}}
 }
 
 // CreateChecksumWorkPlan manages checksum files.
 func CreateChecksumWorkPlan() WorkPlan {
-	var plan []WorkMatch
-	plan = append(plan, WorkMatch{RequiresChecksum,
-		Work{WorkFunc: CreateOrUpdateMD5ChecksumFile}})
-	return plan
+	return []WorkMatch{{
+		pred: RequiresChecksum,
+		work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile}}}
 }
 
-// ChecksumStateWorkPlan counts files that do not have checksums.
+// ChecksumStateWorkPlan counts files that do not have a checksum.
 func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
-	var plan []WorkMatch
-	plan = append(plan, WorkMatch{RequiresChecksum,
-		Work{WorkFunc: countFunc}})
-	return plan
+	return []WorkMatch{{
+		pred: RequiresChecksum,
+		work: Work{WorkFunc: countFunc}}}
 }
 
 // DispatchWork accepts a candidate FilePath and a WorkPlan and returns Work
@@ -229,10 +229,10 @@ func RemoveMD5ChecksumFile(path FilePath) error {
 }
 
 // CalculateFileMD5 returns the MD5 checksum of the file at path.
-func CalculateFileMD5(path FilePath) (md5sum []byte, err error) {
+func CalculateFileMD5(path FilePath) (md5sum []byte, err error) { // NRV
 	f, err := os.Open(path.Location)
 	if err != nil {
-		return md5sum, err
+		return
 	}
 
 	defer func() {
@@ -240,17 +240,40 @@ func CalculateFileMD5(path FilePath) (md5sum []byte, err error) {
 	}()
 
 	h := md5.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return md5sum, err
+	if _, err = io.Copy(h, f); err != nil {
+		return
 	}
-
-	return h.Sum(nil), err
+	md5sum = h.Sum(nil)
+	return
 }
 
-func createMD5File(path string, md5sum []byte) (err error) {
+// ReadMD5ChecksumFile reads and returns a checksum from a local file created by
+// CreateMD5ChecksumFile. It trims any whitespace (including any newline) from
+// the beginning and end of the checksum.
+func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
+	f, err := os.Open(path.Location)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		err = utilities.CombineErrors(err, f.Close())
+	}()
+
+	md5sum, err = bufio.NewReader(f).ReadBytes('\n')
+	if err != nil {
+		return
+	}
+	md5sum = bytes.TrimSpace(md5sum)
+
+	return
+}
+
+func createMD5File(path string, md5sum []byte) (err error) { // NRV
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
-		return errors.Wrap(err, "will not overwrite an existing MD5 file")
+		err = errors.Wrap(err, "will not overwrite an existing MD5 file")
+		return
 	}
 
 	defer func() {
@@ -261,5 +284,5 @@ func createMD5File(path string, md5sum []byte) (err error) {
 	hex.Encode(encoded, md5sum)
 	_, err = f.Write(append(encoded, '\n'))
 
-	return err
+	return
 }

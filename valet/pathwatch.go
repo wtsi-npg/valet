@@ -64,7 +64,7 @@ func WatchFiles(
 	log := logs.GetLogger()
 	log.Info().Str("root", root).Msg("started watch")
 
-	watchFn := func(ctx context.Context) (ferr error) {
+	watchFn := func(ctx context.Context) (ferr error) { // NRV
 		defer func() {
 			if werr := watcher.Close(); werr != nil {
 				ferr = utilities.CombineErrors(ferr, werr)
@@ -79,38 +79,40 @@ func WatchFiles(
 					continue
 				}
 
-				p, ferr := NewFilePath(event.Name)
+				var p FilePath
+				p, ferr = NewFilePath(event.Name)
 				if ferr != nil {
 					if os.IsNotExist(ferr) {
 						log.Warn().Err(ferr).Msg("path deleted externally")
-						return nil
+						ferr = nil
+						return
 					}
 
-					return ferr
+					return
 				}
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					if ferr = handleCreateDir(p, pruneFn, watcher); ferr != nil {
-						return ferr
+						return
 					}
 				}
 				if event.Op&fsnotify.Close == fsnotify.Close {
 					if ferr = handleCloseFile(p, pred, paths); ferr != nil {
-						return ferr
+						return
 					}
 				}
 				if event.Op&fsnotify.Movedto == fsnotify.Movedto {
 					if ferr = handleMovedtoFile(p, pred, paths); ferr != nil {
-						return ferr
+						return
 					}
 				}
 
 			case <-ctx.Done():
 				log.Info().Str("root", root).Msg("cancelled watch")
-				return nil
+				return
 
 			case ferr = <-watcher.Errors:
-				return ferr
+				return
 			}
 		}
 	}
@@ -130,13 +132,12 @@ func WatchFiles(
 	return paths, errs
 }
 
-func setupWatcher(root string,
-	prune FilePredicate) (watcher *fsnotify.Watcher, err error) {
+func setupWatcher(root string, prune FilePredicate) (*fsnotify.Watcher, error) {
 	if err := ensureIsDir(root); err != nil {
 		return nil, err
 	}
 
-	watcher, err = fsnotify.NewWatcher()
+	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		if watcher != nil {
 			return watcher, utilities.CombineErrors(err, watcher.Close())
