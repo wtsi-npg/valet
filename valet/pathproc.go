@@ -41,7 +41,7 @@ type semaphore chan token
 // ProcessFiles exits, it will return an error if the error count across all
 // the WorkPlans was greater than 0.
 func ProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) error {
-	var wg sync.WaitGroup // The group of
+	var wg sync.WaitGroup // The group of all work goroutines
 
 	var mu = sync.Mutex{} // Protects running, jobCount, errCount
 	var running = make(map[string]struct{})
