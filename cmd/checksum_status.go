@@ -23,7 +23,7 @@ package cmd
 import (
 	"context"
 	"os"
-	"sync/atomic"
+	"sync"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/spf13/cobra"
@@ -91,6 +91,7 @@ func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 	setupSignalHandler(cancel)
 	log := logs.GetLogger()
 
+	var mu sync.Mutex
 	var numWithoutChecksum uint64
 	var err error
 
@@ -105,7 +106,10 @@ func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 
 	countFunc := func(path valet.FilePath) error {
 		log.Warn().Str("path", path.Location).Msg("missing checksum")
-		atomic.AddUint64(&numWithoutChecksum, 1)
+
+		mu.Lock()
+		numWithoutChecksum++
+		mu.Unlock()
 		return nil
 	}
 
@@ -130,5 +134,5 @@ func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 		os.Exit(1)
 	}
 
-	return atomic.LoadUint64(&numWithoutChecksum), err
+	return numWithoutChecksum, err
 }
