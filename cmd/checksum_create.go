@@ -75,7 +75,7 @@ func init() {
 	}
 
 	checksumCreateCmd.Flags().DurationVarP(&allCliFlags.sweepInterval,
-		"interval", "i", defaultSweep,
+		"interval", "i", valet.DefaultSweep,
 		"directory sweep interval, minimum 30s")
 
 	checksumCreateCmd.Flags().BoolVar(&allCliFlags.dryRun,
@@ -98,9 +98,9 @@ func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
 	maxProc := allCliFlags.maxProc
 	dryRun := allCliFlags.dryRun
 
-	if interval < minSweep {
+	if interval < valet.MinSweep {
 		log.Error().Msgf("Invalid interval %s (must be > %s)",
-			interval, minSweep)
+			interval, valet.MinSweep)
 		os.Exit(1)
 	}
 
@@ -116,18 +116,18 @@ func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 
 	pred := valet.RequiresChecksum
 
-	// pruneFn, err := makeRegexPruneFn(exclude)
-	pruneFn, err := makeGlobPruneFn(exclude)
+	// pruneFn, err := valet.MakeRegexPruneFn(exclude)
+	pruneFn, err := valet.MakeGlobPruneFunc(exclude)
 	if err != nil {
 		log.Error().Err(err).Msg("error in exclusion patterns")
 		os.Exit(1)
 	}
 
 	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred, pruneFn)
-	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn,
-		interval)
-	mpaths := mergeFileChannels(wpaths, fpaths)
-	errs := mergeErrorChannels(werrs, ferrs)
+	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn, interval)
+
+	mpaths := valet.MergeFileChannels(wpaths, fpaths)
+	errs := valet.MergeErrorChannels(werrs, ferrs)
 
 	var workPlan valet.WorkPlan
 	if dryRun {

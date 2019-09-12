@@ -224,12 +224,12 @@ func handleCloseFile(target FilePath, pred FilePredicate,
 	if ok {
 		log.Debug().
 			Str("path", target.Location).
-			Msg("accepted for processing")
+			Msg("accepted by WatchFiles")
 		paths <- target
 	} else {
 		log.Debug().
 			Str("path", target.Location).
-			Msg("rejected (predicate false)")
+			Msg("rejected by WatchFiles")
 	}
 
 	return err
@@ -250,12 +250,12 @@ func handleMovedtoFile(target FilePath, pred FilePredicate,
 	if ok {
 		log.Debug().
 			Str("path", target.Location).
-			Msg("accepted for processing")
+			Msg("accepted by WatchFiles")
 		paths <- target
 	} else {
 		log.Debug().
 			Str("path", target.Location).
-			Msg("rejected (predicate false)")
+			Msg("rejected by WatchFiles")
 	}
 
 	return err

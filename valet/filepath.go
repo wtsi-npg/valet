@@ -14,37 +14,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @file checksum.go
+ * @file filepath.go
  * @author Keith James <kdj@sanger.ac.uk>
  */
 
-package cmd
+package valet
 
 import (
 	"os"
-
-	logs "github.com/kjsanger/logshim"
-	"github.com/spf13/cobra"
+	"path/filepath"
 )
 
-var checksumCmd = &cobra.Command{
-	Use:   "checksum",
-	Short: "Manage checksum files under a root directory",
-	Long: `
-valet checksum provides commands to manage checksum files that accompany data
-files.
-`,
-	Run: runChecksumCmd,
+// FileResource is a locatable file.
+type FileResource struct {
+	Location string // Raw URL or file path
 }
 
-func init() {
-	valetCmd.AddCommand(checksumCmd)
+// FilePath is a FileResource that is on a local filesystem.
+type FilePath struct {
+	FileResource
+	Info os.FileInfo
 }
 
-func runChecksumCmd(cmd *cobra.Command, args []string) {
-	if err := cmd.Help(); err != nil {
-		logs.GetLogger().Error().Err(err).Msg("help command failed")
-		os.Exit(1)
+// NewFilePath returns a new instance where the path has been cleaned and made
+// absolute and the FileInfo populated by os.Stat
+func NewFilePath(path string) (FilePath, error) {
+	var fp FilePath
+	absPath, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return fp, err
 	}
-}
 
+	info, err := os.Stat(absPath)
+	fp.Info = info
+	fp.FileResource = FileResource{absPath}
+
+	return fp, err
+}

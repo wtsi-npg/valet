@@ -96,7 +96,7 @@ func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 	var err error
 
 	pred := valet.RequiresChecksum
-	pruneFn, perr := makeGlobPruneFn(exclude)
+	pruneFn, perr := valet.MakeGlobPruneFunc(exclude)
 	if perr != nil {
 		log.Error().Err(perr).Msg("error in exclusion patterns")
 		return numWithoutChecksum, err

@@ -191,6 +191,9 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 	return false, nil
 }
 
+// IsMinKNOWRunDir returns true if path is a MinKNOW run directory. This type
+// of directory is located two levels down from the data directory, within an
+// experiment and a sample directory.
 func IsMinKNOWRunDir(path FilePath) (bool, error) {
 	return MinKNOWRunIDRegex.MatchString(filepath.Base(path.Location)), nil
 }

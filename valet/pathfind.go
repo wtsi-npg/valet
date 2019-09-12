@@ -29,32 +29,8 @@ import (
 	logs "github.com/kjsanger/logshim"
 )
 
-// FileResource is a locatable file.
-type FileResource struct {
-	Location string // Raw URL or file path
-}
-
-// FilePath is a FileResource that is on a local filesystem.
-type FilePath struct {
-	FileResource
-	Info os.FileInfo
-}
-
-// NewFilePath returns a new instance where the path has been cleaned and made
-// absolute and the FileInfo populated by os.Stat
-func NewFilePath(path string) (FilePath, error) {
-	var fp FilePath
-	absPath, err := filepath.Abs(filepath.Clean(path))
-	if err != nil {
-		return fp, err
-	}
-
-	info, err := os.Stat(absPath)
-	fp.Info = info
-	fp.FileResource = FileResource{absPath}
-
-	return fp, err
-}
+const DefaultSweep = 5 * time.Minute
+const MinSweep = 30 * time.Second
 
 // FindFiles walks the directory tree under root recursively, except into
 // directories where pruneFn returns filepath.SkipDir, which prunes the
@@ -104,10 +80,10 @@ func FindFiles(
 		if perr != nil {
 			return perr
 		} else if ok {
-			log.Debug().Str("path", path).Msg("accepted")
+			log.Debug().Str("path", path).Msg("accepted by FindFiles")
 			paths <- p
 		} else {
-			log.Debug().Str("path", path).Msg("rejected")
+			log.Debug().Str("path", path).Msg("rejected by FindFiles")
 		}
 
 		select {
