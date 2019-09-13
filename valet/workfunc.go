@@ -48,7 +48,7 @@ type Work struct {
 	Rank     uint16   // The rank of the work
 }
 
-// WorkArr is a series of Work to be executed in order.
+// WorkArr is a series of Work to be executed in ascending rank order.
 type WorkArr []Work
 
 func (s WorkArr) Len() int {
@@ -60,7 +60,7 @@ func (s WorkArr) Swap(i, j int) {
 }
 
 func (s WorkArr) Less(i, j int) bool {
-	return s[i].Rank > s[j].Rank
+	return s[i].Rank < s[j].Rank
 }
 
 func (s WorkArr) IsEmpty() bool {
@@ -71,7 +71,8 @@ func (s WorkArr) IsEmpty() bool {
 // the predicate returns true then the work will be done.
 type WorkMatch struct {
 	pred FilePredicate // Predicate to match against candidate FilePath
-	work Work          // Work to be executed on a matching FilePath.
+	work Work          // Work to be executed on a matching FilePath
+	desc string        // A short description of the match criteria and work
 }
 
 // WorkPlan is a slice of WorkMatches. Where more than one Work is matched,
@@ -82,21 +83,24 @@ type WorkPlan []WorkMatch
 func DryRunWorkPlan() WorkPlan {
 	return []WorkMatch{{
 		pred: IsTrue,
-		work: Work{WorkFunc: DoNothing}}}
+		work: Work{WorkFunc: DoNothing},
+		desc: "IsTrue : DoNothing"}}
 }
 
 // CreateChecksumWorkPlan manages checksum files.
 func CreateChecksumWorkPlan() WorkPlan {
 	return []WorkMatch{{
 		pred: RequiresChecksum,
-		work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile}}}
+		work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile},
+		desc: "RequiresChecksum : CreateOrUpdateMD5ChecksumFile"}}
 }
 
 // ChecksumStateWorkPlan counts files that do not have a checksum.
 func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 	return []WorkMatch{{
 		pred: RequiresChecksum,
-		work: Work{WorkFunc: countFunc}}}
+		work: Work{WorkFunc: countFunc},
+		desc: "RequiresChecksum : Count"}}
 }
 
 // DispatchWork accepts a candidate FilePath and a WorkPlan and returns Work
@@ -111,8 +115,19 @@ func DispatchWork(path FilePath, plan WorkPlan) (Work, error) {
 		if err != nil {
 			return work, err
 		}
+
+		log := logs.GetLogger()
 		if add {
+			log.Warn().Str("path", path.Location).
+				Str("desc", m.desc).
+				Uint64("rank", uint64(m.work.Rank)).
+				Msg("match, adding work")
 			matchedWork = append(matchedWork, m.work)
+		} else {
+			log.Warn().Str("path", path.Location).
+				Str("desc", m.desc).
+				Uint64("rank", uint64(m.work.Rank)).
+				Msg("no match, ignoring work")
 		}
 	}
 	work = combineWork(matchedWork)
