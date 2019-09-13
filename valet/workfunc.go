@@ -324,9 +324,9 @@ func MakeArchiver(localBase string, remoteBase string,
 			return
 		}
 
-		_, err = ex.ArchiveDataObject(client, path.Location, dst,
-			string(checksum), ex.MakeCreationMetadata())
-		if err != nil {
+		chk := string(checksum)
+		if _, err = ex.ArchiveDataObject(client, path.Location, dst, chk,
+			ex.MakeCreationMetadata(chk)) ; err != nil {
 			return
 		}
 

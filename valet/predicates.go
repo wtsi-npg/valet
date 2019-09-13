@@ -319,20 +319,28 @@ func MakeIsArchived(localBase string, remoteBase string,
 		ok, err = obj.Exists()
 		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
-				Msg("not archived: no data object")
+				Msg("not archived: data object not confirmed")
 			return
 		}
 
-		ok, err = obj.HasValidChecksum(string(checksum))
+		chk := string(checksum)
+		ok, err = obj.HasValidChecksum(chk)
 		if err != nil {
 			return
 		}
 
 		if !ok {
 			log.Debug().Str("path", path.Location).
-				Str("expected_checksum", string(checksum)).
+				Str("expected_checksum", chk).
 				Str("checksum", obj.Checksum()).
-				Msg("not archived: checksum mismatch")
+				Msg("not archived: checksum not confirmed")
+		}
+
+		ok, err = obj.HasValidChecksumMetadata(chk)
+		if err != nil || !ok {
+			log.Debug().Str("path", path.Location).
+				Msg("not archived: no checksum metadata not confirmed")
+			return
 		}
 
 		return
