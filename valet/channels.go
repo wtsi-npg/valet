@@ -22,6 +22,10 @@ package valet
 
 import "github.com/kjsanger/logshim"
 
+// MergeFileChannels merges values from its two input channels x and y for as
+// long as at least one of them is open. One both x and y have been closed, the
+// channel returned will be closed by this function. The caller should not
+// close the returned channel themselves.
 func MergeFileChannels(
 	x <-chan FilePath,
 	y <-chan FilePath) chan FilePath {
@@ -58,6 +62,11 @@ func MergeFileChannels(
 	return merged
 }
 
+
+// MergeErrorChannels merges values from its two input channels x and y for as
+// long as at least one of them is open. One both x and y have been closed, the
+// channel returned will be closed by this function. The caller should not
+// close the returned channel themselves.
 func MergeErrorChannels(x <-chan error, y <-chan error) chan error {
 	merged := make(chan error)
 
