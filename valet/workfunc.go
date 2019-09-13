@@ -27,8 +27,10 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 
+	ex "github.com/kjsanger/extendo"
 	"github.com/pkg/errors"
 
 	"github.com/kjsanger/valet/utilities"
@@ -103,58 +105,27 @@ func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 		desc: "RequiresChecksum : Count"}}
 }
 
-// DispatchWork accepts a candidate FilePath and a WorkPlan and returns Work
-// encapsulating all the work in the WorkPlan. If no work is required for the
-// FilePath, it returns DoNothing Work.
-func DispatchWork(path FilePath, plan WorkPlan) (Work, error) {
-	var work Work
+func ArchiveFilesWorkPlan(localBase string, remoteBase string,
+	cPool *ex.ClientPool) WorkPlan {
 
-	var matchedWork WorkArr
-	for _, m := range plan {
-		add, err := m.pred(path)
-		if err != nil {
-			return work, err
-		}
+	archiver := MakeArchiver(localBase, remoteBase, cPool)
 
-		log := logs.GetLogger()
-		if add {
-			log.Warn().Str("path", path.Location).
-				Str("desc", m.desc).
-				Uint64("rank", uint64(m.work.Rank)).
-				Msg("match, adding work")
-			matchedWork = append(matchedWork, m.work)
-		} else {
-			log.Warn().Str("path", path.Location).
-				Str("desc", m.desc).
-				Uint64("rank", uint64(m.work.Rank)).
-				Msg("no match, ignoring work")
-		}
+	return []WorkMatch{
+		{
+			pred: RequiresChecksum,
+			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 1},
+			desc: "RequiresChecksum : CreateOrUpdateMD5ChecksumFile",
+		},
+		{
+			pred: MakeRequiresArchiving(localBase, remoteBase, cPool),
+			work: Work{WorkFunc: archiver, Rank: 2},
+			desc: "RequiresArchiving : Archive",
+		},
+		{
+			pred: MakeIsArchived(localBase, remoteBase, cPool),
+			work: Work{WorkFunc: RemoveFile, Rank: 3},
+		},
 	}
-	work = combineWork(matchedWork)
-
-	return work, nil
-}
-
-func combineWork(work []Work) Work {
-	var workFunc WorkFunc
-	var w WorkArr = work
-
-	if w.IsEmpty() {
-		workFunc = DoNothing
-	} else {
-		sort.Sort(w)
-
-		workFunc = func(path FilePath) error {
-			for _, w := range w {
-				if err := w.WorkFunc(path); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}
-
-	return Work{WorkFunc: workFunc}
 }
 
 // DoNothing does nothing apart from log at debug level that it has been
@@ -284,6 +255,136 @@ func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
 	return
 }
 
+// MakeArchiver returns a WorkFunc capable of archiving files to iRODS. Each
+// file passed to the WorkFunc will have its path relative to localBase
+// calculated. This relative path will then be appended to remoteBase to give
+// the full destination path in iRODS. E.g.
+//
+// localBase        = /a/b/c
+// remoteBase       = /zone1/x/y
+//
+// file path        = /a/b/c/d/e/f.txt
+//
+// therefore:
+//
+// relative path    = ./d/e/f.txt
+// destination path = /zone1/x/y/d/e/f.txt
+//
+// Any leading iRODS collections will be created by the WorkFunc as required.
+//
+// WorkFunc prerequisites: CreateOrUpdateMD5ChecksumFile
+func MakeArchiver(localBase string, remoteBase string,
+	cPool *ex.ClientPool) WorkFunc {
+	return func(path FilePath) (err error) { // NRV
+		var dst string
+		dst, err = translatePath(localBase, remoteBase, path)
+
+		var chkFile FilePath
+		chkFile, err = NewFilePath(ChecksumFilename(path))
+		if err != nil {
+			return
+		}
+
+		var checksum []byte
+		checksum, err = ReadMD5ChecksumFile(chkFile)
+
+		log := logs.GetLogger()
+		log.Info().Str("src", path.Location).Str("to", dst).
+			Str("checksum", string(checksum)).Msg("archiving")
+
+		var client *ex.Client
+		client, err = cPool.Get()
+		if err != nil {
+			return
+		}
+
+		defer func() {
+			err = utilities.CombineErrors(err, cPool.Return(client))
+		}()
+
+		coll := ex.NewCollection(client, filepath.Dir(dst))
+		err = coll.Ensure()
+		if err != nil {
+			return
+		}
+
+		_, err = ex.ArchiveDataObject(client, path.Location, dst,
+			string(checksum), ex.MakeCreationMetadata())
+		if err != nil {
+			return
+		}
+
+		log.Info().Str("path", path.Location).Str("to", dst).
+			Str("checksum", string(checksum)).Msg("archived")
+		return
+	}
+}
+
+func RemoveFile(path FilePath) error {
+	logs.GetLogger().Info().Str("path", path.Location).Msg("deleting")
+	return os.Remove(path.Location)
+}
+
+// DispatchWork accepts a candidate FilePath and a WorkPlan and returns Work
+// encapsulating all the work in the WorkPlan. If no work is required for the
+// FilePath, it returns DoNothing Work.
+//
+// All predicates are evaluated before any work is done, therefore if some
+// predicates are true only after earlier work in the WorkPlan is complete,
+// they will remain false and their work will not be done until the entire plan
+// is rescheduled.
+func DispatchWork(path FilePath, plan WorkPlan) (Work, error) {
+	var work Work
+
+	var matchedWork WorkArr
+	for _, m := range plan {
+		add, err := m.pred(path)
+		if err != nil {
+			return work, err
+		}
+
+		log := logs.GetLogger()
+		if add {
+			matchedWork = append(matchedWork, m.work)
+
+			log.Debug().Str("path", path.Location).
+				Str("desc", m.desc).
+				Uint64("rank", uint64(m.work.Rank)).
+				Msg("match, added work")
+		} else {
+			log.Debug().Str("path", path.Location).
+				Str("desc", m.desc).
+				Uint64("rank", uint64(m.work.Rank)).
+				Msg("no match, ignoring work")
+		}
+	}
+	work = combineWork(matchedWork)
+
+	return work, nil
+}
+
+func combineWork(work []Work) Work {
+	var workFunc WorkFunc
+	var w WorkArr = work
+
+	if w.IsEmpty() {
+		workFunc = DoNothing
+	} else {
+		sort.Sort(w)
+
+		workFunc = func(path FilePath) error {
+			for _, w := range w {
+				if err := w.WorkFunc(path); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
+	return Work{WorkFunc: workFunc}
+}
+
 func createMD5File(path string, md5sum []byte) (err error) { // NRV
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
@@ -300,4 +401,12 @@ func createMD5File(path string, md5sum []byte) (err error) { // NRV
 	_, err = f.Write(append(encoded, '\n'))
 
 	return
+}
+
+func translatePath(lBase string, rBase string, path FilePath) (string, error) {
+	src, err := filepath.Rel(lBase, path.Location)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(filepath.Join(rBase, src)), err
 }

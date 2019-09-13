@@ -48,7 +48,8 @@ type cliFlags struct {
 	dryRun        bool          // Enable dry-run mode
 	maxProc       int           // The maximum number of threads to use
 	sweepInterval time.Duration // The interval at which to perform sweeps
-	rootDir       string        // The root directory to monitor
+	localRoot     string        // The root directory to monitor
+	archiveRoot   string        // The root collection of the archive
 	excludeDirs   []string      // Directories to exclude from monitoring
 }
 

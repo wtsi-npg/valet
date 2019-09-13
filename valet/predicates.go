@@ -26,7 +26,10 @@ import (
 	"path/filepath"
 	"regexp"
 
+	ex "github.com/kjsanger/extendo"
 	logs "github.com/kjsanger/logshim"
+
+	"github.com/kjsanger/valet/utilities"
 )
 
 type FilePredicate func(path FilePath) (bool, error)
@@ -52,6 +55,8 @@ var RequiresChecksum = And(
 	IsRegular,
 	Or(IsFast5Match, IsFastqMatch),
 	Or(Not(HasChecksumFile), HasStaleChecksumFile))
+
+var HasValidChecksumFile = Not(HasStaleChecksumFile)
 
 // IsTrue always returns true.
 func IsTrue(path FilePath) (bool, error) {
@@ -198,13 +203,13 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 	return MinKNOWRunIDRegex.MatchString(filepath.Base(path.Location)), nil
 }
 
-// MakeMinKNOWExptDirPred returns a predicate that tests a directory to see
+// MakeIsMinKNOWExptDir returns a predicate that tests a directory to see
 // whether it is a MinKNOW run directory.
 //
 // A run directory is defined as:
 //
 // - a directory
-// - that is directly contained in the MinNKOW data directory (usually /data)
+// - that is directly contained in the MinKNOW data directory (usually /data)
 // - that contains one or more directories (sample directories) that themselves
 //   contain MinKNOW run directories.
 // - where a MinKNOW run directory is defined by the directory name matching
@@ -216,13 +221,13 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 //
 // This function is useful because the MinKNOW data directory may contain
 // directories other than those containing sequencing results.
-func MakeMinKNOWExptDirPred(dataDir string) (FilePredicate, error) {
+func MakeIsMinKNOWExptDir(dataDir string) (FilePredicate, error) {
 	root, err := filepath.Abs(dataDir)
 	if err != nil {
 		return nil, err
 	}
 
-	runPattern :=  fmt.Sprintf("%s/*/*", filepath.Clean(root))
+	runPattern := fmt.Sprintf("%s/*/*", filepath.Clean(root))
 
 	pred := func(path FilePath) (bool, error) {
 		var err error
@@ -249,6 +254,89 @@ func MakeMinKNOWExptDirPred(dataDir string) (FilePredicate, error) {
 	}
 
 	return pred, err
+}
+
+// MakeRequiresArchiving returns a predicate that will return true if its
+// argument should be archived.
+func MakeRequiresArchiving(localBase string, remoteBase string,
+	cPool *ex.ClientPool) FilePredicate {
+
+	return Or(IsFast5Match, IsFastqMatch)
+}
+
+// MakeIsArchived returns a predicate that will return true if its argument has
+// been successfully archived from localBase to remoteBase.
+//
+// The criteria for archived state are:
+//
+// 1. The file has a valid checksum file (not stale), otherwise there could
+//    be no way to test the checksum against the checksum in the archive.
+//
+// 2. The data object exists in the archive.
+//
+// 3. The checksum of the data object in the archive matches the expected
+//    checksum.
+func MakeIsArchived(localBase string, remoteBase string,
+	cPool *ex.ClientPool) FilePredicate {
+
+	return func(path FilePath) (ok bool, err error) {
+		var dest string
+		dest, err = translatePath(localBase, remoteBase, path)
+		if err != nil {
+			return
+		}
+
+		client, err := cPool.Get()
+		if err != nil {
+			return
+		}
+
+		defer func() {
+			err = utilities.CombineErrors(err, cPool.Return(client))
+		}()
+
+		var chkFile FilePath
+		chkFile, err = NewFilePath(ChecksumFilename(path))
+		if err != nil {
+			return
+		}
+
+		log := logs.GetLogger()
+		ok, err = HasValidChecksumFile(path)
+		if err != nil || !ok {
+			log.Debug().Str("path", path.Location).
+				Msg("not archived: no valid checksum file")
+			return
+		}
+
+		var checksum []byte
+		checksum, err = ReadMD5ChecksumFile(chkFile)
+		if err != nil {
+			return
+		}
+
+		obj := ex.NewDataObject(client, dest)
+		ok, err = obj.Exists()
+		if err != nil || !ok {
+			log.Debug().Str("path", path.Location).
+				Msg("not archived: no data object")
+			return
+		}
+
+		ok, err = obj.HasValidChecksum(string(checksum))
+		if err != nil {
+			return
+		}
+
+		if !ok {
+			log.Debug().Str("path", path.Location).
+				Str("expected_checksum", string(checksum)).
+				Str("checksum", obj.Checksum()).
+				Msg("not archived: checksum mismatch")
+		}
+
+		return
+	}
 }
 
 // ChecksumFilename returns the expected path of the checksum file
