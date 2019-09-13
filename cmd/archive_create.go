@@ -64,7 +64,7 @@ valet archive create --root /data --exclude /data/intermediate \
 }
 
 var maxClients uint8 = 12
-var clientPool = ex.NewClientPool(maxClients, time.Second*5)
+var clientPool = ex.NewClientPool(maxClients, time.Second*1)
 
 func init() {
 	archiveCreateCmd.Flags().StringVarP(&allCliFlags.localRoot,
