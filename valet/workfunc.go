@@ -81,6 +81,22 @@ type WorkMatch struct {
 // they will be done in rank order.
 type WorkPlan []WorkMatch
 
+func (p WorkPlan) Len() int {
+	return len(p)
+}
+
+func (p WorkPlan) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func (p WorkPlan) Less(i, j int) bool {
+	return p[i].work.Rank < p[j].work.Rank
+}
+
+func (p WorkPlan) IsEmpty() bool {
+	return len(p) == 0
+}
+
 // DryRunWorkPlan matches any FilePath and does DoNothing Work.
 func DryRunWorkPlan() WorkPlan {
 	return []WorkMatch{{
@@ -325,64 +341,52 @@ func RemoveFile(path FilePath) error {
 	return os.Remove(path.Location)
 }
 
-// DispatchWork accepts a candidate FilePath and a WorkPlan and returns Work
+// doWork accepts a candidate FilePath and a WorkPlan and returns Work
 // encapsulating all the work in the WorkPlan. If no work is required for the
 // FilePath, it returns DoNothing Work.
 //
-// All predicates are evaluated before any work is done, therefore if some
+// All predicates are evaluated as any work is done, therefore if some
 // predicates are true only after earlier work in the WorkPlan is complete,
-// they will remain false and their work will not be done until the entire plan
-// is rescheduled.
-func DispatchWork(path FilePath, plan WorkPlan) (Work, error) {
-	var work Work
+// they will pass, provided work is ranked in the appropriate order.
+func doWork(path FilePath, plan WorkPlan) (Work, error) {
 
-	var matchedWork WorkArr
-	for _, m := range plan {
-		add, err := m.pred(path)
-		if err != nil {
-			return work, err
-		}
+	if plan.IsEmpty() {
+		return Work{WorkFunc:DoNothing}, nil
+	}
+
+	workFunc := func(fp FilePath) error {
+		wp := plan
+		sort.Sort(wp)
 
 		log := logs.GetLogger()
-		if add {
-			matchedWork = append(matchedWork, m.work)
 
-			log.Debug().Str("path", path.Location).
-				Str("desc", m.desc).
-				Uint64("rank", uint64(m.work.Rank)).
-				Msg("match, added work")
-		} else {
-			log.Debug().Str("path", path.Location).
-				Str("desc", m.desc).
-				Uint64("rank", uint64(m.work.Rank)).
-				Msg("no match, ignoring work")
-		}
-	}
-	work = combineWork(matchedWork)
+		for _, wm := range wp {
+			ok, err := wm.pred(fp)
+			if err != nil {
+				return err
+			}
 
-	return work, nil
-}
+			if ok {
+				log.Debug().Str("path", fp.Location).
+					Str("desc", wm.desc).
+					Uint64("rank", uint64(wm.work.Rank)).
+					Msg("match, doing work")
 
-func combineWork(work []Work) Work {
-	var workFunc WorkFunc
-	var w WorkArr = work
-
-	if w.IsEmpty() {
-		workFunc = DoNothing
-	} else {
-		sort.Sort(w)
-
-		workFunc = func(path FilePath) error {
-			for _, w := range w {
-				if err := w.WorkFunc(path); err != nil {
+				if err := wm.work.WorkFunc(fp); err != nil {
 					return err
 				}
+			} else {
+				log.Debug().Str("path", path.Location).
+					Str("desc", wm.desc).
+					Uint64("rank", uint64(wm.work.Rank)).
+					Msg("no match, ignoring work")
 			}
-			return nil
 		}
+
+		return nil
 	}
 
-	return Work{WorkFunc: workFunc}
+	return Work{WorkFunc: workFunc}, nil
 }
 
 func createMD5File(path string, md5sum []byte) (err error) { // NRV

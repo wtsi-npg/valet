@@ -76,7 +76,7 @@ func ProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) erro
 			running[p.Location] = struct{}{}
 			jobCount++
 
-			work, derr := DispatchWork(p, workPlan)
+			work, derr := doWork(p, workPlan)
 			if derr != nil {
 				mu.Unlock()
 				log.Error().Err(derr).
