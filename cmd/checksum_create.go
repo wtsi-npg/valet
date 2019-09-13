@@ -63,7 +63,7 @@ valet checksum create --root /data --exclude /data/intermediate \
 }
 
 func init() {
-	checksumCreateCmd.Flags().StringVarP(&allCliFlags.rootDir,
+	checksumCreateCmd.Flags().StringVarP(&allCliFlags.localRoot,
 		"root", "r", "",
 		"the root directory of the monitor")
 
@@ -92,7 +92,7 @@ func init() {
 
 func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
 	log := setupLogger(allCliFlags)
-	root := allCliFlags.rootDir
+	root := allCliFlags.localRoot
 	exclude := allCliFlags.excludeDirs
 	interval := allCliFlags.sweepInterval
 	maxProc := allCliFlags.maxProc

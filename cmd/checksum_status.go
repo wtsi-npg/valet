@@ -47,7 +47,7 @@ valet checksum status --root /data --exclude /data/intermediate \
 }
 
 func init() {
-	checksumStatusCmd.Flags().StringVarP(&allCliFlags.rootDir,
+	checksumStatusCmd.Flags().StringVarP(&allCliFlags.localRoot,
 		"root", "r", "",
 		"the root directory of the monitor")
 
@@ -68,7 +68,7 @@ func init() {
 
 func runChecksumStatusCmd(cmd *cobra.Command, args []string) {
 	log := setupLogger(allCliFlags)
-	root := allCliFlags.rootDir
+	root := allCliFlags.localRoot
 	exclude := allCliFlags.excludeDirs
 
 	numWithoutChecksum, err := CountFilesWithoutChecksum(root, exclude)
