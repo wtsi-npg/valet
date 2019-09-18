@@ -46,14 +46,14 @@ var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
 //
 // 20190701_1522_GA10000_FAK83493_3bba1763
 //
-var MinKNOWRunIDRegex = regexp.MustCompile(`\d+_\d+_GA\d+_F[A-Za-z0-9]+_[A-Za-z0-9]+`)
+var MinKNOWRunIDRegex = regexp.MustCompile(`^\d+_\d+_\S+_[A-Za-z0-9]+_[A-Za-z0-9]+$`)
 
 // RequiresChecksum returns true if the argument is a regular file that is
 // recognised as a checksum target and either has no checksum file, or has a
 // checksum file that is stale.
 var RequiresChecksum = And(
 	IsRegular,
-	Or(IsFast5Match, IsFastqMatch),
+	Or(IsFast5, IsFastq),
 	Or(Not(HasChecksumFile), HasStaleChecksumFile))
 
 var HasValidChecksumFile = Not(HasStaleChecksumFile)
@@ -138,13 +138,13 @@ func Not(predicate FilePredicate) FilePredicate {
 	}
 }
 
-// IsFast5Match returns true if path matches the recognised fast5 pattern.
-func IsFast5Match(path FilePath) (bool, error) {
+// IsFast5 returns true if path matches the recognised fast5 pattern.
+func IsFast5(path FilePath) (bool, error) {
 	return fast5Regex.MatchString(path.Location), nil
 }
 
-// IsFastqMatch returns true if path matches the recognised fastq pattern.
-func IsFastqMatch(path FilePath) (bool, error) {
+// IsFastq returns true if path matches the recognised fastq pattern.
+func IsFastq(path FilePath) (bool, error) {
 	return fastqRegex.MatchString(path.Location), nil
 }
 
@@ -196,64 +196,17 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 	return false, nil
 }
 
-// IsMinKNOWRunDir returns true if path is a MinKNOW run directory. This type
-// of directory is located two levels down from the data directory, within an
-// experiment and a sample directory.
-func IsMinKNOWRunDir(path FilePath) (bool, error) {
-	return MinKNOWRunIDRegex.MatchString(filepath.Base(path.Location)), nil
+// IsMinKNOWRunID returns true if name is in the form of a MinNKOW run
+// identifier (matches MinKNOWRunIDRegex).
+func IsMinKNOWRunID(name string) bool {
+	return MinKNOWRunIDRegex.MatchString(name)
 }
 
-// MakeIsMinKNOWExptDir returns a predicate that tests a directory to see
-// whether it is a MinKNOW run directory.
-//
-// A run directory is defined as:
-//
-// - a directory
-// - that is directly contained in the MinKNOW data directory (usually /data)
-// - that contains one or more directories (sample directories) that themselves
-//   contain MinKNOW run directories.
-// - where a MinKNOW run directory is defined by the directory name matching
-//   MinKNOWRunIDRegex.
-//
-// e.g. /data/27 is an experiment directory
-//
-// /data/27/ABCD123456/20190701_1522_GA10000_FAK83493_3bba1763
-//
-// This function is useful because the MinKNOW data directory may contain
-// directories other than those containing sequencing results.
-func MakeIsMinKNOWExptDir(dataDir string) (FilePredicate, error) {
-	root, err := filepath.Abs(dataDir)
-	if err != nil {
-		return nil, err
-	}
-
-	runPattern := fmt.Sprintf("%s/*/*", filepath.Clean(root))
-
-	pred := func(path FilePath) (bool, error) {
-		var err error
-
-		if path.Info == nil {
-			path.Info, err = os.Stat(path.Location)
-			if os.IsNotExist(err) {
-				return false, nil
-			}
-			return false, err
-		}
-		if !path.Info.IsDir() {
-			return false, nil
-		}
-
-		contents, err := filepath.Glob(runPattern)
-		for _, path := range contents {
-			if MinKNOWRunIDRegex.MatchString(path) {
-				return true, err
-			}
-		}
-
-		return false, err
-	}
-
-	return pred, err
+// IsMinKNOWRunDir returns true if path is a MinKNOW run directory. This type
+// of directory is located two levels down from the data directory, within an
+// experiment and a sample directory and its name is a MinKNOW run identifier.
+func IsMinKNOWRunDir(path FilePath) (bool, error) {
+	return IsMinKNOWRunID(filepath.Base(path.Location)), nil
 }
 
 // MakeRequiresArchiving returns a predicate that will return true if its
@@ -261,7 +214,7 @@ func MakeIsMinKNOWExptDir(dataDir string) (FilePredicate, error) {
 func MakeRequiresArchiving(localBase string, remoteBase string,
 	cPool *ex.ClientPool) FilePredicate {
 
-	return Or(IsFast5Match, IsFastqMatch)
+	return Or(IsFast5, IsFastq)
 }
 
 // MakeIsArchived returns a predicate that will return true if its argument has

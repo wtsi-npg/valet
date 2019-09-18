@@ -51,7 +51,7 @@ func TestIsRegular(t *testing.T) {
 
 func TestIsFast5Match(t *testing.T) {
 	f5, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
-	ok, err := IsFast5Match(f5)
+	ok, err := IsFast5(f5)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fast5 file")
 	}
@@ -59,7 +59,7 @@ func TestIsFast5Match(t *testing.T) {
 
 func TestIsFastqMatch(t *testing.T) {
 	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
-	ok, err := IsFastqMatch(fq)
+	ok, err := IsFastq(fq)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fastq file")
 	}
@@ -125,10 +125,29 @@ func TestHasStaleChecksumFile(t *testing.T) {
 }
 
 func TestIsMinKNOWRunDir(t *testing.T) {
-	dir, _ := NewFilePath(filepath.Join("testdata/platform/ont/minknow",
-		"20190701_1234_GA10000_FAK12345_12abcdef"))
-	ok, err := IsMinKNOWRunDir(dir)
-	if assert.NoError(t, err) {
-		assert.True(t, ok, "expected some truth")
+	gridionRunDirs := []string{
+		"testdata/platform/ont/minknow/gridion/66/DN585561I_A1/" +
+			"20190904_1514_GA20000_FAL01979_43578c8f",
+		"testdata/platform/ont/minknow/gridion/66/DN585561I_B1/" +
+			"20190904_1514_GA30000_FAL09731_2f0f08bc",
+	}
+
+	promethionDirs := []string{
+		"testdata/platform/ont/minknow/promethion/DN467851H_Multiplex_Pool_1/" +
+			"DN467851H_B2_C2_E2_F2/20190820_1538_2-E7-H7_PAD71219_a4a384ec",
+		"testdata/platform/ont/minknow/promethion/DN467851H_Multiplex_Pool_2/" +
+			"DN467851H_A3_F3_G3_H3/20190821_1545_1-A1-D1_PAD73195_440ab859",
+	}
+
+	var allRunDirs []string
+	allRunDirs = append(allRunDirs, gridionRunDirs...)
+	allRunDirs = append(allRunDirs, promethionDirs...)
+
+	for _, dir := range allRunDirs {
+		fp, _ := NewFilePath(dir)
+		ok, err := IsMinKNOWRunDir(fp)
+		if assert.NoError(t, err) {
+			assert.True(t, ok, "expected %s to be a GridION run directory", dir)
+		}
 	}
 }
