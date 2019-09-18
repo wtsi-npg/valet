@@ -130,14 +130,20 @@ func CreateArchive(root string, archiveRoot string, exclude []string,
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
 
-	pred := valet.MakeRequiresArchiving(root, archiveRoot, clientPool)
+	globFn, err := valet.MakeGlobPruneFunc(exclude)
+	if err != nil {
+		log.Error().Err(err).Msg("error in default exclusion patterns")
+		os.Exit(1)
+	}
 
-	pruneFn, err := valet.MakeGlobPruneFunc(exclude)
+	ignoreFn, err := valet.MakeDefaultPruneFunc(root)
 	if err != nil {
 		log.Error().Err(err).Msg("error in exclusion patterns")
 		os.Exit(1)
 	}
 
+	pred := valet.MakeRequiresArchiving(root, archiveRoot, clientPool)
+	pruneFn := valet.Or(globFn, ignoreFn)
 	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred, pruneFn)
 	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn, interval)
 

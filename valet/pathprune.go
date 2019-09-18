@@ -26,8 +26,49 @@ import (
 	logs "github.com/kjsanger/logshim"
 )
 
+// Directory names within the root MinKNOW data directory (typically /data)
+// that we will ignore by default.
+var MinKNOWIgnore = []string{
+	"epi2me_inside",
+	"intermediate",
+	"npg",
+	"queued_reads",
+	"reads"}
+
+// DefaultIgnorePatterns returns glob patterns matching directories in the root
+// MinKNOW data directory that will be ignored by default.
+func DefaultIgnorePatterns(dataDir string) ([]string, error) {
+	absData, err := filepath.Abs(dataDir)
+	if err != nil {
+		return []string{}, err
+	}
+
+	var patterns []string
+	for _, name := range MinKNOWIgnore {
+		patterns = append(patterns, filepath.Join(absData, name))
+	}
+
+	return patterns, nil
+}
+
+// MakeDefaultPruneFunc returns a directory pruning function for MinKNOW data
+// directory dataDir. This will exclude directories matching
+// DefaultIgnorePatterns.
+func MakeDefaultPruneFunc(dataDir string) (FilePredicate, error) {
+	defaults, err := DefaultIgnorePatterns(dataDir)
+	if err != nil {
+		return nil, err
+	}
+
+	return MakeGlobPruneFunc(defaults)
+}
+
 /*
-func MakeRegexPruneFunc(patterns []string) (valet.FilePredicate, error) {
+// MakeRegexPruneFunc returns a FilePredicate that will return false for any
+// directory matching at least one of the regex pattern arguments. The returned
+// function is intended for use as a pruning function argument to the
+// valet.WatchFiles and valet.FindFiles functions.
+func MakeRegexPruneFunc(patterns []string) (FilePredicate, error) {
 	log := logs.GetLogger()
 
 	var regexes []*regexp.Regexp
@@ -45,7 +86,7 @@ func MakeRegexPruneFunc(patterns []string) (valet.FilePredicate, error) {
 		return nil, utilities.CombineErrors(errors...)
 	}
 
-	return func(fp valet.FilePath) (bool, error) {
+	return func(fp FilePath) (bool, error) {
 		for _, regex := range regexes {
 			if regex.MatchString(fp.Location) {
 				log.Debug().
@@ -59,6 +100,10 @@ func MakeRegexPruneFunc(patterns []string) (valet.FilePredicate, error) {
 }
 */
 
+// MakeGlobPruneFunc returns a FilePredicate that will return false for any
+// directory matching at least one of the glob pattern arguments. The returned
+// function is intended for use as a pruning function argument to the
+// valet.WatchFiles and valet.FindFiles functions.
 func MakeGlobPruneFunc(patterns []string) (FilePredicate, error) {
 	log := logs.GetLogger()
 
