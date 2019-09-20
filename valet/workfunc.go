@@ -133,13 +133,17 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 			desc: "RequiresChecksum : CreateOrUpdateMD5ChecksumFile",
 		},
 		{
-			pred: MakeRequiresArchiving(localBase, remoteBase, cPool),
+			pred: RequiresArchiving,
 			work: Work{WorkFunc: archiver, Rank: 2},
 			desc: "RequiresArchiving : Archive",
 		},
 		{
 			pred: MakeIsArchived(localBase, remoteBase, cPool),
 			work: Work{WorkFunc: RemoveFile, Rank: 3},
+		},
+		{
+			pred: HasChecksumFile,
+			work: Work{WorkFunc:RemoveMD5ChecksumFile, Rank:4},
 		},
 	}
 }
@@ -279,16 +283,18 @@ func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
 // localBase        = /a/b/c
 // remoteBase       = /zone1/x/y
 //
-// file path        = /a/b/c/d/e/f.txt
+// file path        = /a/b/c/d/e/f.fast5
 //
 // therefore:
 //
 // relative path    = ./d/e/f.txt
-// destination path = /zone1/x/y/d/e/f.txt
+// destination path = /zone1/x/y/d/e/f.fast5
 //
 // Any leading iRODS collections will be created by the WorkFunc as required.
 //
 // WorkFunc prerequisites: CreateOrUpdateMD5ChecksumFile
+//
+// i.e. files for archiving are expected to have an MD5 checksum file.
 func MakeArchiver(localBase string, remoteBase string,
 	cPool *ex.ClientPool) WorkFunc {
 	return func(path FilePath) (err error) { // NRV
