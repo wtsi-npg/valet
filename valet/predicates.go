@@ -36,10 +36,18 @@ type FilePredicate func(path FilePath) (bool, error)
 
 const Fast5Suffix string = "fast5" // The recognised suffix for fast5 files
 const FastqSuffix string = "fastq" // The recognised suffix for fastq files
+const CSVSuffix string = "csv"
+const MarkdownSuffix string = "md"
+const TxtSuffix string = "txt"
+const PDFSuffix string = "pdf"
 const MD5Suffix string = "md5"     // The recognised suffix for MD5 checksum files
 
 var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
 var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
+var txtRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", TxtSuffix))
+var markdownRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", MarkdownSuffix))
+var pdfRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", PDFSuffix))
+var csvRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", CSVSuffix))
 
 // Matches the run ID of MinKNOW c. August 2019 for GridION and PromethION
 // i.e. of the form:
@@ -48,12 +56,14 @@ var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
 //
 var MinKNOWRunIDRegex = regexp.MustCompile(`^\d+_\d+_\S+_[A-Za-z0-9]+_[A-Za-z0-9]+$`)
 
+var RequiresArchiving = Or(IsFast5, IsFastq, IsTxt, IsMarkdown, IsPDF, IsCSV)
+
 // RequiresChecksum returns true if the argument is a regular file that is
 // recognised as a checksum target and either has no checksum file, or has a
 // checksum file that is stale.
 var RequiresChecksum = And(
 	IsRegular,
-	Or(IsFast5, IsFastq),
+	RequiresArchiving,
 	Or(Not(HasChecksumFile), HasStaleChecksumFile))
 
 var HasValidChecksumFile = Not(HasStaleChecksumFile)
@@ -148,6 +158,27 @@ func IsFastq(path FilePath) (bool, error) {
 	return fastqRegex.MatchString(path.Location), nil
 }
 
+// IsTxt returns true if path matches the recognised text file pattern.
+func IsTxt(path FilePath) (bool, error) {
+	return txtRegex.MatchString(path.Location), nil
+}
+
+//  IsMarkdown returns true if path matches the recognised markdown file
+//  pattern.
+func IsMarkdown(path FilePath) (bool, error) {
+	return markdownRegex.MatchString(path.Location), nil
+}
+
+// IsPDF returns true if path matches the recognised PDF file pattern.
+func IsPDF(path FilePath) (bool, error) {
+	return pdfRegex.MatchString(path.Location), nil
+}
+
+// IsCSV returns true if path matches the recognised CSV file pattern.
+func IsCSV(path FilePath) (bool, error) {
+	return csvRegex.MatchString(path.Location), nil
+}
+
 // HasChecksumFile returns true if the argument has a corresponding checksum
 // file.
 func HasChecksumFile(path FilePath) (bool, error) {
@@ -207,14 +238,6 @@ func IsMinKNOWRunID(name string) bool {
 // experiment and a sample directory and its name is a MinKNOW run identifier.
 func IsMinKNOWRunDir(path FilePath) (bool, error) {
 	return IsMinKNOWRunID(filepath.Base(path.Location)), nil
-}
-
-// MakeRequiresArchiving returns a predicate that will return true if its
-// argument should be archived.
-func MakeRequiresArchiving(localBase string, remoteBase string,
-	cPool *ex.ClientPool) FilePredicate {
-
-	return Or(IsFast5, IsFastq)
 }
 
 // MakeIsArchived returns a predicate that will return true if its argument has
