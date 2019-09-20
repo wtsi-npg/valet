@@ -21,7 +21,10 @@
 package valet
 
 import (
+	"context"
+	"os"
 	"sync"
+	"time"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
@@ -29,6 +32,46 @@ import (
 
 type token struct{}
 type semaphore chan token
+
+type ProcessParams struct {
+	Root          string        // The local root directory to work on
+	MatchFunc     FilePredicate // The file selecting predicate
+	PruneFunc     FilePredicate // The local directory tree pruning predicate
+	Plan          WorkPlan      // The plan for selected files
+	SweepInterval time.Duration // The interval between sweeps of the local directory tree
+	MaxProc       int           // The maximum number of threads to run
+}
+
+func DoProcessFiles(cancelCtx context.Context, params ProcessParams) {
+
+	wpaths, werrs := WatchFiles(cancelCtx, params.Root, params.MatchFunc,
+		params.PruneFunc)
+	fpaths, ferrs := FindFilesInterval(cancelCtx, params.Root, params.MatchFunc,
+		params.PruneFunc, params.SweepInterval)
+
+	mpaths := MergeFileChannels(wpaths, fpaths)
+	errs := MergeErrorChannels(werrs, ferrs)
+	done := make(chan bool)
+
+	log := logs.GetLogger()
+
+	go func() {
+		defer func() { done <- true }()
+
+		err := ProcessFiles(mpaths, params.Plan, params.MaxProc)
+		if err != nil {
+			log.Error().Err(err).Msg("failed processing")
+			os.Exit(1)
+		}
+	}()
+
+	if err := <-errs; err != nil {
+		log.Error().Err(err).Msg("failed to complete processing")
+		os.Exit(1)
+	}
+
+	<-done
+}
 
 // ProcessFiles operates by applying workPlan to each FilePath in the paths
 // channel. Each WorkPlan is executed in its own goroutine, with no more than

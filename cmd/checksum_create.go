@@ -114,20 +114,12 @@ func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
 
-	pred := valet.RequiresChecksum
-
 	// pruneFn, err := valet.MakeRegexPruneFn(exclude)
 	pruneFn, err := valet.MakeGlobPruneFunc(exclude)
 	if err != nil {
 		log.Error().Err(err).Msg("error in exclusion patterns")
 		os.Exit(1)
 	}
-
-	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred, pruneFn)
-	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn, interval)
-
-	mpaths := valet.MergeFileChannels(wpaths, fpaths)
-	errs := valet.MergeErrorChannels(werrs, ferrs)
 
 	var workPlan valet.WorkPlan
 	if dryRun {
@@ -136,22 +128,12 @@ func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 		workPlan = valet.CreateChecksumWorkPlan()
 	}
 
-	done := make(chan bool)
-
-	go func() {
-		defer func() { done <- true }()
-
-		err := valet.ProcessFiles(mpaths, workPlan, maxProc)
-		if err != nil {
-			log.Error().Err(err).Msg("failed processing")
-			os.Exit(1)
-		}
-	}()
-
-	if err := <-errs; err != nil {
-		log.Error().Err(err).Msg("failed to complete processing")
-		os.Exit(1)
-	}
-
-	<-done
+	valet.DoProcessFiles(cancelCtx, valet.ProcessParams{
+		Root:          root,
+		MatchFunc:     valet.RequiresChecksum,
+		PruneFunc:     pruneFn,
+		Plan:          workPlan,
+		SweepInterval: interval,
+		MaxProc:       maxProc,
+	})
 }

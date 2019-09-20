@@ -64,7 +64,8 @@ valet archive create --root /data --exclude /data/intermediate \
 }
 
 var maxClients uint8 = 12
-var clientPool = ex.NewClientPool(maxClients, time.Second*1)
+var clientPool = ex.NewClientPool(maxClients, time.Second*1,
+	"--silent")
 
 func init() {
 	archiveCreateCmd.Flags().StringVarP(&allCliFlags.localRoot,
@@ -130,25 +131,17 @@ func CreateArchive(root string, archiveRoot string, exclude []string,
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
 
-	globFn, err := valet.MakeGlobPruneFunc(exclude)
+	userPruneFn, err := valet.MakeGlobPruneFunc(exclude)
 	if err != nil {
 		log.Error().Err(err).Msg("error in default exclusion patterns")
 		os.Exit(1)
 	}
 
-	ignoreFn, err := valet.MakeDefaultPruneFunc(root)
+	defaultPruneFn, err := valet.MakeDefaultPruneFunc(root)
 	if err != nil {
 		log.Error().Err(err).Msg("error in exclusion patterns")
 		os.Exit(1)
 	}
-
-	pred := valet.MakeRequiresArchiving(root, archiveRoot, clientPool)
-	pruneFn := valet.Or(globFn, ignoreFn)
-	wpaths, werrs := valet.WatchFiles(cancelCtx, root, pred, pruneFn)
-	fpaths, ferrs := valet.FindFilesInterval(cancelCtx, root, pred, pruneFn, interval)
-
-	mpaths := valet.MergeFileChannels(wpaths, fpaths)
-	errs := valet.MergeErrorChannels(werrs, ferrs)
 
 	var workPlan valet.WorkPlan
 	if dryRun {
@@ -157,22 +150,12 @@ func CreateArchive(root string, archiveRoot string, exclude []string,
 		workPlan = valet.ArchiveFilesWorkPlan(root, archiveRoot, clientPool)
 	}
 
-	done := make(chan bool)
-
-	go func() {
-		defer func() { done <- true }()
-
-		err := valet.ProcessFiles(mpaths, workPlan, maxProc)
-		if err != nil {
-			log.Error().Err(err).Msg("failed processing")
-			os.Exit(1)
-		}
-	}()
-
-	if err := <-errs; err != nil {
-		log.Error().Err(err).Msg("failed to complete processing")
-		os.Exit(1)
-	}
-
-	<-done
+	valet.DoProcessFiles(cancelCtx, valet.ProcessParams{
+		Root:          root,
+		MatchFunc:     valet.RequiresArchiving,
+		PruneFunc:     valet.Or(userPruneFn, defaultPruneFn),
+		Plan:          workPlan,
+		SweepInterval: interval,
+		MaxProc:       maxProc,
+	})
 }
