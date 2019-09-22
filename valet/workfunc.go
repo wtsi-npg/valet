@@ -38,7 +38,7 @@ import (
 	logs "github.com/kjsanger/logshim"
 )
 
-// WorkFunc is a worker function used by ProcessFiles.
+// WorkFunc is a worker function used by DoProcessFiles.
 type WorkFunc func(path FilePath) error
 
 // Work describes a function to be executed and the rank of the execution. When
@@ -122,11 +122,11 @@ func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 }
 
 func ArchiveFilesWorkPlan(localBase string, remoteBase string,
-	cPool *ex.ClientPool) WorkPlan {
+	cPool *ex.ClientPool, deleteLocal bool) WorkPlan {
 
 	archiver := MakeArchiver(localBase, remoteBase, cPool)
 
-	return []WorkMatch{
+	plan := []WorkMatch{
 		{
 			pred: RequiresChecksum,
 			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 1},
@@ -137,15 +137,23 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 			work: Work{WorkFunc: archiver, Rank: 2},
 			desc: "RequiresArchiving : Archive",
 		},
-		{
-			pred: MakeIsArchived(localBase, remoteBase, cPool),
-			work: Work{WorkFunc: RemoveFile, Rank: 3},
-		},
-		{
-			pred: HasChecksumFile,
-			work: Work{WorkFunc:RemoveMD5ChecksumFile, Rank:4},
-		},
 	}
+
+	if deleteLocal {
+		plan = append(plan,
+			WorkMatch{
+				pred: MakeIsArchived(localBase, remoteBase, cPool),
+				work: Work{WorkFunc: RemoveFile, Rank: 3},
+				desc: "IsArchived : RemoveFile",
+			},
+			WorkMatch{
+				pred: HasChecksumFile,
+				work: Work{WorkFunc:RemoveMD5ChecksumFile, Rank:4},
+				desc: "HasChecksumFile : RemoveMD5ChecksumFile",
+			})
+	}
+
+	return plan
 }
 
 // DoNothing does nothing apart from log at debug level that it has been

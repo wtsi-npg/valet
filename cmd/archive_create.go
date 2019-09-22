@@ -32,6 +32,14 @@ import (
 	"github.com/kjsanger/valet/valet"
 )
 
+type archiveParams struct {
+	exclude []string
+	interval time.Duration
+	maxProc int
+	dryRun bool
+	deleteLocal bool
+}
+
 var archiveCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create an archive of files under a root directory",
@@ -56,8 +64,7 @@ archive them and if successful, delete the archived file from the local disk.
     - (data file name).md5
 `,
 	Example: `
-valet archive create --root /data --exclude /data/intermediate \
-    --exclude /data/queued_reads --exclude /data/reports \
+valet archive create --root /data --exclude /data/custom \
     --archive-root /seq/ont/gridion/gxb02004
     --interval 20m --verbose`,
 	Run: runArchiveCreateCmd,
@@ -103,6 +110,10 @@ func init() {
 		"patterns matching directories to prune "+
 			"from both monitoring and interval sweeps")
 
+	archiveCreateCmd.Flags().BoolVar(&allCliFlags.deleteLocal,
+		"delete-on-archive",false,
+		"delete local files on successful archiving")
+
 	archiveCmd.AddCommand(archiveCreateCmd)
 }
 
@@ -110,28 +121,29 @@ func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 	log := setupLogger(allCliFlags)
 	root := allCliFlags.localRoot
 	collection := allCliFlags.archiveRoot
-	exclude := allCliFlags.excludeDirs
-	interval := allCliFlags.sweepInterval
-	maxProc := allCliFlags.maxProc
-	dryRun := allCliFlags.dryRun
 
-	if interval < valet.MinSweep {
+	if allCliFlags.sweepInterval < valet.MinSweep {
 		log.Error().Msgf("Invalid interval %s (must be > %s)",
-			interval, valet.MinSweep)
+			allCliFlags.sweepInterval, valet.MinSweep)
 		os.Exit(1)
 	}
 
-	CreateArchive(root, collection, exclude, interval, maxProc, dryRun)
+	CreateArchive(root, collection, archiveParams{
+		exclude:     allCliFlags.excludeDirs,
+		interval:    allCliFlags.sweepInterval,
+		maxProc:     allCliFlags.maxProc,
+		dryRun:      allCliFlags.dryRun,
+		deleteLocal: allCliFlags.deleteLocal,
+	})
 }
 
-func CreateArchive(root string, archiveRoot string, exclude []string,
-	interval time.Duration, maxProc int, dryRun bool) {
+func CreateArchive(root string, archiveRoot string, params archiveParams){
 	log := logs.GetLogger()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)
 
-	userPruneFn, err := valet.MakeGlobPruneFunc(exclude)
+	userPruneFn, err := valet.MakeGlobPruneFunc(params.exclude)
 	if err != nil {
 		log.Error().Err(err).Msg("error in default exclusion patterns")
 		os.Exit(1)
@@ -144,18 +156,19 @@ func CreateArchive(root string, archiveRoot string, exclude []string,
 	}
 
 	var workPlan valet.WorkPlan
-	if dryRun {
+	if params.dryRun {
 		workPlan = valet.DryRunWorkPlan()
 	} else {
-		workPlan = valet.ArchiveFilesWorkPlan(root, archiveRoot, clientPool)
+		workPlan = valet.ArchiveFilesWorkPlan(root, archiveRoot, clientPool,
+			params.deleteLocal)
 	}
 
-	valet.DoProcessFiles(cancelCtx, valet.ProcessParams{
+	valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 		Root:          root,
 		MatchFunc:     valet.RequiresArchiving,
 		PruneFunc:     valet.Or(userPruneFn, defaultPruneFn),
 		Plan:          workPlan,
-		SweepInterval: interval,
-		MaxProc:       maxProc,
+		SweepInterval: params.interval,
+		MaxProc:       params.maxProc,
 	})
 }

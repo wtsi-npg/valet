@@ -42,7 +42,7 @@ type ProcessParams struct {
 	MaxProc       int           // The maximum number of threads to run
 }
 
-func DoProcessFiles(cancelCtx context.Context, params ProcessParams) {
+func ProcessFiles(cancelCtx context.Context, params ProcessParams) {
 
 	wpaths, werrs := WatchFiles(cancelCtx, params.Root, params.MatchFunc,
 		params.PruneFunc)
@@ -58,7 +58,7 @@ func DoProcessFiles(cancelCtx context.Context, params ProcessParams) {
 	go func() {
 		defer func() { done <- true }()
 
-		err := ProcessFiles(mpaths, params.Plan, params.MaxProc)
+		err := DoProcessFiles(mpaths, params.Plan, params.MaxProc)
 		if err != nil {
 			log.Error().Err(err).Msg("failed processing")
 			os.Exit(1)
@@ -73,7 +73,7 @@ func DoProcessFiles(cancelCtx context.Context, params ProcessParams) {
 	<-done
 }
 
-// ProcessFiles operates by applying workPlan to each FilePath in the paths
+// DoProcessFiles operates by applying workPlan to each FilePath in the paths
 // channel. Each WorkPlan is executed in its own goroutine, with no more than
 // maxThreads goroutines running in parallel.
 //
@@ -81,9 +81,9 @@ func DoProcessFiles(cancelCtx context.Context, params ProcessParams) {
 // passed in subsequently, but before existing work has finished, it is skipped.
 //
 // If any WorkPlan encounters an error, the error is logged and counted. When
-// ProcessFiles exits, it will return an error if the error count across all
+// DoProcessFiles exits, it will return an error if the error count across all
 // the WorkPlans was greater than 0.
-func ProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) error {
+func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) error {
 	var wg sync.WaitGroup // The group of all work goroutines
 
 	var mu = sync.Mutex{} // Protects running, jobCount, errCount

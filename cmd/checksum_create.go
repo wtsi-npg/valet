@@ -128,7 +128,7 @@ func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 		workPlan = valet.CreateChecksumWorkPlan()
 	}
 
-	valet.DoProcessFiles(cancelCtx, valet.ProcessParams{
+	valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 		Root:          root,
 		MatchFunc:     valet.RequiresChecksum,
 		PruneFunc:     pruneFn,

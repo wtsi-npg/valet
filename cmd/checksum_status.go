@@ -119,7 +119,7 @@ func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 	go func() {
 		defer func() { done <- true }()
 
-		err := valet.ProcessFiles(paths,
+		err := valet.DoProcessFiles(paths,
 			valet.ChecksumStateWorkPlan(countFunc), maxProcs)
 		if err != nil {
 			log.Error().Err(err).Msg("failed processing")
