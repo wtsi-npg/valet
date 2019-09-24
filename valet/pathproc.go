@@ -51,12 +51,12 @@ func ProcessFiles(cancelCtx context.Context, params ProcessParams) {
 
 	mpaths := MergeFileChannels(wpaths, fpaths)
 	errs := MergeErrorChannels(werrs, ferrs)
-	done := make(chan bool)
+	done := make(chan token)
 
 	log := logs.GetLogger()
 
 	go func() {
-		defer func() { done <- true }()
+		defer func() { done <- token{} }()
 
 		err := DoProcessFiles(mpaths, params.Plan, params.MaxProc)
 		if err != nil {
@@ -87,7 +87,7 @@ func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) er
 	var wg sync.WaitGroup // The group of all work goroutines
 
 	var mu = sync.Mutex{} // Protects running, jobCount, errCount
-	var running = make(map[string]struct{})
+	var running = make(map[string]token)
 	var jobCount uint64
 	var errCount uint64
 
@@ -116,7 +116,7 @@ func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) er
 			}()
 
 			mu.Lock()
-			running[p.Location] = struct{}{}
+			running[p.Location] = token{}
 			jobCount++
 
 			work, derr := doWork(p, workPlan)
