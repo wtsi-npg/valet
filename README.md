@@ -77,12 +77,9 @@ as many jobs as there are CPUs. Work function failures will be logged and
 counted, but will not cause `valet` to terminate. However, once `valet`
 terminates it will do so with a non-zero exit code if any work function failed.
 
-### Bugs
+`valet` prevents more than one instance of a work function (either of the same
+function, or another) from operating on a particular file concurrently.
 
-- It is possible for race conditions to arise where e.g. filesystem sweeps are
-frequent relative to job runtime, resulting in more than one work function
-operating in parallel on the same path. Work functions should be written to fail
-gracefully in these cases, or to recover from errors internally. In future an
-exclusion feature may be added to serialise operations on the same path.
+### Bugs
 
 - There is no manpage.
