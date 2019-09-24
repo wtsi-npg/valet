@@ -33,10 +33,10 @@ import (
 )
 
 type archiveParams struct {
-	exclude []string
-	interval time.Duration
-	maxProc int
-	dryRun bool
+	exclude     []string
+	interval    time.Duration
+	maxProc     int
+	dryRun      bool
 	deleteLocal bool
 }
 
@@ -71,8 +71,6 @@ valet archive create --root /data --exclude /data/custom \
 }
 
 var maxClients uint8 = 12
-var clientPool = ex.NewClientPool(maxClients, time.Second*1,
-	"--silent")
 
 func init() {
 	archiveCreateCmd.Flags().StringVarP(&allCliFlags.localRoot,
@@ -111,7 +109,7 @@ func init() {
 			"from both monitoring and interval sweeps")
 
 	archiveCreateCmd.Flags().BoolVar(&allCliFlags.deleteLocal,
-		"delete-on-archive",false,
+		"delete-on-archive", false,
 		"delete local files on successful archiving")
 
 	archiveCmd.AddCommand(archiveCreateCmd)
@@ -137,7 +135,7 @@ func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 	})
 }
 
-func CreateArchive(root string, archiveRoot string, params archiveParams){
+func CreateArchive(root string, archiveRoot string, params archiveParams) {
 	log := logs.GetLogger()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -154,6 +152,8 @@ func CreateArchive(root string, archiveRoot string, params archiveParams){
 		log.Error().Err(err).Msg("error in exclusion patterns")
 		os.Exit(1)
 	}
+
+	clientPool := ex.NewClientPool(maxClients, time.Second*1, "--silent")
 
 	var workPlan valet.WorkPlan
 	if params.dryRun {
