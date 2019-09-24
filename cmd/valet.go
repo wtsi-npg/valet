@@ -76,6 +76,9 @@ func Execute() {
 
 func init() {
 	defaultMaxProc := utilities.Abs(runtime.GOMAXPROCS(runtime.NumCPU()))
+	if defaultMaxProc > 12 {
+		defaultMaxProc = 12
+	}
 
 	valetCmd.PersistentFlags().BoolVar(&allCliFlags.debug,
 		"debug", false,
