@@ -154,6 +154,14 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) {
 	}
 
 	clientPool := ex.NewClientPool(maxClients, time.Second*1, "--silent")
+	go func(ctx context.Context) {
+		select {
+		case <-ctx.Done():
+			log.Debug().Msg("closing the client pool")
+			clientPool.Close()
+			return
+		}
+	}(cancelCtx)
 
 	var workPlan valet.WorkPlan
 	if params.dryRun {
