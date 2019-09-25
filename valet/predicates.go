@@ -315,7 +315,7 @@ func MakeIsArchived(localBase string, remoteBase string,
 		ok, err = obj.HasValidChecksumMetadata(chk)
 		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
-				Msg("not archived: no checksum metadata not confirmed")
+				Msg("not archived: checksum metadata not confirmed")
 			return
 		}
 

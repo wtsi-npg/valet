@@ -102,7 +102,7 @@ func DryRunWorkPlan() WorkPlan {
 	return []WorkMatch{{
 		pred: IsTrue,
 		work: Work{WorkFunc: DoNothing},
-		desc: "IsTrue : DoNothing"}}
+		desc: "IsTrue => DoNothing"}}
 }
 
 // CreateChecksumWorkPlan manages checksum files.
@@ -110,7 +110,7 @@ func CreateChecksumWorkPlan() WorkPlan {
 	return []WorkMatch{{
 		pred: RequiresChecksum,
 		work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile},
-		desc: "RequiresChecksum : CreateOrUpdateMD5ChecksumFile"}}
+		desc: "RequiresChecksum => CreateOrUpdateMD5ChecksumFile"}}
 }
 
 // ChecksumStateWorkPlan counts files that do not have a checksum.
@@ -118,38 +118,39 @@ func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 	return []WorkMatch{{
 		pred: RequiresChecksum,
 		work: Work{WorkFunc: countFunc},
-		desc: "RequiresChecksum : Count"}}
+		desc: "RequiresChecksum => Count"}}
 }
 
 func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 	cPool *ex.ClientPool, deleteLocal bool) WorkPlan {
 
 	archiver := MakeArchiver(localBase, remoteBase, cPool)
+	isArchived := MakeIsArchived(localBase, remoteBase, cPool)
 
 	plan := []WorkMatch{
 		{
 			pred: RequiresChecksum,
 			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 1},
-			desc: "RequiresChecksum : CreateOrUpdateMD5ChecksumFile",
+			desc: "RequiresChecksum => CreateOrUpdateMD5ChecksumFile",
 		},
 		{
-			pred: RequiresArchiving,
+			pred: And(RequiresArchiving, Not(isArchived)),
 			work: Work{WorkFunc: archiver, Rank: 2},
-			desc: "RequiresArchiving : Archive",
+			desc: "RequiresArchiving && Not Archived => Archive",
 		},
 	}
 
 	if deleteLocal {
 		plan = append(plan,
 			WorkMatch{
-				pred: MakeIsArchived(localBase, remoteBase, cPool),
+				pred: isArchived,
 				work: Work{WorkFunc: RemoveFile, Rank: 3},
-				desc: "IsArchived : RemoveFile",
+				desc: "IsArchived => RemoveFile",
 			},
 			WorkMatch{
 				pred: HasChecksumFile,
 				work: Work{WorkFunc:RemoveMD5ChecksumFile, Rank:4},
-				desc: "HasChecksumFile : RemoveMD5ChecksumFile",
+				desc: "HasChecksumFile => RemoveMD5ChecksumFile",
 			})
 	}
 
@@ -305,6 +306,7 @@ func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
 // i.e. files for archiving are expected to have an MD5 checksum file.
 func MakeArchiver(localBase string, remoteBase string,
 	cPool *ex.ClientPool) WorkFunc {
+
 	return func(path FilePath) (err error) { // NRV
 		var dst string
 		dst, err = translatePath(localBase, remoteBase, path)
