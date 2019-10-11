@@ -27,37 +27,27 @@ import (
 	"path/filepath"
 	"time"
 
+	ex "github.com/kjsanger/extendo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/kjsanger/valet/cmd"
-	"github.com/kjsanger/valet/utilities"
 	"github.com/kjsanger/valet/valet"
 )
 
-var dataFiles = []string{
-	"testdata/valet/1/reads/fast5/reads1.fast5",
-	"testdata/valet/1/reads/fast5/reads1.fast5.md5",
-	"testdata/valet/1/reads/fast5/reads2.fast5",
-	"testdata/valet/1/reads/fast5/reads3.fast5",
-	"testdata/valet/1/reads/fastq/reads1.fastq",
-	"testdata/valet/1/reads/fastq/reads1.fastq.md5",
-	"testdata/valet/1/reads/fastq/reads2.fastq",
-	"testdata/valet/1/reads/fastq/reads3.fastq",
-	"testdata/valet/testdir/.gitignore",
-}
-var dataDirs = []string{
-	"testdata/valet",
-	"testdata/valet/1",
-	"testdata/valet/1/reads",
-	"testdata/valet/1/reads/fast5",
-	"testdata/valet/1/reads/fastq",
-	"testdata/valet/testdir",
-}
-
 var _ = Describe("Find directories)", func() {
-	var expectedPaths = dataDirs
-	var foundDirs []valet.FilePath
+	var (
+		foundDirs []valet.FilePath
+
+		expectedPaths = []string{
+			"testdata/valet",
+			"testdata/valet/1",
+			"testdata/valet/1/reads",
+			"testdata/valet/1/reads/fast5",
+			"testdata/valet/1/reads/fastq",
+			"testdata/valet/testdir",
+		}
+	)
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -95,8 +85,21 @@ var _ = Describe("Find directories)", func() {
 })
 
 var _ = Describe("Find regular files)", func() {
-	var expectedPaths = dataFiles
-	var foundFiles []valet.FilePath
+	var (
+		foundFiles []valet.FilePath
+
+		expectedPaths = []string{
+			"testdata/valet/1/reads/fast5/reads1.fast5",
+			"testdata/valet/1/reads/fast5/reads1.fast5.md5",
+			"testdata/valet/1/reads/fast5/reads2.fast5",
+			"testdata/valet/1/reads/fast5/reads3.fast5",
+			"testdata/valet/1/reads/fastq/reads1.fastq",
+			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
+			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads3.fastq",
+			"testdata/valet/testdir/.gitignore",
+		}
+	)
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -135,27 +138,28 @@ var _ = Describe("Find regular files)", func() {
 })
 
 var _ = Describe("Find files with pruning", func() {
-	var expectedPaths = []string{
-		"testdata/valet",
-		"testdata/valet/1",
-		"testdata/valet/testdir",
-	}
-
-	var foundDirs []valet.FilePath
-
-	pruneFn := func(pf valet.FilePath) (bool, error) {
-		pattern, err := filepath.Abs("testdata/valet/1/reads")
-		if err != nil {
-			return false, err
+	var (
+		expectedPaths = []string{
+			"testdata/valet",
+			"testdata/valet/1",
+			"testdata/valet/testdir",
 		}
 
-		match, err := filepath.Match(pattern, pf.Location)
-		if err == nil && match {
-			return match, filepath.SkipDir
+		pruneFn = func(pf valet.FilePath) (bool, error) {
+			pattern, err := filepath.Abs("testdata/valet/1/reads")
+			if err != nil {
+				return false, err
+			}
+
+			match, err := filepath.Match(pattern, pf.Location)
+			if err == nil && match {
+				return match, filepath.SkipDir
+			}
+			return match, err
 		}
 
-		return match, err
-	}
+		foundDirs []valet.FilePath
+	)
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -193,8 +197,20 @@ var _ = Describe("Find files with pruning", func() {
 })
 
 var _ = Describe("Find files at intervals", func() {
-	var expectedPaths = dataFiles[:len(dataFiles) -1]
-	var foundFiles = map[string]bool{}
+	var (
+		expectedPaths = []string{
+			"testdata/valet/1/reads/fast5/reads1.fast5",
+			"testdata/valet/1/reads/fast5/reads1.fast5.md5",
+			"testdata/valet/1/reads/fast5/reads2.fast5",
+			"testdata/valet/1/reads/fast5/reads3.fast5",
+			"testdata/valet/1/reads/fastq/reads1.fastq",
+			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
+			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads3.fastq",
+		}
+
+		foundFiles = map[string]bool{}
+	)
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -250,22 +266,23 @@ var _ = Describe("Find files at intervals", func() {
 })
 
 var _ = Describe("Watch for file changes", func() {
-	var expectedPaths = []string{
-		"testdata/valet/1/reads/fast5/reads1.fast5",
-		"testdata/valet/1/reads/fast5/reads2.fast5",
-		"testdata/valet/1/reads/fast5/reads3.fast5",
-		"testdata/valet/1/reads/fastq/reads1.fastq",
-		"testdata/valet/1/reads/fastq/reads2.fastq",
-		"testdata/valet/1/reads/fastq/reads3.fastq",
-	}
-	var expectedDirs = []string{
-		"testdata/valet/1/reads/fast5/",
-		"testdata/valet/1/reads/fastq/",
-	}
+	var (
+		tmpDir     string
+		foundFiles = map[string]bool{}
 
-	var foundFiles = map[string]bool{}
-
-	var tmpDir string
+		expectedPaths = []string{
+			"testdata/valet/1/reads/fast5/reads1.fast5",
+			"testdata/valet/1/reads/fast5/reads2.fast5",
+			"testdata/valet/1/reads/fast5/reads3.fast5",
+			"testdata/valet/1/reads/fastq/reads1.fastq",
+			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads3.fastq",
+		}
+		expectedDirs = []string{
+			"testdata/valet/1/reads/fast5/",
+			"testdata/valet/1/reads/fastq/",
+		}
+	)
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -336,24 +353,25 @@ var _ = Describe("Watch for file changes", func() {
 })
 
 var _ = Describe("Watch for file changes with pruning", func() {
-	var allPaths = []string{
-		"testdata/valet/1/reads/fast5/reads1.fast5",
-		"testdata/valet/1/reads/fast5/reads2.fast5",
-		"testdata/valet/1/reads/fast5/reads3.fast5",
-		"testdata/valet/1/reads/fastq/reads1.fastq",
-		"testdata/valet/1/reads/fastq/reads2.fastq",
-		"testdata/valet/1/reads/fastq/reads3.fastq",
-	}
-	var allDirs = []string{
-		"testdata/valet/1/reads/fast5/",
-		"testdata/valet/1/reads/fastq/",
-	}
+	var (
+		tmpDir     string
+		foundFiles = map[string]bool{}
 
-	var tmpDir string
+		allPaths = []string{
+			"testdata/valet/1/reads/fast5/reads1.fast5",
+			"testdata/valet/1/reads/fast5/reads2.fast5",
+			"testdata/valet/1/reads/fast5/reads3.fast5",
+			"testdata/valet/1/reads/fastq/reads1.fastq",
+			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads3.fastq",
+		}
+		allDirs = []string{
+			"testdata/valet/1/reads/fast5/",
+			"testdata/valet/1/reads/fastq/",
+		}
 
-	expectedPaths := allPaths[:4]
-
-	var foundFiles = map[string]bool{}
+		expectedPaths = allPaths[:4]
+	)
 
 	pruneFn := func(pf valet.FilePath) (bool, error) {
 		pattern, err := filepath.Abs("testdata/valet/1/reads/fastq")
@@ -438,26 +456,22 @@ var _ = Describe("Watch for file changes with pruning", func() {
 })
 
 var _ = Describe("Find MinKNOW files", func() {
-	var dataDir = "testdata/platform/ont/minknow/gridion"
+	var (
+		foundPaths []string
 
-	var expectedPaths = []string{
-		".",
-		"66",
-		"66/DN585561I_A1",
-		"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f",
-		"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
-		"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
-		"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
-		"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
-		"66/DN585561I_B1",
-		"66/DN585561I_B1/20190904_1514_GA30000_FAL09731_2f0f08bc",
-		"66/DN585561I_B1/20190904_1514_GA30000_FAL09731_2f0f08bc/fast5_pass",
-		"66/DN585561I_B1/20190904_1514_GA30000_FAL09731_2f0f08bc/fast5_fail",
-		"66/DN585561I_B1/20190904_1514_GA30000_FAL09731_2f0f08bc/fastq_pass",
-		"66/DN585561I_B1/20190904_1514_GA30000_FAL09731_2f0f08bc/fastq_fail",
-	}
+		dataDir = "testdata/platform/ont/minknow/gridion"
 
-	var foundPaths []string
+		expectedPaths = []string{
+			".",
+			"66",
+			"66/DN585561I_A1",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
+		}
+	)
 
 	BeforeEach(func() {
 		patterns, err := valet.DefaultIgnorePatterns(dataDir)
@@ -494,9 +508,189 @@ var _ = Describe("Find MinKNOW files", func() {
 	})
 })
 
+var _ = Describe("Archive MINKnow files", func() {
+	var (
+		allFiles []string
+		allDirs  []string
+
+		tmpDir, tmpDataDir string
+		rootColl, workColl string
+
+		dataDir = "testdata/platform/ont/minknow/gridion"
+
+		getRodsPaths itemPathTransform
+	)
+
+	BeforeEach(func() {
+		ad, err := findDirsRelative(dataDir)
+		allDirs = ad
+		Expect(err).NotTo(HaveOccurred())
+
+		af, err := findFilesRelative(dataDir)
+		allFiles = af
+		Expect(err).NotTo(HaveOccurred())
+
+		td, terr := ioutil.TempDir("", "ValetTests")
+		Expect(terr).NotTo(HaveOccurred())
+		tmpDir = td
+		tmpDataDir = filepath.Join(tmpDir, "testdata/platform/ont/minknow/gridion")
+
+		rootColl = "/testZone/home/irods"
+		workColl = tmpRodsPath(rootColl, "ValetArchive")
+
+		// Set up copy of test data (test is destructive)
+		derr := mkdirAllRelative(tmpDir, allDirs)
+		Expect(derr).NotTo(HaveOccurred())
+
+		getRodsPaths = makeRodsItemTransform(workColl)
+
+		cerr := copyFilesRelative(tmpDir, allFiles, readWriteFile)
+		Expect(cerr).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		err := os.RemoveAll(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = removeTmpCollection(workColl)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Context("when using a file predicate", func() {
+		It("should find files", func() {
+			cancelCtx, cancel := context.WithCancel(context.Background())
+			sweepInterval := 5 * time.Second
+
+			clientPool := ex.NewClientPool(6, time.Second*1)
+			deleteLocal := true
+
+			defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDataDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			expected := []string{
+				".",
+				"66",
+				"66/DN585561I_A1",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
+				// Ancillary files
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
+					"GXB02004_20190904_151413_FAL01979_gridion_sequencing_run_" +
+					"DN585561I_A1_sequencing_summary.txt",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/duty_time.csv",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/final_summary.txt",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.md",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.pdf",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/throughput.csv",
+				// Fast5 fail
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
+				// Fast5 pass
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_0.fast5",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fast5",
+				// Fastq fail
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq",
+				// Fastq pass
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fastq",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_4.fastq",
+			}
+
+			// Find files or timeout and cancel
+			done := make(chan bool, 2)
+
+			go func() {
+				plan := valet.ArchiveFilesWorkPlan(tmpDataDir, workColl,
+					clientPool, deleteLocal)
+
+				valet.ProcessFiles(cancelCtx, valet.ProcessParams{
+					Root:          tmpDataDir,
+					MatchFunc:     valet.RequiresArchiving,
+					PruneFunc:     defaultPruneFn,
+					Plan:          plan,
+					SweepInterval: sweepInterval,
+					MaxProc:       4,
+				})
+			}()
+
+			go func() {
+				defer cancel()
+
+				timer := time.NewTimer(60 * time.Second)
+				<-timer.C
+				done <- true // Timeout
+			}()
+
+			go func() {
+				defer cancel()
+
+				client, err := clientPool.Get()
+				if err != nil {
+					return
+				}
+
+				for {
+					time.Sleep(2 * time.Second)
+
+					coll := ex.NewCollection(client, workColl)
+					if exists, _ := coll.Exists(); exists {
+						contents, err := coll.FetchContentsRecurse()
+						if err != nil {
+							return
+						}
+
+						if len(contents) >= len(expected) {
+							done <- true // Detect iRODS paths
+							return
+						}
+					}
+				}
+			}()
+
+			<-done
+
+			client, err := clientPool.Get()
+			Expect(err).NotTo(HaveOccurred())
+
+			coll := ex.NewCollection(client, workColl)
+			Expect(coll.Exists()).To(BeTrue())
+
+			contents, err := coll.FetchContentsRecurse()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(contents).To(WithTransform(getRodsPaths,
+				ConsistOf(expected)))
+
+			remaining, err := findFilesRelative(tmpDataDir)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(remaining).To(BeEmpty())
+		})
+	})
+})
+
 var _ = Describe("Count files without a checksum", func() {
-	var numFilesFound uint64
-	var numFilesExpected uint64 = 4
+	var (
+		numFilesFound    uint64
+		numFilesExpected uint64 = 4
+	)
 
 	BeforeEach(func() {
 		n, err := cmd.CountFilesWithoutChecksum("testdata/valet", []string{})
@@ -510,55 +704,3 @@ var _ = Describe("Count files without a checksum", func() {
 		})
 	})
 })
-
-func mkdirAllRelative(root string, subdirs []string) error {
-	for _, dir := range subdirs {
-		err := os.MkdirAll(filepath.Join(root, dir), 0700)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-type copyFn func(to string, from string) error
-
-func copyFilesRelative(root string, relPaths []string, fn copyFn) error {
-	for _, p := range relPaths {
-		from, err := filepath.Abs(p)
-		if err != nil {
-			return err
-		}
-
-		to := filepath.Join(root, p)
-
-		err = fn(from, to)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// A copyFn using Open/Write/Close
-func readWriteFile(from string, to string) error {
-	return utilities.CopyFile(from, to, 0600)
-}
-
-// A copyFn using os.Rename
-func moveFile(from string, to string) error {
-	stagingDir, err := ioutil.TempDir("", "ValetTests")
-	defer os.RemoveAll(stagingDir)
-	if err != nil {
-		return err
-	}
-
-	stagingFile := filepath.Join(stagingDir, filepath.Base(from))
-	err = readWriteFile(from, stagingFile)
-	if err != nil {
-		return err
-	}
-
-	return os.Rename(stagingFile, to)
-}

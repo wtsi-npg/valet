@@ -2,7 +2,7 @@ VERSION := $(shell git describe --always --tags --dirty)
 ldflags := "-X valet/valet.Version=${VERSION}"
 build_path = "build/valet-${VERSION}"
 
-.PHONY: build dist install lint test check clean
+.PHONY: build coverage dist install lint test check clean
 
 all: build
 
@@ -19,8 +19,10 @@ lint:
 check: test
 
 test:
-	go test -coverprofile=coverage.out -race -v ./...
-#	go tool cover -func=coverage.out
+	ginkgo -r -slowSpecThreshold=30 -race
+
+coverage:
+	ginkgo -r -slowSpecThreshold=30 -cover -coverprofile=coverage.out
 
 dist: build lint test build
 	cp README.md COPYING ${build_path}

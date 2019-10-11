@@ -172,12 +172,11 @@ func DoNothing(path FilePath) error {
 // modified time of path). If the checksum file is stale this function deletes
 // it before creating a new one.
 func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
-	log := logs.GetLogger()
+	fn := "CreateOrUpdateMD5ChecksumFile"
 
 	staleFile, err := HasStaleChecksumFile(path)
 	if err != nil {
-		log.Error().Err(err).Msg("staleFile checksum detection failed")
-		return err
+		return errors.Wrap(err, fn)
 	}
 
 	if staleFile {
@@ -186,13 +185,13 @@ func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
 
 	hasFile, err := HasChecksumFile(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, fn)
 	}
 
 	if !hasFile {
 		err = CreateMD5ChecksumFile(path)
 		if err != nil {
-			return err
+			return errors.Wrap(err, fn)
 		}
 	}
 
@@ -205,7 +204,7 @@ func CreateOrUpdateMD5ChecksumFile(path FilePath) error {
 func CreateMD5ChecksumFile(path FilePath) error {
 	md5sum, err := CalculateFileMD5(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "CreateMD5ChecksumFile")
 	}
 
 	return createMD5File(ChecksumFilename(path), md5sum)
@@ -214,11 +213,12 @@ func CreateMD5ChecksumFile(path FilePath) error {
 // UpdateMD5ChecksumFile removes the existing checksum file, if it exists and
 // creates a new one.
 func UpdateMD5ChecksumFile(path FilePath) error {
-	log := logs.GetLogger()
-
+	fn := "UpdateMD5ChecksumFile"
 	if rerr := RemoveMD5ChecksumFile(path); rerr != nil {
-		return rerr
+		return errors.Wrap(rerr, fn)
 	}
+
+	log := logs.GetLogger()
 	log.Info().Str("path", path.Location).
 		Msg("removed stale MD5 file")
 
@@ -226,7 +226,7 @@ func UpdateMD5ChecksumFile(path FilePath) error {
 		log.Error().Err(cerr).
 			Str("path", path.Location).
 			Msg("failed to create a new MD5 file")
-		return cerr
+		return errors.Wrap(cerr, fn)
 	}
 
 	return nil
@@ -240,7 +240,7 @@ func RemoveMD5ChecksumFile(path FilePath) error {
 	if os.IsNotExist(err) {
 		return nil
 	}
-	return err
+	return errors.Wrap(err, "RemoveMD5ChecksumFile")
 }
 
 // CalculateFileMD5 returns the MD5 checksum of the file at path.
