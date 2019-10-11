@@ -1,7 +1,8 @@
 VERSION := $(shell git describe --always --tags --dirty)
 ldflags := "-X valet/valet.Version=${VERSION}"
+build_path = "build/valet-${VERSION}"
 
-.PHONY: build install lint test check clean
+.PHONY: build dist install lint test check clean
 
 all: build
 
@@ -9,8 +10,8 @@ install:
 	go install -ldflags ${ldflags}
 
 build:
-	mkdir -p ./build
-	go build -ldflags ${ldflags} -o ./build/valet
+	mkdir -p ${build_path}
+	go build -v -ldflags ${ldflags} -o ${build_path}/valet github.com/kjsanger/valet
 
 lint:
 	golangci-lint run ./...
@@ -21,6 +22,11 @@ test:
 	go test -coverprofile=coverage.out -race -v ./...
 #	go tool cover -func=coverage.out
 
+dist: build lint test build
+	cp README.md COPYING ${build_path}
+	tar -C ./build -cvj -f valet-${VERSION}.tar.bz2 valet-${VERSION}
+	shasum -a 256 valet-${VERSION}.tar.bz2 > valet-${VERSION}.tar.bz2.sha256
+
 clean:
 	go clean
-	rm -f build/valet
+	rm -rf build/*
