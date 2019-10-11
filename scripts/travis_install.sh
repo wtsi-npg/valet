@@ -30,3 +30,6 @@ cat <<EOF > ~/.irods/irods_environment.json
     "irods_default_resource": "testResc"
 }
 EOF
+
+go get github.com/onsi/ginkgo/ginkgo
+go get github.com/onsi/gomega/...

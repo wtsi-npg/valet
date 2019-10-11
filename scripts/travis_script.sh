@@ -13,4 +13,3 @@ which baton-do
 baton-do --version
 
 make test
-
