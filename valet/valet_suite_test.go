@@ -559,7 +559,7 @@ var _ = Describe("Archive MINKnow files", func() {
 	Context("when using a file predicate", func() {
 		It("should find files", func() {
 			cancelCtx, cancel := context.WithCancel(context.Background())
-			sweepInterval := 5 * time.Second
+			sweepInterval := 10 * time.Second
 
 			clientPool := ex.NewClientPool(6, time.Second*1)
 			deleteLocal := true
@@ -635,7 +635,7 @@ var _ = Describe("Archive MINKnow files", func() {
 			go func() {
 				defer cancel()
 
-				timer := time.NewTimer(60 * time.Second)
+				timer := time.NewTimer(120 * time.Second)
 				<-timer.C
 				done <- true // Timeout
 			}()
