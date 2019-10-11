@@ -34,4 +34,4 @@ install:
 
 script:
   - ./scripts/travis_script.sh
-  - go test -v ./...
+
