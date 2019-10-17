@@ -137,21 +137,28 @@ func FindFilesInterval(
 			close(errs)
 		}()
 
+		finder := func(now time.Time) {
+			log.Debug().Str("root", root).
+				Time("at", now).Msg("starting interval sweep")
+
+			ipaths, ierrs := FindFiles(ctx, root, pred, pruneFn)
+			for p := range ipaths {
+				log.Debug().Msg("interval sweep sending path")
+				paths <- p
+			}
+			for e := range ierrs {
+				errs <- e
+			}
+		}
+
+		// find files immediately
+		finder(time.Now())
+
+		// then every interval
 		for {
 			select {
 			case now := <-findTick.C:
-				log.Debug().Str("root", root).
-					Time("at", now).Msg("starting interval sweep")
-
-				ipaths, ierrs := FindFiles(ctx, root, pred, pruneFn)
-				for p := range ipaths {
-					log.Debug().Msg("interval sweep sending path")
-					paths <- p
-				}
-				for e := range ierrs {
-					errs <- e
-				}
-
+				finder(now)
 			case <-ctx.Done():
 				log.Debug().Str("root", root).
 					Msg("cancelled interval sweep")
