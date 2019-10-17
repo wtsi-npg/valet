@@ -40,7 +40,8 @@ const CSVSuffix string = "csv"
 const MarkdownSuffix string = "md"
 const TxtSuffix string = "txt"
 const PDFSuffix string = "pdf"
-const MD5Suffix string = "md5" // The recognised suffix for MD5 checksum files
+const MD5Suffix string = "md5"          // The recognised suffix for MD5 checksum files
+const CompressionSuffix string = "gzip" // The recognised suffix for compressed files
 const LargeSize int64 = 524288000
 
 var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
@@ -66,6 +67,14 @@ var RequiresChecksum = And(
 	IsRegular,
 	RequiresArchiving,
 	Or(Not(HasChecksumFile), HasStaleChecksumFile))
+
+// RequiresCompression returns true if the argument is a regular file over 500MB
+// that is recognised as an archive target and has no compressed version.
+var RequiresCompression = And(
+	IsRegular,
+	IsLarge,
+	RequiresArchiving,
+	Or(Not(HasCompressedVersion), HasStaleCompressedFile))
 
 var HasValidChecksumFile = Not(HasStaleChecksumFile)
 
@@ -205,14 +214,8 @@ func HasChecksumFile(path FilePath) (bool, error) {
 	return false, err
 }
 
-// HasStaleChecksumFile returns true if the argument has a checksum file with a
-// timestamp older than the argument file i.e. the argument file appears to
-// have been modified since the checksum file was last modified.
-//
-// If the argument path does not exist, or has no checksum file, this function
-// returns false.
-func HasStaleChecksumFile(path FilePath) (bool, error) {
-	chkInfo, err := os.Stat(ChecksumFilename(path))
+func staleSecondaryFile(path FilePath, secondary string, kind string) (bool, error) {
+	secondaryInfo, err := os.Stat(secondary)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -229,15 +232,48 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 		return false, err
 	}
 
-	if path.Info.ModTime().After(chkInfo.ModTime()) {
+	if path.Info.ModTime().After(secondaryInfo.ModTime()) {
 		logs.GetLogger().Debug().
 			Str("path", path.Location).
 			Time("data_time", path.Info.ModTime()).
-			Time("checksum_time", chkInfo.ModTime()).Msg("stale checksum")
+			Time(kind+"_time", secondaryInfo.ModTime()).Msg("stale "+kind)
 		return true, nil
 	}
 
 	return false, nil
+}
+
+// HasStaleChecksumFile returns true if the argument has a checksum file with a
+// timestamp older than the argument file i.e. the argument file appears to
+// have been modified since the checksum file was last modified.
+//
+// If the argument path does not exist, or has no checksum file, this function
+// returns false.
+func HasStaleChecksumFile(path FilePath) (bool, error) {
+	return staleSecondaryFile(path, ChecksumFilename(path), "checksum")
+}
+
+// HasCompressedVersion returns true if the argument has a corresponding
+// compressed version of the file.
+func HasCompressedVersion(path FilePath) (bool, error) {
+	_, err := os.Stat(CompressedFilename(path))
+	if err == nil {
+		return true, err
+	} else if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
+}
+
+// HasStaleCompressedFile returns true if the argument has a compressed version
+// with a timestamp older than the argument file i.e. the argument file appears
+// to have been modified since the compressed file was last modified.
+//
+// If the argument path does not exist, or has no compressed version, this
+// function returns false.
+func HasStaleCompressedFile(path FilePath) (bool, error) {
+	return staleSecondaryFile(path, CompressedFilename(path), CompressionSuffix)
 }
 
 // IsMinKNOWRunID returns true if name is in the form of a MinNKOW run
@@ -340,4 +376,10 @@ func MakeIsArchived(localBase string, remoteBase string,
 // corresponding to the argument
 func ChecksumFilename(path FilePath) string {
 	return fmt.Sprintf("%s.%s", path.Location, MD5Suffix)
+}
+
+// CompressedFilename returns the expected path of the compressed file
+// corresponding to the argument
+func CompressedFilename(path FilePath) string {
+	return fmt.Sprintf("%s.%s", path.Location, CompressionSuffix)
 }

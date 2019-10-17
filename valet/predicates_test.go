@@ -156,6 +156,53 @@ func TestHasStaleChecksumFile(t *testing.T) {
 	}
 }
 
+func TestHasCompressedVersion(t *testing.T) {
+	f5With, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
+	ok, err := HasCompressedVersion(f5With)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a fast5 file with gzip")
+	}
+
+	f5Without, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads2.fast5")
+	ok, err = HasChecksumFile(f5Without)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a fast5 file without gzip")
+	}
+}
+
+func TestHasStaleCompressionFile(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "TestHasStaleCompressionFile")
+	defer os.RemoveAll(tmpDir)
+	assert.NoError(t, err)
+
+	dataFile, compressedFile :=
+		filepath.Join(tmpDir, "reads1.fast5"),
+		filepath.Join(tmpDir, "reads1.fast5.gzip")
+
+	// First write the compressed file
+	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5.gzip",
+		compressedFile, 0600)
+	assert.NoError(t, err)
+
+	time.Sleep(1 * time.Second)
+
+	// Then update with a newer reads file
+	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5",
+		dataFile, 0600)
+	assert.NoError(t, err)
+
+	f5With, _ := NewFilePath(dataFile)
+	ok, err := HasCompressedVersion(f5With)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a fast5 file with gzip")
+	}
+
+	ok, err = HasStaleCompressedFile(f5With)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a fast5 file with stale compressed file")
+	}
+}
+
 func TestIsMinKNOWRunDir(t *testing.T) {
 	gridionRunDirs := []string{
 		"testdata/platform/ont/minknow/gridion/66/DN585561I_A1/" +
