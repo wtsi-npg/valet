@@ -40,7 +40,8 @@ const CSVSuffix string = "csv"
 const MarkdownSuffix string = "md"
 const TxtSuffix string = "txt"
 const PDFSuffix string = "pdf"
-const MD5Suffix string = "md5"     // The recognised suffix for MD5 checksum files
+const MD5Suffix string = "md5" // The recognised suffix for MD5 checksum files
+const LargeSize int64 = 524288000
 
 var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
 var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
@@ -78,28 +79,40 @@ func IsFalse(path FilePath) (bool, error) {
 	return false, nil
 }
 
-// IsDir returns true if the argument is a directory (by os.Stat).
-func IsDir(path FilePath) (bool, error) {
+// statPath stats the given path if path.Info is nil.
+func statPath(path FilePath) error {
 	if path.Info == nil {
 		info, err := os.Stat(path.Location)
 		if err != nil {
-			return false, err
+			return err
 		}
 		path.Info = info
+	}
+	return nil
+}
+
+// IsDir returns true if the argument is a directory (by os.Stat).
+func IsDir(path FilePath) (bool, error) {
+	if err := statPath(path); err != nil {
+		return false, err
 	}
 	return path.Info.IsDir(), nil
 }
 
 // IsRegular returns true if the argument is a regular file (by os.Stat).
 func IsRegular(path FilePath) (bool, error) {
-	if path.Info == nil {
-		info, err := os.Stat(path.Location)
-		if err != nil {
-			return false, err
-		}
-		path.Info = info
+	if err := statPath(path); err != nil {
+		return false, err
 	}
 	return path.Info.Mode().IsRegular(), nil
+}
+
+// IsLarge returns true if the argument is a larger than 500MB (by os.Stat).
+func IsLarge(path FilePath) (bool, error) {
+	if err := statPath(path); err != nil {
+		return false, err
+	}
+	return path.Info.Size() > LargeSize, nil
 }
 
 // And returns a predicate that returns true if all its arguments return true,

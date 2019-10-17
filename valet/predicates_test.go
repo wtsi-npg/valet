@@ -49,6 +49,38 @@ func TestIsRegular(t *testing.T) {
 	}
 }
 
+// mockFileStat is an implementation of FileInfo that lets you set a size.
+type mockFileStat struct {
+	size int64
+}
+
+func (fs *mockFileStat) Name() string       { return "" }
+func (fs *mockFileStat) Size() int64        { return fs.size }
+func (fs *mockFileStat) Mode() os.FileMode  { return 0 }
+func (fs *mockFileStat) ModTime() time.Time { return time.Now() }
+func (fs *mockFileStat) IsDir() bool        { return false }
+func (fs *mockFileStat) Sys() interface{}   { return nil }
+
+func TestIsLarge(t *testing.T) {
+	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
+	ok, err := IsLarge(fq)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a file")
+	}
+
+	fq.Info = &mockFileStat{size: 524288000}
+	ok, err = IsLarge(fq)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a file")
+	}
+
+	fq.Info = &mockFileStat{size: 524288001}
+	ok, err = IsLarge(fq)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a file")
+	}
+}
+
 func TestIsFast5Match(t *testing.T) {
 	f5, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
 	ok, err := IsFast5(f5)
