@@ -22,6 +22,12 @@ github.com/kjsanger/logshim v1.0.0 h1:1FMKd0pxtamsXumK1EB9H2twiIf2PnwFwFMV99Ub0B
 github.com/kjsanger/logshim v1.0.0/go.mod h1:a0VpOYrCQgfvQUqympQP5mTuGWz766IAbtPwHeA6PEE=
 github.com/kjsanger/logshim-zerolog v1.0.0 h1:GXcFks0aHL7HbTb4BNN2d4RA/UKPw7hbE7BO+zvA1N0=
 github.com/kjsanger/logshim-zerolog v1.0.0/go.mod h1:egXMf5/JmC+RiYFSvYNMD/BLs7DWjY0989xQZMYBvnI=
+github.com/klauspost/compress v1.8.6 h1:970MQcQdxX7hfgc/aqmB4a3grW0ivUVV6i1TLkP8CiE=
+github.com/klauspost/compress v1.8.6/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
+github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
+github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
+github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM=
+github.com/klauspost/pgzip v1.2.1/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=

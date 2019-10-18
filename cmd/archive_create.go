@@ -33,11 +33,12 @@ import (
 )
 
 type archiveParams struct {
-	exclude     []string
-	interval    time.Duration
-	maxProc     int
-	dryRun      bool
-	deleteLocal bool
+	exclude       []string
+	interval      time.Duration
+	maxProc       int
+	dryRun        bool
+	deleteLocal   bool
+	compressLarge bool
 }
 
 var archiveCreateCmd = &cobra.Command{
@@ -112,6 +113,10 @@ func init() {
 		"delete-on-archive", false,
 		"delete local files on successful archiving")
 
+	archiveCreateCmd.Flags().BoolVar(&allCliFlags.compressLarge,
+		"compress", false,
+		"compress files over 500MB before archiving")
+
 	archiveCmd.AddCommand(archiveCreateCmd)
 }
 
@@ -127,11 +132,12 @@ func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 	}
 
 	CreateArchive(root, collection, archiveParams{
-		exclude:     allCliFlags.excludeDirs,
-		interval:    allCliFlags.sweepInterval,
-		maxProc:     allCliFlags.maxProc,
-		dryRun:      allCliFlags.dryRun,
-		deleteLocal: allCliFlags.deleteLocal,
+		exclude:       allCliFlags.excludeDirs,
+		interval:      allCliFlags.sweepInterval,
+		maxProc:       allCliFlags.maxProc,
+		dryRun:        allCliFlags.dryRun,
+		deleteLocal:   allCliFlags.deleteLocal,
+		compressLarge: allCliFlags.compressLarge,
 	})
 }
 
@@ -168,7 +174,7 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) {
 		workPlan = valet.DryRunWorkPlan()
 	} else {
 		workPlan = valet.ArchiveFilesWorkPlan(root, archiveRoot, clientPool,
-			params.deleteLocal)
+			params.deleteLocal, params.compressLarge)
 	}
 
 	valet.ProcessFiles(cancelCtx, valet.ProcessParams{

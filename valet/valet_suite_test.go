@@ -563,6 +563,7 @@ var _ = Describe("Archive MINKnow files", func() {
 
 			clientPool := ex.NewClientPool(6, time.Second*1)
 			deleteLocal := true
+			compressLarge := true
 
 			defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDataDir)
 			Expect(err).NotTo(HaveOccurred())
@@ -620,7 +621,7 @@ var _ = Describe("Archive MINKnow files", func() {
 
 			go func() {
 				plan := valet.ArchiveFilesWorkPlan(tmpDataDir, workColl,
-					clientPool, deleteLocal)
+					clientPool, deleteLocal, compressLarge)
 
 				valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 					Root:          tmpDataDir,

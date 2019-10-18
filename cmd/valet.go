@@ -47,6 +47,7 @@ type cliFlags struct {
 	verbose       bool          // Enable verbose logging
 	dryRun        bool          // Enable dry-run mode
 	deleteLocal   bool          // Enable local file deletion on archiving
+	compressLarge bool          // Enable compression of 500MB+ files prior to archiving
 	maxProc       int           // The maximum number of threads to use
 	sweepInterval time.Duration // The interval at which to perform sweeps
 	localRoot     string        // The root directory to monitor
