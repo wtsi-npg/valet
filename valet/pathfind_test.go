@@ -45,3 +45,11 @@ func TestNewFilePath(t *testing.T) {
 	_, nerr := NewFilePath("./no such path")
 	assert.Error(t, nerr, "expected an error for non-existent path")
 }
+
+func TestMaybeFilePath(t *testing.T) {
+	file, ferr := MaybeFilePath("./no such path")
+	assert.NoError(t, ferr, "expected to create file path for non-existant file")
+
+	absFile, _ := filepath.Abs("./no such path")
+	assert.Equal(t, file.Location, absFile)
+}

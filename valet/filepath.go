@@ -51,3 +51,16 @@ func NewFilePath(path string) (FilePath, error) {
 
 	return fp, err
 }
+
+// MaybeFilePath returns a new instance where the path has been cleaned and made
+// absolute, but no os.Stat is done and there will be no errors if the file does
+// not exist.
+func MaybeFilePath(path string) (FilePath, error) {
+	var fp FilePath
+	absPath, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return fp, err
+	}
+	fp.FileResource = FileResource{absPath}
+	return fp, err
+}
