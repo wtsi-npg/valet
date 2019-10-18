@@ -40,8 +40,8 @@ const CSVSuffix string = "csv"
 const MarkdownSuffix string = "md"
 const TxtSuffix string = "txt"
 const PDFSuffix string = "pdf"
-const MD5Suffix string = "md5"          // The recognised suffix for MD5 checksum files
-const CompressionSuffix string = "gzip" // The recognised suffix for compressed files
+const MD5Suffix string = "md5"        // The recognised suffix for MD5 checksum files
+const CompressionSuffix string = "gz" // The recognised suffix for compressed files
 const LargeSize int64 = 524288000
 
 var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
@@ -50,6 +50,7 @@ var txtRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", TxtSuffix))
 var markdownRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", MarkdownSuffix))
 var pdfRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", PDFSuffix))
 var csvRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", CSVSuffix))
+var compressedRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", CompressionSuffix))
 
 // Matches the run ID of MinKNOW c. August 2019 for GridION and PromethION
 // i.e. of the form:
@@ -201,12 +202,34 @@ func IsCSV(path FilePath) (bool, error) {
 	return csvRegex.MatchString(path.Location), nil
 }
 
-// HasChecksumFile returns true if the argument has a corresponding checksum
-// file.
+// IsCompressed returns true if path matches the recognised compressed file
+// pattern.
+func IsCompressed(path FilePath) (bool, error) {
+	return compressedRegex.MatchString(path.Location), nil
+}
+
+// HasChecksumFile returns true if the argument or its compressed version has a
+// corresponding checksum file.
 func HasChecksumFile(path FilePath) (bool, error) {
 	_, err := os.Stat(ChecksumFilename(path))
 	if err == nil {
 		return true, err
+	}
+
+	compressed, err2 := IsCompressed(path)
+	if err2 != nil {
+		return false, err2
+	}
+	if !compressed {
+		compressedPath := CompressedFilename(path)
+		compressedFP, _ := MaybeFilePath(compressedPath)
+		md5Path := ChecksumFilename(compressedFP)
+		_, err = os.Stat(md5Path)
+		if err == nil {
+			return true, err
+		} else if os.IsNotExist(err) {
+			return false, nil
+		}
 	} else if os.IsNotExist(err) {
 		return false, nil
 	}
@@ -236,7 +259,7 @@ func staleSecondaryFile(path FilePath, secondary string, kind string) (bool, err
 		logs.GetLogger().Debug().
 			Str("path", path.Location).
 			Time("data_time", path.Info.ModTime()).
-			Time(kind+"_time", secondaryInfo.ModTime()).Msg("stale "+kind)
+			Time(kind+"_time", secondaryInfo.ModTime()).Msg("stale " + kind)
 		return true, nil
 	}
 
@@ -289,6 +312,19 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 	return IsMinKNOWRunID(filepath.Base(path.Location)), nil
 }
 
+// maybeCompressedPath returns the given path if it has no compressed version,
+// otherwise it returns the path of the compressed version.
+func maybeCompressedPath(path FilePath) (FilePath, error) {
+	compressed, err := HasCompressedVersion(path)
+	if err != nil {
+		return path, err
+	}
+	if compressed {
+		path, err = NewFilePath(CompressedFilename(path))
+	}
+	return path, err
+}
+
 // MakeIsArchived returns a predicate that will return true if its argument has
 // been successfully archived from localBase to remoteBase.
 //
@@ -301,10 +337,20 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 //
 // 3. The checksum of the data object in the archive matches the expected
 //    checksum.
-func MakeIsArchived(localBase string, remoteBase string,
+//
+// 4. If maybeCompressed is true and and a compressed version exists, the file
+//    being considered in 1-3 is the compressed version of the incoming file.
+func MakeIsArchived(localBase string, remoteBase string, maybeCompressed bool,
 	cPool *ex.ClientPool) FilePredicate {
 
 	return func(path FilePath) (ok bool, err error) {
+		if maybeCompressed {
+			path, err = maybeCompressedPath(path)
+			if err != nil {
+				return
+			}
+		}
+
 		var dest string
 		dest, err = translatePath(localBase, remoteBase, path)
 		if err != nil {

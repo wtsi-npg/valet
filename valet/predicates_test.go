@@ -97,6 +97,20 @@ func TestIsFastqMatch(t *testing.T) {
 	}
 }
 
+func TestIsCompressedMatch(t *testing.T) {
+	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq.gz")
+	ok, err := IsCompressed(fq)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a gz file")
+	}
+
+	fq, _ = NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
+	ok, err = IsCompressed(fq)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a fastq file")
+	}
+}
+
 func TestHasChecksumFile(t *testing.T) {
 	f5With, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
 	ok, err := HasChecksumFile(f5With)
@@ -108,6 +122,12 @@ func TestHasChecksumFile(t *testing.T) {
 	ok, err = HasChecksumFile(f5Without)
 	if assert.NoError(t, err) {
 		assert.False(t, ok, "expected false for a fast5 file without checksum")
+	}
+
+	f5WithCompressed, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads3.fast5")
+	ok, err = HasChecksumFile(f5WithCompressed)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a fast5 file with checksum on the compressed file")
 	}
 
 	fqWith, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
@@ -157,16 +177,16 @@ func TestHasStaleChecksumFile(t *testing.T) {
 }
 
 func TestHasCompressedVersion(t *testing.T) {
-	f5With, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
+	f5With, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads3.fast5")
 	ok, err := HasCompressedVersion(f5With)
 	if assert.NoError(t, err) {
-		assert.True(t, ok, "expected true for a fast5 file with gzip")
+		assert.True(t, ok, "expected true for a fast5 file with gz")
 	}
 
-	f5Without, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads2.fast5")
+	f5Without, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
 	ok, err = HasChecksumFile(f5Without)
 	if assert.NoError(t, err) {
-		assert.False(t, ok, "expected false for a fast5 file without gzip")
+		assert.False(t, ok, "expected false for a fast5 file without gz")
 	}
 }
 
