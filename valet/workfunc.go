@@ -207,7 +207,7 @@ func CreateMD5ChecksumFile(path FilePath) error {
 		return errors.Wrap(err, "CreateMD5ChecksumFile")
 	}
 
-	return createMD5File(ChecksumFilename(path), md5sum)
+	return createMD5File(path.ChecksumFilename(), md5sum)
 }
 
 // UpdateMD5ChecksumFile removes the existing checksum file, if it exists and
@@ -236,7 +236,7 @@ func UpdateMD5ChecksumFile(path FilePath) error {
 // If the file does not exist by the time removal is attempted, no error is
 // raised.
 func RemoveMD5ChecksumFile(path FilePath) error {
-	err := os.Remove(ChecksumFilename(path))
+	err := os.Remove(path.ChecksumFilename())
 	if os.IsNotExist(err) {
 		return nil
 	}
@@ -312,7 +312,7 @@ func MakeArchiver(localBase string, remoteBase string,
 		dst, err = translatePath(localBase, remoteBase, path)
 
 		var chkFile FilePath
-		chkFile, err = NewFilePath(ChecksumFilename(path))
+		chkFile, err = NewFilePath(path.ChecksumFilename())
 		if err != nil {
 			return
 		}

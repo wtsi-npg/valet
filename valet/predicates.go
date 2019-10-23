@@ -41,6 +41,7 @@ const MarkdownSuffix string = "md"
 const TxtSuffix string = "txt"
 const PDFSuffix string = "pdf"
 const MD5Suffix string = "md5"     // The recognised suffix for MD5 checksum files
+const GzipSuffix string = "gz"
 
 var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
 var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
@@ -48,6 +49,7 @@ var txtRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", TxtSuffix))
 var markdownRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", MarkdownSuffix))
 var pdfRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", PDFSuffix))
 var csvRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", CSVSuffix))
+var gzipRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", GzipSuffix))
 
 // Matches the run ID of MinKNOW c. August 2019 for GridION and PromethION
 // i.e. of the form:
@@ -153,14 +155,16 @@ func IsFast5(path FilePath) (bool, error) {
 	return fast5Regex.MatchString(path.Location), nil
 }
 
-// IsFastq returns true if path matches the recognised fastq pattern.
+// IsFastq returns true if path matches the recognised fastq pattern. Supports
+// compressed versions.
 func IsFastq(path FilePath) (bool, error) {
-	return fastqRegex.MatchString(path.Location), nil
+	return fastqRegex.MatchString(path.UncompressedFilename()), nil
 }
 
 // IsTxt returns true if path matches the recognised text file pattern.
+// Supports compressed versions.
 func IsTxt(path FilePath) (bool, error) {
-	return txtRegex.MatchString(path.Location), nil
+	return txtRegex.MatchString(path.UncompressedFilename()), nil
 }
 
 //  IsMarkdown returns true if path matches the recognised markdown file
@@ -179,10 +183,16 @@ func IsCSV(path FilePath) (bool, error) {
 	return csvRegex.MatchString(path.Location), nil
 }
 
+// IsCompressed returns true if the path matches the recognised compressed file
+// pattern (simply *.gz at the moment).
+func IsCompressed(path FilePath) (bool, error) {
+	return gzipRegex.MatchString(path.Location), nil
+}
+
 // HasChecksumFile returns true if the argument has a corresponding checksum
 // file.
 func HasChecksumFile(path FilePath) (bool, error) {
-	_, err := os.Stat(ChecksumFilename(path))
+	_, err := os.Stat(path.ChecksumFilename())
 	if err == nil {
 		return true, err
 	} else if os.IsNotExist(err) {
@@ -199,7 +209,7 @@ func HasChecksumFile(path FilePath) (bool, error) {
 // If the argument path does not exist, or has no checksum file, this function
 // returns false.
 func HasStaleChecksumFile(path FilePath) (bool, error) {
-	chkInfo, err := os.Stat(ChecksumFilename(path))
+	chkInfo, err := os.Stat(path.ChecksumFilename())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -272,7 +282,7 @@ func MakeIsArchived(localBase string, remoteBase string,
 		}()
 
 		var chkFile FilePath
-		chkFile, err = NewFilePath(ChecksumFilename(path))
+		chkFile, err = NewFilePath(path.ChecksumFilename())
 		if err != nil {
 			return
 		}
@@ -321,10 +331,4 @@ func MakeIsArchived(localBase string, remoteBase string,
 
 		return
 	}
-}
-
-// ChecksumFilename returns the expected path of the checksum file
-// corresponding to the argument
-func ChecksumFilename(path FilePath) string {
-	return fmt.Sprintf("%s.%s", path.Location, MD5Suffix)
 }

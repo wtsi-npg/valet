@@ -96,6 +96,7 @@ var _ = Describe("Find regular files)", func() {
 			"testdata/valet/1/reads/fastq/reads1.fastq",
 			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
 			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads2.fastq.gz",
 			"testdata/valet/1/reads/fastq/reads3.fastq",
 			"testdata/valet/testdir/.gitignore",
 		}
@@ -206,6 +207,7 @@ var _ = Describe("Find files at intervals", func() {
 			"testdata/valet/1/reads/fastq/reads1.fastq",
 			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
 			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads2.fastq.gz",
 			"testdata/valet/1/reads/fastq/reads3.fastq",
 		}
 
@@ -689,7 +691,7 @@ var _ = Describe("Archive MINKnow files", func() {
 var _ = Describe("Count files without a checksum", func() {
 	var (
 		numFilesFound    uint64
-		numFilesExpected uint64 = 4
+		numFilesExpected uint64 = 5
 	)
 
 	BeforeEach(func() {

@@ -65,6 +65,20 @@ func TestIsFastqMatch(t *testing.T) {
 	}
 }
 
+func TestIsGzipFastqMatch(t *testing.T) {
+	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads2.fastq.gz")
+
+	ok, err := IsCompressed(fq)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a gzipped fastq file")
+	}
+
+	ok, err = IsFastq(fq)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a gzipped fastq file")
+	}
+}
+
 func TestHasChecksumFile(t *testing.T) {
 	f5With, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
 	ok, err := HasChecksumFile(f5With)
