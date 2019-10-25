@@ -23,6 +23,7 @@ package valet
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"io"
@@ -129,13 +130,18 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 
 	plan := []WorkMatch{
 		{
+			pred: RequiresCompression,
+			work: Work{WorkFunc: CompressFile, Rank: 1},
+			desc: "RequiresCompression => CompressFile",
+		},
+		{
 			pred: RequiresChecksum,
-			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 1},
+			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 2},
 			desc: "RequiresChecksum => CreateOrUpdateMD5ChecksumFile",
 		},
 		{
 			pred: And(RequiresArchiving, Not(isArchived)),
-			work: Work{WorkFunc: archiver, Rank: 2},
+			work: Work{WorkFunc: archiver, Rank: 3},
 			desc: "RequiresArchiving && Not Archived => Archive",
 		},
 	}
@@ -143,13 +149,30 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 	if deleteLocal {
 		plan = append(plan,
 			WorkMatch{
-				pred: isArchived,
-				work: Work{WorkFunc: RemoveFile, Rank: 3},
+				pred: RequiresCompression,
+				work: Work{WorkFunc: RemoveFile, Rank: 4},
+				desc: "RequiresCompression => RemoveFile",
+			},
+			WorkMatch{
+				// The IsArchived test expects an MD5 file to be present and
+				// will raise an error if not (and MD5 is essential).
+				// The RequiresArchiving test is applied first to avoid errors
+				// on files that are just being compressed by this plan,
+				// prior to a later call to this same WorkPlan to do the
+				// archiving.
+				//
+				// Currently the entire processing pipeline is launched with a
+				// single WorkPlan as a parameter. All files passing the
+				// filters are operated on according to that plan.
+				//
+				// TODO: Maybe a choice of WorkPlans at runtime?
+				pred: And(RequiresArchiving, isArchived),
+				work: Work{WorkFunc: RemoveFile, Rank: 5},
 				desc: "IsArchived => RemoveFile",
 			},
 			WorkMatch{
 				pred: HasChecksumFile,
-				work: Work{WorkFunc:RemoveMD5ChecksumFile, Rank:4},
+				work: Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 6},
 				desc: "HasChecksumFile => RemoveMD5ChecksumFile",
 			})
 	}
@@ -241,6 +264,54 @@ func RemoveMD5ChecksumFile(path FilePath) error {
 		return nil
 	}
 	return errors.Wrap(err, "RemoveMD5ChecksumFile")
+}
+
+// CompressFile compresses the target file using gzip.
+func CompressFile(path FilePath) (err error) { // NRV
+	defer func() {
+		if err != nil {
+			err = errors.Wrap(err, "CompressFile")
+		}
+	}()
+
+	inFile, err := os.Open(path.Location)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		err = utilities.CombineErrors(err, inFile.Close())
+	}()
+
+	outPath := path.CompressedFilename()
+
+	var outFile *os.File
+	outFile, err = os.Create(outPath)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		err = utilities.CombineErrors(err, outFile.Close())
+	}()
+
+	log := logs.GetLogger()
+	log.Info().Str("src", path.Location).
+		Str("to", outPath).Msg("compressing")
+
+	writer := gzip.NewWriter(outFile)
+	if _, err = io.Copy(writer, inFile); err != nil {
+		return
+	}
+
+	if err = writer.Close(); err != nil {
+		return
+	}
+
+	log.Info().Str("src", path.Location).
+		Str("to", outPath).Msg("compressed")
+
+	return
 }
 
 // CalculateFileMD5 returns the MD5 checksum of the file at path.
@@ -342,7 +413,7 @@ func MakeArchiver(localBase string, remoteBase string,
 
 		chk := string(checksum)
 		if _, err = ex.ArchiveDataObject(client, path.Location, dst, chk,
-			ex.MakeCreationMetadata(chk)) ; err != nil {
+			ex.MakeCreationMetadata(chk)); err != nil {
 			return
 		}
 
@@ -353,8 +424,18 @@ func MakeArchiver(localBase string, remoteBase string,
 }
 
 func RemoveFile(path FilePath) error {
-	logs.GetLogger().Info().Str("path", path.Location).Msg("deleting")
-	return os.Remove(path.Location)
+	log := logs.GetLogger()
+
+	log.Info().Str("path", path.Location).Msg("deleting")
+
+	err := os.Remove(path.Location)
+	if os.IsNotExist(err) {
+		log.Warn().Str("path", path.Location).
+			Msg("had gone before deletion")
+		return nil
+	}
+
+	return err
 }
 
 // doWork accepts a candidate FilePath and a WorkPlan and returns Work
@@ -367,7 +448,7 @@ func RemoveFile(path FilePath) error {
 func doWork(path FilePath, plan WorkPlan) (Work, error) {
 
 	if plan.IsEmpty() {
-		return Work{WorkFunc:DoNothing}, nil
+		return Work{WorkFunc: DoNothing}, nil
 	}
 
 	workFunc := func(fp FilePath) error {

@@ -173,7 +173,7 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) {
 
 	valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 		Root:          root,
-		MatchFunc:     valet.RequiresArchiving,
+		MatchFunc:     valet.Or(valet.RequiresCompression, valet.RequiresArchiving),
 		PruneFunc:     valet.Or(userPruneFn, defaultPruneFn),
 		Plan:          workPlan,
 		SweepInterval: params.interval,

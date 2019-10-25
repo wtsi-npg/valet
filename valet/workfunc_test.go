@@ -21,15 +21,21 @@
 package valet
 
 import (
+	"compress/gzip"
+	"crypto/md5"
 	"encoding/hex"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/kjsanger/logshim-zerolog/zlog"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
@@ -94,7 +100,7 @@ func TestRemoveMD5ChecksumFile(t *testing.T) {
 		filepath.Join(tmpDir, "reads1.fast5"),
 		filepath.Join(tmpDir, "reads1.fast5.md5")
 
-	// First write the filea
+	// First write the file
 	err = utilities.CopyFile("./testdata/valet/1/reads/fast5/reads1.fast5",
 		dataFile, 0600)
 	assert.NoError(t, err)
@@ -126,4 +132,71 @@ func TestCalculateFileMD5(t *testing.T) {
 		hex.Encode(encoded, md5sum)
 		assert.Equal(t, string(encoded), "5c9597f3c8245907ea71a89d9d39d08e")
 	}
+}
+
+func TestCompressFile(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "TestCompressFile")
+	defer os.RemoveAll(tmpDir)
+	assert.NoError(t, err)
+
+	tmpFile := filepath.Join(tmpDir, "TestCompressFile")
+	of := fmt.Sprintf("of=%s", tmpFile)
+
+	// Makes a new random file each time
+	err = exec.Command("dd", "if=/dev/urandom", of,
+		"bs=1M", "count=50").Run()
+	assert.NoError(t, err)
+
+	randFile, err := NewFilePath(tmpFile)
+	assert.NoError(t, err)
+
+	// Calculates the MD5 of the uncompressed file
+	err = CreateMD5ChecksumFile(randFile)
+	assert.NoError(t, err)
+
+	checksumFile, err := NewFilePath(randFile.ChecksumFilename())
+	assert.NoError(t, err)
+
+	expectedMD5, err := ReadMD5ChecksumFile(checksumFile)
+	assert.NoError(t, err)
+
+	// Compress and check result
+	err = CompressFile(randFile)
+	assert.NoError(t, err)
+
+	compFile, err := NewFilePath(randFile.CompressedFilename())
+	assert.NoError(t, err)
+
+	err = compressedFileMatches(compFile.Location, expectedMD5)
+	assert.NoError(t, err)
+}
+
+func compressedFileMatches(path string, md5sum []byte) error {
+	f, err := os.Open(path)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+
+	reader, err := gzip.NewReader(f)
+	defer reader.Close()
+	if err != nil {
+		return err
+	}
+
+	h := md5.New()
+	if _, err = io.Copy(h, reader); err != nil {
+		return err
+	}
+
+	sum := h.Sum(nil)
+	encoded := make([]byte, hex.EncodedLen(len(sum)))
+	hex.Encode(encoded, sum)
+
+	if string(encoded) != string(md5sum) {
+		return errors.Errorf("MD5 %s does not match expected MD5 %s",
+			encoded, md5sum)
+	}
+
+	return err
 }

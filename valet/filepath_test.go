@@ -21,11 +21,11 @@
 package valet
 
 import (
-"path/filepath"
+	"path/filepath"
 	"strings"
 	"testing"
 
-"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewFilePath(t *testing.T) {
@@ -49,12 +49,12 @@ func TestNewFilePath(t *testing.T) {
 
 func TestFilePath_ChecksumFilename(t *testing.T) {
 	file, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
-	assert.Equal(t, file.ChecksumFilename(), file.Location + "." + MD5Suffix)
+	assert.Equal(t, file.ChecksumFilename(), file.Location+"."+MD5Suffix)
 }
 
 func TestFilePath_CompressedFilename(t *testing.T) {
 	file, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
-	assert.Equal(t, file.CompressedFilename(), file.Location + "." + GzipSuffix)
+	assert.Equal(t, file.CompressedFilename(), file.Location+"."+GzipSuffix)
 }
 
 func TestFilePath_UncompressedFilename(t *testing.T) {
@@ -63,5 +63,5 @@ func TestFilePath_UncompressedFilename(t *testing.T) {
 
 	comp, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads2.fastq.gz")
 	assert.Equal(t, comp.UncompressedFilename(),
-		strings.TrimSuffix(comp.Location, "." + GzipSuffix))
+		strings.TrimSuffix(comp.Location, "."+GzipSuffix))
 }
