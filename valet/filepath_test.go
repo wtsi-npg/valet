@@ -22,46 +22,59 @@ package valet
 
 import (
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewFilePath(t *testing.T) {
-	dir, derr := NewFilePath("./testdata/valet/testdir")
+	// Directory
+	dirPath :="testdata/valet/testdir"
+	dir, derr := NewFilePath(dirPath)
 	assert.NoError(t, derr, "expected to create directory path")
 
-	absDir, _ := filepath.Abs("./testdata/valet/testdir")
+	absDir, _ := filepath.Abs(dirPath)
 	assert.Equal(t, dir.Location, absDir)
 	assert.NotNil(t, dir.Info, "expected Info to be populated")
 
-	file, ferr := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
+	// File
+	fqPath := "testdata/valet/1/reads/fastq/reads1.fastq"
+	file, ferr := NewFilePath(fqPath)
 	assert.NoError(t, ferr, "expected to create file path")
 
-	absFile, _ := filepath.Abs("./testdata/valet/1/reads/fastq/reads1.fastq")
+	absFile, _ := filepath.Abs(fqPath)
 	assert.Equal(t, file.Location, absFile)
 	assert.NotNil(t, file.Info, "expected Info to be populated")
 
-	_, nerr := NewFilePath("./no such path")
+	// Absent
+	_, nerr := NewFilePath("no_such_path")
 	assert.Error(t, nerr, "expected an error for non-existent path")
 }
 
 func TestFilePath_ChecksumFilename(t *testing.T) {
-	file, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
-	assert.Equal(t, file.ChecksumFilename(), file.Location+"."+MD5Suffix)
+	file, _ := NewFilePath("testdata/valet/1/reads/fastq/reads1.fastq")
+
+	absDir, _ := filepath.Abs(".")
+	path, err := filepath.Rel(absDir, file.ChecksumFilename())
+	if assert.NoError(t, err) {
+		assert.Equal(t, "testdata/valet/1/reads/fastq/reads1.fastq.md5", path)
+	}
 }
 
 func TestFilePath_CompressedFilename(t *testing.T) {
-	file, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
-	assert.Equal(t, file.CompressedFilename(), file.Location+"."+GzipSuffix)
+	file, _ := NewFilePath("testdata/valet/1/reads/fastq/reads1.fastq")
+
+	absDir, _ := filepath.Abs(".")
+	path, err := filepath.Rel(absDir, file.CompressedFilename())
+	if assert.NoError(t, err) {
+		assert.Equal(t, "testdata/valet/1/reads/fastq/reads1.fastq.gz", path)
+	}
 }
 
 func TestFilePath_UncompressedFilename(t *testing.T) {
-	uncomp, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads2.fastq")
+	uncomp, _ := NewFilePath("testdata/valet/1/reads/fastq/reads2.fastq")
 	assert.Equal(t, uncomp.UncompressedFilename(), uncomp.Location)
 
-	comp, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads2.fastq.gz")
-	assert.Equal(t, comp.UncompressedFilename(),
-		strings.TrimSuffix(comp.Location, "."+GzipSuffix))
+	comp, _ := NewFilePath("testdata/valet/1/reads/fastq/reads2.fastq.gz")
+	assert.Equal(t, comp.UncompressedFilename(), uncomp.Location)
 }
