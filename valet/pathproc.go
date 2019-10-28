@@ -70,7 +70,14 @@ func ProcessFiles(cancelCtx context.Context, params ProcessParams) {
 		os.Exit(1)
 	}
 
-	<-done
+	for {
+		select {
+		case <-done:
+			return
+		case <-cancelCtx.Done():
+			return
+		}
+	}
 }
 
 // DoProcessFiles operates by applying workPlan to each FilePath in the paths
