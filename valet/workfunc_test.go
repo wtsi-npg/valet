@@ -173,16 +173,16 @@ func TestCompressFile(t *testing.T) {
 
 func compressedFileMatches(path string, md5sum []byte) error {
 	f, err := os.Open(path)
-	defer f.Close()
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	reader, err := gzip.NewReader(f)
-	defer reader.Close()
 	if err != nil {
 		return err
 	}
+	defer reader.Close()
 
 	h := md5.New()
 	if _, err = io.Copy(h, reader); err != nil {
