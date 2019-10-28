@@ -23,13 +23,14 @@ package valet
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/klauspost/pgzip"
 
 	ex "github.com/kjsanger/extendo"
 	"github.com/pkg/errors"
@@ -299,7 +300,7 @@ func CompressFile(path FilePath) (err error) { // NRV
 	log.Info().Str("src", path.Location).
 		Str("to", outPath).Msg("compressing")
 
-	writer := gzip.NewWriter(outFile)
+	writer := pgzip.NewWriter(outFile)
 	if _, err = io.Copy(writer, inFile); err != nil {
 		return
 	}
