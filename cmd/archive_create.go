@@ -126,16 +126,21 @@ func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	CreateArchive(root, collection, archiveParams{
+	err:= CreateArchive(root, collection, archiveParams{
 		exclude:     allCliFlags.excludeDirs,
 		interval:    allCliFlags.sweepInterval,
 		maxProc:     allCliFlags.maxProc,
 		dryRun:      allCliFlags.dryRun,
 		deleteLocal: allCliFlags.deleteLocal,
 	})
+
+	if err != nil {
+		log.Error().Err(err).Msg("archive creation failed")
+		os.Exit(1)
+	}
 }
 
-func CreateArchive(root string, archiveRoot string, params archiveParams) {
+func CreateArchive(root string, archiveRoot string, params archiveParams) error {
 	log := logs.GetLogger()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -163,7 +168,7 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) {
 			params.deleteLocal)
 	}
 
-	valet.ProcessFiles(cancelCtx, valet.ProcessParams{
+	return valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 		Root:          root,
 		MatchFunc:     valet.RequiresArchiving,
 		PruneFunc:     valet.Or(userPruneFn, defaultPruneFn),

@@ -22,12 +22,13 @@ package valet
 
 import (
 	"context"
-	"os"
 	"sync"
 	"time"
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
+
+	"github.com/kjsanger/valet/utilities"
 )
 
 type token struct{}
@@ -42,7 +43,7 @@ type ProcessParams struct {
 	MaxProc       int           // The maximum number of threads to run
 }
 
-func ProcessFiles(cancelCtx context.Context, params ProcessParams) {
+func ProcessFiles(cancelCtx context.Context, params ProcessParams) error {
 
 	wpaths, werrs := WatchFiles(cancelCtx, params.Root, params.MatchFunc,
 		params.PruneFunc)
@@ -50,34 +51,33 @@ func ProcessFiles(cancelCtx context.Context, params ProcessParams) {
 		params.PruneFunc, params.SweepInterval)
 
 	mpaths := MergeFileChannels(wpaths, fpaths)
-	errs := MergeErrorChannels(werrs, ferrs)
+	merrs := MergeErrorChannels(werrs, ferrs)
 	done := make(chan token)
 
 	log := logs.GetLogger()
+	var err error
 
 	go func() {
 		defer func() { done <- token{} }()
 
-		err := DoProcessFiles(mpaths, params.Plan, params.MaxProc)
-		if err != nil {
-			log.Error().Err(err).Msg("failed processing")
-			os.Exit(1)
-		}
+		err = DoProcessFiles(mpaths, params.Plan, params.MaxProc)
 	}()
 
-	if err := <-errs; err != nil {
-		log.Error().Err(err).Msg("failed to complete processing")
-		os.Exit(1)
-	}
-
+done:
 	for {
 		select {
 		case <-done:
-			return
+			log.Info().Msg("processing done")
+			break done
 		case <-cancelCtx.Done():
-			return
+			log.Info().Msg("processing cancelled")
+			break done
 		}
 	}
+
+	merr := <-merrs
+
+	return utilities.CombineErrors(err, merr)
 }
 
 // DoProcessFiles operates by applying workPlan to each FilePath in the paths
