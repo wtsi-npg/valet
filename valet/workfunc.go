@@ -26,13 +26,13 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 
-	"github.com/klauspost/pgzip"
-
 	ex "github.com/kjsanger/extendo"
+	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
 
 	"github.com/kjsanger/valet/utilities"
@@ -284,28 +284,36 @@ func CompressFile(path FilePath) (err error) { // NRV
 		err = utilities.CombineErrors(err, inFile.Close())
 	}()
 
-	outPath := path.CompressedFilename()
-
-	var outFile *os.File
-	outFile, err = os.Create(outPath)
+	// We use temp file and rename to add the compressed fil to the
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "valet-")
 	if err != nil {
 		return
 	}
 
 	defer func() {
-		err = utilities.CombineErrors(err, outFile.Close())
+		// Clean up if we got this far and the temp file still exists
+		_, serr := os.Stat(tmpFile.Name())
+		if !os.IsNotExist(serr) {
+			err = utilities.CombineErrors(err, os.Remove(tmpFile.Name()))
+		}
 	}()
 
+	outPath := path.CompressedFilename()
 	log := logs.GetLogger()
 	log.Info().Str("src", path.Location).
 		Str("to", outPath).Msg("compressing")
 
-	writer := pgzip.NewWriter(outFile)
+	writer := pgzip.NewWriter(tmpFile)
 	if _, err = io.Copy(writer, inFile); err != nil {
 		return
 	}
-
 	if err = writer.Close(); err != nil {
+		return
+	}
+	if err = tmpFile.Close(); err != nil {
+		return
+	}
+	if err = os.Rename(tmpFile.Name(), outPath); err != nil {
 		return
 	}
 
