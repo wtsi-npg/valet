@@ -55,12 +55,12 @@ func ProcessFiles(cancelCtx context.Context, params ProcessParams) error {
 	done := make(chan token)
 
 	log := logs.GetLogger()
-	var err error
+	var errs []error
 
 	go func() {
 		defer func() { done <- token{} }()
 
-		err = DoProcessFiles(mpaths, params.Plan, params.MaxProc)
+		errs = append(errs, DoProcessFiles(mpaths, params.Plan, params.MaxProc))
 	}()
 
 done:
@@ -70,14 +70,18 @@ done:
 			log.Info().Msg("processing done")
 			break done
 		case <-cancelCtx.Done():
-			log.Info().Msg("processing cancelled")
+			log.Info().Msg("processing cancelled, waiting for jobs")
+			<-done // Wait for DoProcessFiles to finish
+			log.Info().Msg("processing done")
 			break done
 		}
 	}
 
-	merr := <-merrs
+	for merr := range merrs {
+		errs = append(errs, merr)
+	}
 
-	return utilities.CombineErrors(err, merr)
+	return utilities.CombineErrors(errs...)
 }
 
 // DoProcessFiles operates by applying workPlan to each FilePath in the paths
