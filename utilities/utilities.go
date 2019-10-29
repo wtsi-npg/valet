@@ -73,6 +73,10 @@ func CombineErrors(errors ...error) error {
 	if len(errs) == 0 {
 		return nil
 	}
+	if len(errs) == 1 {
+		return errs[0]
+	}
+
 	return &combinedError{errs}
 }
 

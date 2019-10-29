@@ -33,20 +33,31 @@ func TestCombineErrors(t *testing.T) {
 	err3 := errors.New("Error 3")
 
 	cerr0 := CombineErrors(nil)
-	assert.Nil(t, cerr0)
+	assert.Nil(t, cerr0,
+		"a nil error was not passed through unchanged")
 
 	cerr1 := CombineErrors(err1)
 	if assert.Error(t, cerr1) {
-		assert.Equal(t, &combinedError{[]error{err1}}, cerr1)
+		assert.Equal(t, err1, cerr1,
+			"single error was not passed through unchanged")
 	}
 
 	cerr2 := CombineErrors(nil, err1)
 	if assert.Error(t, cerr2) {
-		assert.Equal(t, &combinedError{[]error{err1}}, cerr2)
+		assert.Equal(t, err1, cerr2,
+			"a single error combined with nil "+
+				"was not passed through unchanged")
 	}
 
 	cerr3 := CombineErrors(err1, err2, err3)
 	if assert.Error(t, cerr3) {
-		assert.Equal(t, &combinedError{[]error{err1, err2, err3}}, cerr3)
+		assert.Equal(t, &combinedError{[]error{err1, err2, err3}}, cerr3,
+			"multiple errors were not combined correctly")
+	}
+
+	cerr4 := CombineErrors(err1, nil, err2, nil, err3, nil)
+	if assert.Error(t, cerr4) {
+		assert.Equal(t, &combinedError{[]error{err1, err2, err3}}, cerr4,
+			"multiple errors with nils were not combined correctly")
 	}
 }
