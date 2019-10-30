@@ -62,7 +62,6 @@ func MergeFileChannels(
 	return merged
 }
 
-
 // MergeErrorChannels merges values from its two input channels x and y for as
 // long as at least one of them is open. One both x and y have been closed, the
 // channel returned will be closed by this function. The caller should not

@@ -26,11 +26,13 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 
 	ex "github.com/kjsanger/extendo"
+	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
 
 	"github.com/kjsanger/valet/utilities"
@@ -129,13 +131,18 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 
 	plan := []WorkMatch{
 		{
+			pred: RequiresCompression,
+			work: Work{WorkFunc: CompressFile, Rank: 1},
+			desc: "RequiresCompression => CompressFile",
+		},
+		{
 			pred: RequiresChecksum,
-			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 1},
+			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 2},
 			desc: "RequiresChecksum => CreateOrUpdateMD5ChecksumFile",
 		},
 		{
 			pred: And(RequiresArchiving, Not(isArchived)),
-			work: Work{WorkFunc: archiver, Rank: 2},
+			work: Work{WorkFunc: archiver, Rank: 3},
 			desc: "RequiresArchiving && Not Archived => Archive",
 		},
 	}
@@ -143,13 +150,30 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 	if deleteLocal {
 		plan = append(plan,
 			WorkMatch{
-				pred: isArchived,
-				work: Work{WorkFunc: RemoveFile, Rank: 3},
+				pred: RequiresCompression,
+				work: Work{WorkFunc: RemoveFile, Rank: 4},
+				desc: "RequiresCompression => RemoveFile",
+			},
+			WorkMatch{
+				// The IsArchived test expects an MD5 file to be present and
+				// will raise an error if not (and MD5 is essential).
+				// The RequiresArchiving test is applied first to avoid errors
+				// on files that are just being compressed by this plan,
+				// prior to a later call to this same WorkPlan to do the
+				// archiving.
+				//
+				// Currently the entire processing pipeline is launched with a
+				// single WorkPlan as a parameter. All files passing the
+				// filters are operated on according to that plan.
+				//
+				// TODO: Maybe a choice of WorkPlans at runtime?
+				pred: And(RequiresArchiving, isArchived),
+				work: Work{WorkFunc: RemoveFile, Rank: 5},
 				desc: "IsArchived => RemoveFile",
 			},
 			WorkMatch{
 				pred: HasChecksumFile,
-				work: Work{WorkFunc:RemoveMD5ChecksumFile, Rank:4},
+				work: Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 6},
 				desc: "HasChecksumFile => RemoveMD5ChecksumFile",
 			})
 	}
@@ -207,7 +231,7 @@ func CreateMD5ChecksumFile(path FilePath) error {
 		return errors.Wrap(err, "CreateMD5ChecksumFile")
 	}
 
-	return createMD5File(ChecksumFilename(path), md5sum)
+	return createMD5File(path.ChecksumFilename(), md5sum)
 }
 
 // UpdateMD5ChecksumFile removes the existing checksum file, if it exists and
@@ -236,11 +260,67 @@ func UpdateMD5ChecksumFile(path FilePath) error {
 // If the file does not exist by the time removal is attempted, no error is
 // raised.
 func RemoveMD5ChecksumFile(path FilePath) error {
-	err := os.Remove(ChecksumFilename(path))
+	err := os.Remove(path.ChecksumFilename())
 	if os.IsNotExist(err) {
 		return nil
 	}
 	return errors.Wrap(err, "RemoveMD5ChecksumFile")
+}
+
+// CompressFile compresses the target file using gzip.
+func CompressFile(path FilePath) (err error) { // NRV
+	defer func() {
+		if err != nil {
+			err = errors.Wrap(err, "CompressFile")
+		}
+	}()
+
+	inFile, err := os.Open(path.Location)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		err = utilities.CombineErrors(err, inFile.Close())
+	}()
+
+	// We use temp file and rename to add the compressed fil to the
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "valet-")
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		// Clean up if we got this far and the temp file still exists
+		_, serr := os.Stat(tmpFile.Name())
+		if !os.IsNotExist(serr) {
+			err = utilities.CombineErrors(err, os.Remove(tmpFile.Name()))
+		}
+	}()
+
+	outPath := path.CompressedFilename()
+	log := logs.GetLogger()
+	log.Info().Str("src", path.Location).
+		Str("to", outPath).Msg("compressing")
+
+	writer := pgzip.NewWriter(tmpFile)
+	if _, err = io.Copy(writer, inFile); err != nil {
+		return
+	}
+	if err = writer.Close(); err != nil {
+		return
+	}
+	if err = tmpFile.Close(); err != nil {
+		return
+	}
+	if err = os.Rename(tmpFile.Name(), outPath); err != nil {
+		return
+	}
+
+	log.Info().Str("src", path.Location).
+		Str("to", outPath).Msg("compressed")
+
+	return
 }
 
 // CalculateFileMD5 returns the MD5 checksum of the file at path.
@@ -312,7 +392,7 @@ func MakeArchiver(localBase string, remoteBase string,
 		dst, err = translatePath(localBase, remoteBase, path)
 
 		var chkFile FilePath
-		chkFile, err = NewFilePath(ChecksumFilename(path))
+		chkFile, err = NewFilePath(path.ChecksumFilename())
 		if err != nil {
 			return
 		}
@@ -342,7 +422,7 @@ func MakeArchiver(localBase string, remoteBase string,
 
 		chk := string(checksum)
 		if _, err = ex.ArchiveDataObject(client, path.Location, dst, chk,
-			ex.MakeCreationMetadata(chk)) ; err != nil {
+			ex.MakeCreationMetadata(chk)); err != nil {
 			return
 		}
 
@@ -353,8 +433,18 @@ func MakeArchiver(localBase string, remoteBase string,
 }
 
 func RemoveFile(path FilePath) error {
-	logs.GetLogger().Info().Str("path", path.Location).Msg("deleting")
-	return os.Remove(path.Location)
+	log := logs.GetLogger()
+
+	log.Info().Str("path", path.Location).Msg("deleting")
+
+	err := os.Remove(path.Location)
+	if os.IsNotExist(err) {
+		log.Warn().Str("path", path.Location).
+			Msg("had gone before deletion")
+		return nil
+	}
+
+	return err
 }
 
 // doWork accepts a candidate FilePath and a WorkPlan and returns Work
@@ -367,7 +457,7 @@ func RemoveFile(path FilePath) error {
 func doWork(path FilePath, plan WorkPlan) (Work, error) {
 
 	if plan.IsEmpty() {
-		return Work{WorkFunc:DoNothing}, nil
+		return Work{WorkFunc: DoNothing}, nil
 	}
 
 	workFunc := func(fp FilePath) error {

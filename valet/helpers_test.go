@@ -28,22 +28,30 @@ import (
 	"path/filepath"
 
 	ex "github.com/kjsanger/extendo"
-
 	. "github.com/onsi/ginkgo"
 
 	"github.com/kjsanger/valet/utilities"
 )
 
 type itemPathTransform func(i []ex.RodsItem) []string
-type collPathTransform func(i []ex.Collection) []string
-type objPathTransform func(i []ex.DataObject) []string
-type localPathTransform func(i []ex.RodsItem) []string
+type localPathTransform func(p []string) []string
 
 func makeRodsItemTransform(workColl string) func(i []ex.RodsItem) []string {
-	return func (items []ex.RodsItem) []string {
+	return func(items []ex.RodsItem) []string {
 		var paths []string
 		for _, p := range items {
 			r, _ := filepath.Rel(workColl, p.RodsPath())
+			paths = append(paths, r)
+		}
+		return paths
+	}
+}
+
+func makeLocalPathTransform(root string) func(i []string) []string {
+	return func(items []string) []string {
+		var paths []string
+		for _, p := range items {
+			r, _ := filepath.Rel(root, p)
 			paths = append(paths, r)
 		}
 		return paths

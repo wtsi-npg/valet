@@ -33,19 +33,30 @@ import (
 )
 
 func TestIsDir(t *testing.T) {
-	fp, _ := NewFilePath("./testdata/valet/testdir")
-
-	ok, err := IsDir(fp)
+	d, _ := NewFilePath("./testdata/valet/testdir")
+	ok, err := IsDir(d)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a directory")
+	}
+
+	f, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
+	ok, err = IsDir(f)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a file")
 	}
 }
 
 func TestIsRegular(t *testing.T) {
-	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
-	ok, err := IsRegular(fq)
+	f, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
+	ok, err := IsRegular(f)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a file")
+	}
+
+	d, _ := NewFilePath("./testdata/valet/testdir")
+	ok, err = IsRegular(d)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a directory")
 	}
 }
 
@@ -55,6 +66,12 @@ func TestIsFast5Match(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fast5 file")
 	}
+
+	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
+	ok, err = IsFast5(fq)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a non-fast5 file")
+	}
 }
 
 func TestIsFastqMatch(t *testing.T) {
@@ -62,6 +79,26 @@ func TestIsFastqMatch(t *testing.T) {
 	ok, err := IsFastq(fq)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a fastq file")
+	}
+
+	f5, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
+	ok, err = IsFastq(f5)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a non-fastq file")
+	}
+}
+
+func TestIsGzipFastqMatch(t *testing.T) {
+	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads2.fastq.gz")
+
+	ok, err := IsCompressed(fq)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a gzipped fastq file")
+	}
+
+	ok, err = IsFastq(fq)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a gzipped fastq file")
 	}
 }
 

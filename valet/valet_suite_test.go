@@ -96,6 +96,7 @@ var _ = Describe("Find regular files)", func() {
 			"testdata/valet/1/reads/fastq/reads1.fastq",
 			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
 			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads2.fastq.gz",
 			"testdata/valet/1/reads/fastq/reads3.fastq",
 			"testdata/valet/testdir/.gitignore",
 		}
@@ -206,6 +207,7 @@ var _ = Describe("Find files at intervals", func() {
 			"testdata/valet/1/reads/fastq/reads1.fastq",
 			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
 			"testdata/valet/1/reads/fastq/reads2.fastq",
+			"testdata/valet/1/reads/fastq/reads2.fastq.gz",
 			"testdata/valet/1/reads/fastq/reads3.fastq",
 		}
 
@@ -567,7 +569,7 @@ var _ = Describe("Archive MINKnow files", func() {
 			defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDataDir)
 			Expect(err).NotTo(HaveOccurred())
 
-			expected := []string{
+			expectedArchived := []string{
 				".",
 				"66",
 				"66/DN585561I_A1",
@@ -576,15 +578,18 @@ var _ = Describe("Archive MINKnow files", func() {
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
+
 				// Ancillary files
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
 					"GXB02004_20190904_151413_FAL01979_gridion_sequencing_run_" +
-					"DN585561I_A1_sequencing_summary.txt",
+					"DN585561I_A1_sequencing_summary.txt.gz",
+				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
+					"final_summary.txt.gz",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/duty_time.csv",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/final_summary.txt",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.md",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.pdf",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/throughput.csv",
+
 				// Fast5 fail
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
 					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
@@ -601,18 +606,18 @@ var _ = Describe("Archive MINKnow files", func() {
 					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fast5",
 				// Fastq fail
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq",
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq",
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
 				// Fastq pass
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq",
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq",
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fastq",
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fastq.gz",
 				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_4.fastq",
+					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_4.fastq.gz",
 			}
 
 			// Find files or timeout and cancel
@@ -622,9 +627,13 @@ var _ = Describe("Archive MINKnow files", func() {
 				plan := valet.ArchiveFilesWorkPlan(tmpDataDir, workColl,
 					clientPool, deleteLocal)
 
+				matchFn := valet.Or(
+					valet.RequiresArchiving,
+					valet.RequiresCompression)
+
 				valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 					Root:          tmpDataDir,
-					MatchFunc:     valet.RequiresArchiving,
+					MatchFunc:     matchFn,
 					PruneFunc:     defaultPruneFn,
 					Plan:          plan,
 					SweepInterval: sweepInterval,
@@ -658,7 +667,7 @@ var _ = Describe("Archive MINKnow files", func() {
 							return
 						}
 
-						if len(contents) >= len(expected) {
+						if len(contents) >= len(expectedArchived) {
 							done <- true // Detect iRODS paths
 							return
 						}
@@ -677,7 +686,7 @@ var _ = Describe("Archive MINKnow files", func() {
 			contents, err := coll.FetchContentsRecurse()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(contents).To(WithTransform(getRodsPaths,
-				ConsistOf(expected)))
+				ConsistOf(expectedArchived)))
 
 			remaining, err := findFilesRelative(tmpDataDir)
 			Expect(err).NotTo(HaveOccurred())
@@ -689,7 +698,7 @@ var _ = Describe("Archive MINKnow files", func() {
 var _ = Describe("Count files without a checksum", func() {
 	var (
 		numFilesFound    uint64
-		numFilesExpected uint64 = 4
+		numFilesExpected uint64 = 3 // Only fast5 and fastq.gz
 	)
 
 	BeforeEach(func() {

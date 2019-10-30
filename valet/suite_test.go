@@ -45,5 +45,3 @@ func TestValet(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Valet Suite")
 }
-
-
