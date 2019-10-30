@@ -104,11 +104,16 @@ func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	CreateChecksumFiles(root, exclude, interval, maxProc, dryRun)
+	err := CreateChecksumFiles(root, exclude, interval, maxProc, dryRun)
+
+	if err != nil {
+		log.Error().Err(err).Msg("checksum creation failed")
+		os.Exit(1)
+	}
 }
 
 func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
-	maxProc int, dryRun bool) {
+	maxProc int, dryRun bool) error {
 	log := logs.GetLogger()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -128,7 +133,7 @@ func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 		workPlan = valet.CreateChecksumWorkPlan()
 	}
 
-	valet.ProcessFiles(cancelCtx, valet.ProcessParams{
+	return valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 		Root:          root,
 		MatchFunc:     valet.RequiresChecksum,
 		PruneFunc:     pruneFn,
