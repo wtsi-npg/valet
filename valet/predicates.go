@@ -77,7 +77,10 @@ var RequiresChecksum = And(
 
 var HasValidChecksumFile = Not(HasStaleChecksumFile)
 
-var RequiresCompression = And(Or(IsFastq, IsTxt), Not(IsCompressed))
+var RequiresCompression = And(
+	Or(IsFastq, IsTxt),
+	Not(IsCompressed),
+	Not(HasCompressedVersion))
 
 // IsTrue always returns true.
 func IsTrue(path FilePath) (bool, error) {
@@ -196,6 +199,23 @@ func IsCSV(path FilePath) (bool, error) {
 // pattern (simply *.gz at the moment).
 func IsCompressed(path FilePath) (bool, error) {
 	return gzipRegex.MatchString(path.Location), nil
+}
+
+// HasCompressedVersion returns true if the argument is not a compressed file
+// and has a corresponding compressed version.
+func HasCompressedVersion(path FilePath) (bool, error) {
+	compressed, err := IsCompressed(path)
+
+	if err == nil && !compressed {
+		_, err := os.Stat(path.CompressedFilename())
+		if err == nil {
+			return true, err
+		} else if os.IsNotExist(err) {
+			return false, nil
+		}
+	}
+
+	return false, err
 }
 
 // HasChecksumFile returns true if the argument has a corresponding checksum
