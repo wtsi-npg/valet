@@ -150,9 +150,9 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 	if deleteLocal {
 		plan = append(plan,
 			WorkMatch{
-				pred: RequiresCompression,
+				pred: HasCompressedVersion,
 				work: Work{WorkFunc: RemoveFile, Rank: 4},
-				desc: "RequiresCompression => RemoveFile",
+				desc: "HasCompressedVersion => RemoveFile",
 			},
 			WorkMatch{
 				// The IsArchived test expects an MD5 file to be present and
