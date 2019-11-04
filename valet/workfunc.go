@@ -447,14 +447,14 @@ func RemoveFile(path FilePath) error {
 	return err
 }
 
-// doWork accepts a candidate FilePath and a WorkPlan and returns Work
+// makeWork accepts a candidate FilePath and a WorkPlan and returns Work
 // encapsulating all the work in the WorkPlan. If no work is required for the
 // FilePath, it returns DoNothing Work.
 //
 // All predicates are evaluated as any work is done, therefore if some
 // predicates are true only after earlier work in the WorkPlan is complete,
 // they will pass, provided work is ranked in the appropriate order.
-func doWork(path FilePath, plan WorkPlan) (Work, error) {
+func makeWork(path FilePath, plan WorkPlan) (Work, error) {
 
 	if plan.IsEmpty() {
 		return Work{WorkFunc: DoNothing}, nil

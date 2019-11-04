@@ -107,10 +107,6 @@ func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) er
 	log := logs.GetLogger()
 
 	for path := range paths {
-		wg.Add(1)
-		sem <- token{}
-
-		log.Info().Str("path", path.Location).Msg("dispatching")
 		mu.Lock()
 		if _, ok := running[path.Location]; ok {
 			mu.Unlock()
@@ -119,6 +115,9 @@ func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) er
 			continue
 		}
 		mu.Unlock()
+
+		wg.Add(1)
+		sem <- token{}
 
 		go func(p FilePath) {
 			defer func() {
@@ -130,7 +129,7 @@ func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) er
 			running[p.Location] = token{}
 			jobCount++
 
-			work, derr := doWork(p, workPlan)
+			work, derr := makeWork(p, workPlan)
 			if derr != nil {
 				mu.Unlock()
 				log.Error().Err(derr).
