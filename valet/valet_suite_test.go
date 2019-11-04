@@ -678,8 +678,8 @@ var _ = Describe("Archive MINKnow files", func() {
 
 			<-done
 
-			// This is currently getting tripped by timeouts from the iRODS
-			// mkdir workaround, so I have disabled it temporarily.
+			// TODO: This is currently getting tripped by timeouts from the
+			// iRODS mkdir workaround, so I have disabled it temporarily.
 			//
 			// Expect(<-perr).NotTo(HaveOccurred())
 
