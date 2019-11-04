@@ -116,8 +116,8 @@ func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) er
 		}
 		mu.Unlock()
 
-		wg.Add(1)
 		sem <- token{}
+		wg.Add(1)
 
 		go func(p FilePath) {
 			defer func() {
