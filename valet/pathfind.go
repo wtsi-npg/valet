@@ -55,44 +55,43 @@ func FindFiles(
 	log.Debug().Str("root", root).Msg("started find")
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			if os.IsNotExist(err) {
-				log.Warn().Err(err).Msg("file was deleted")
-				return nil
-			}
-
-			return err
-		}
-
-		p := FilePath{FileResource{path}, info}
-
-		if _, perr := pruneFn(p); perr != nil {
-			if perr == filepath.SkipDir {
-				log.Info().
-					Str("path", path).
-					Str("reason", perr.Error()).Msg("pruned path")
-				return perr
-			}
-		}
-
-		ok, perr := pred(p) // Predicate test
-
-		if perr != nil {
-			return perr
-		} else if ok {
-			log.Debug().Str("path", path).Msg("accepted by FindFiles")
-			paths <- p
-		} else {
-			log.Debug().Str("path", path).Msg("rejected by FindFiles")
-		}
-
 		select {
 		case <-ctx.Done():
 			log.Debug().
 				Str("root", root).
 				Str("path", path).Msg("cancelled find")
-			return nil
+			return filepath.SkipDir
 		default:
+			if err != nil {
+				if os.IsNotExist(err) {
+					log.Warn().Err(err).Msg("file was deleted")
+					return nil
+				}
+
+				return err
+			}
+
+			p := FilePath{FileResource{path}, info}
+
+			if _, perr := pruneFn(p); perr != nil {
+				if perr == filepath.SkipDir {
+					log.Info().
+						Str("path", path).
+						Str("reason", perr.Error()).Msg("pruned path")
+					return perr
+				}
+			}
+
+			ok, perr := pred(p) // Predicate test
+
+			if perr != nil {
+				return perr
+			} else if ok {
+				log.Debug().Str("path", path).Msg("accepted by FindFiles")
+				paths <- p
+			} else {
+				log.Debug().Str("path", path).Msg("rejected by FindFiles")
+			}
 			return nil
 		}
 	}
