@@ -70,8 +70,6 @@ valet archive create --root /data --exclude /data/custom \
 	Run: runArchiveCreateCmd,
 }
 
-var maxClients uint8 = 12
-
 func init() {
 	archiveCreateCmd.Flags().StringVarP(&allCliFlags.localRoot,
 		"root", "r", "",
@@ -158,7 +156,8 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 		os.Exit(1)
 	}
 
-	clientPool := ex.NewClientPool(maxClients, time.Second*1, "--silent")
+	clientPool := ex.NewClientPool(uint8(params.maxProc), time.Second*1,
+		"--silent")
 
 	var workPlan valet.WorkPlan
 	if params.dryRun {
