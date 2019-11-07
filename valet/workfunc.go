@@ -278,25 +278,25 @@ func CompressFile(path FilePath) (err error) { // NRV
 		}
 	}()
 
-	inFile, err := os.Open(path.Location)
-	if err != nil {
+	var in *os.File
+	if in, err = os.Open(path.Location); err != nil {
 		return
 	}
 
 	defer func() {
-		err = utilities.CombineErrors(err, inFile.Close())
+		err = utilities.CombineErrors(err, in.Close())
 	}()
 
 	// We use temp file and rename to add the compressed file to the data
 	// directory
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "valet-")
-	if err != nil {
+	var tmp *os.File
+	if tmp, err = ioutil.TempFile(os.TempDir(), "valet-"); err != nil {
 		return
 	}
 
 	defer func() {
 		// Clean up if we got this far and the temp file still exists
-		if rerr := os.Remove(tmpFile.Name()); !os.IsNotExist(rerr) {
+		if rerr := os.Remove(tmp.Name()); !os.IsNotExist(rerr) {
 			err = utilities.CombineErrors(err, rerr)
 		}
 	}()
@@ -307,37 +307,36 @@ func CompressFile(path FilePath) (err error) { // NRV
 		Str("to", outPath).Msg("compressing")
 
 	hCmp := md5.New()
-	mwCmp := io.MultiWriter(hCmp, tmpFile) // Write to MD5 and output file
+	mwCmp := io.MultiWriter(hCmp, tmp) // Write to MD5 and output file
 	gzw := pgzip.NewWriter(mwCmp)
 
 	hRaw := md5.New()
 	mwRaw := io.MultiWriter(hRaw, gzw) // Write to MD5 and compressor
 
-	if _, err = io.Copy(mwRaw, inFile); err != nil {
+	if _, err = io.Copy(mwRaw, in); err != nil {
 		return
 	}
 	if err = gzw.Close(); err != nil {
 		return
 	}
-	if err = tmpFile.Close(); err != nil {
+	if err = tmp.Close(); err != nil {
 		return
 	}
-	if err = os.Rename(tmpFile.Name(), outPath); err != nil {
+	if err = os.Rename(tmp.Name(), outPath); err != nil {
 		return
 	}
-
-	md5Raw := hRaw.Sum(nil)
-	md5Cmp := hCmp.Sum(nil)
 
 	// We can make a checksum file for the compressed data right away. This
 	// must be done after the compressed file is in position.
 	var outFile FilePath
 	outFile, err = NewFilePath(outPath)
+	md5Cmp := hCmp.Sum(nil)
 	if err = createMD5File(outFile.ChecksumFilename(), md5Cmp); err != nil {
 		return
 	}
 
 	// We can also make a checksum file for the raw data
+	md5Raw := hRaw.Sum(nil)
 	if err = createMD5File(path.ChecksumFilename(), md5Raw); err != nil {
 		return
 	}
@@ -352,8 +351,8 @@ func CompressFile(path FilePath) (err error) { // NRV
 
 // CalculateFileMD5 returns the MD5 checksum of the file at path.
 func CalculateFileMD5(path FilePath) (md5sum []byte, err error) { // NRV
-	f, err := os.Open(path.Location)
-	if err != nil {
+	var f *os.File
+	if f, err = os.Open(path.Location); err != nil {
 		return
 	}
 
@@ -373,8 +372,8 @@ func CalculateFileMD5(path FilePath) (md5sum []byte, err error) { // NRV
 // CreateMD5ChecksumFile. It trims any whitespace (including any newline) from
 // the beginning and end of the checksum.
 func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
-	f, err := os.Open(path.Location)
-	if err != nil {
+	var f *os.File
+	if f, err = os.Open(path.Location); err != nil {
 		return
 	}
 
@@ -432,8 +431,7 @@ func MakeArchiver(localBase string, remoteBase string,
 			Str("checksum", string(checksum)).Msg("archiving")
 
 		var client *ex.Client
-		client, err = cPool.Get()
-		if err != nil {
+		if client, err = cPool.Get(); err != nil {
 			return
 		}
 
@@ -442,8 +440,7 @@ func MakeArchiver(localBase string, remoteBase string,
 		}()
 
 		coll := ex.NewCollection(client, filepath.Dir(dst))
-		err = coll.Ensure()
-		if err != nil {
+		if err = coll.Ensure(); err != nil {
 			return
 		}
 
@@ -522,8 +519,8 @@ func makeWork(path FilePath, plan WorkPlan) (Work, error) {
 }
 
 func createMD5File(path string, md5sum []byte) (err error) { // NRV
-	f, err := ioutil.TempFile(os.TempDir(), "valet-")
-	if err != nil {
+	var f *os.File
+	if f, err = ioutil.TempFile(os.TempDir(), "valet-"); err != nil {
 		return
 	}
 
