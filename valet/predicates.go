@@ -94,25 +94,11 @@ func IsFalse(path FilePath) (bool, error) {
 
 // IsDir returns true if the argument is a directory (by os.Stat).
 func IsDir(path FilePath) (bool, error) {
-	if path.Info == nil {
-		info, err := os.Stat(path.Location)
-		if err != nil {
-			return false, err
-		}
-		path.Info = info
-	}
 	return path.Info.IsDir(), nil
 }
 
 // IsRegular returns true if the argument is a regular file (by os.Stat).
 func IsRegular(path FilePath) (bool, error) {
-	if path.Info == nil {
-		info, err := os.Stat(path.Location)
-		if err != nil {
-			return false, err
-		}
-		path.Info = info
-	}
 	return path.Info.Mode().IsRegular(), nil
 }
 
@@ -244,14 +230,6 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 			return false, nil
 		}
 
-		return false, err
-	}
-
-	if path.Info == nil {
-		path.Info, err = os.Stat(path.Location)
-		if os.IsNotExist(err) {
-			return false, nil
-		}
 		return false, err
 	}
 
