@@ -24,7 +24,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/md5"
-	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -267,7 +267,10 @@ func RemoveMD5ChecksumFile(path FilePath) error {
 	return errors.Wrap(err, "RemoveMD5ChecksumFile")
 }
 
-// CompressFile compresses the target file using gzip.
+// CompressFile compresses the target file using gzip. While doing so, it tee's
+// both the uncompressed data and compressed data to make MD5 checksums of
+// these and writes checksum files for the original, uncompressed file and the
+// new compressed file.
 func CompressFile(path FilePath) (err error) { // NRV
 	defer func() {
 		if err != nil {
@@ -284,7 +287,8 @@ func CompressFile(path FilePath) (err error) { // NRV
 		err = utilities.CombineErrors(err, inFile.Close())
 	}()
 
-	// We use temp file and rename to add the compressed fil to the
+	// We use temp file and rename to add the compressed file to the data
+	// directory
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "valet-")
 	if err != nil {
 		return
@@ -292,9 +296,8 @@ func CompressFile(path FilePath) (err error) { // NRV
 
 	defer func() {
 		// Clean up if we got this far and the temp file still exists
-		_, serr := os.Stat(tmpFile.Name())
-		if !os.IsNotExist(serr) {
-			err = utilities.CombineErrors(err, os.Remove(tmpFile.Name()))
+		if rerr := os.Remove(tmpFile.Name()); !os.IsNotExist(rerr) {
+			err = utilities.CombineErrors(err, rerr)
 		}
 	}()
 
@@ -303,11 +306,17 @@ func CompressFile(path FilePath) (err error) { // NRV
 	log.Info().Str("src", path.Location).
 		Str("to", outPath).Msg("compressing")
 
-	writer := pgzip.NewWriter(tmpFile)
-	if _, err = io.Copy(writer, inFile); err != nil {
+	hCmp := md5.New()
+	mwCmp := io.MultiWriter(hCmp, tmpFile) // Write to MD5 and output file
+	gzw := pgzip.NewWriter(mwCmp)
+
+	hRaw := md5.New()
+	mwRaw := io.MultiWriter(hRaw, gzw) // Write to MD5 and compressor
+
+	if _, err = io.Copy(mwRaw, inFile); err != nil {
 		return
 	}
-	if err = writer.Close(); err != nil {
+	if err = gzw.Close(); err != nil {
 		return
 	}
 	if err = tmpFile.Close(); err != nil {
@@ -317,7 +326,25 @@ func CompressFile(path FilePath) (err error) { // NRV
 		return
 	}
 
+	md5Raw := hRaw.Sum(nil)
+	md5Cmp := hCmp.Sum(nil)
+
+	// We can make a checksum file for the compressed data right away. This
+	// must be done after the compressed file is in position.
+	var outFile FilePath
+	outFile, err = NewFilePath(outPath)
+	if err = createMD5File(outFile.ChecksumFilename(), md5Cmp); err != nil {
+		return
+	}
+
+	// We can also make a checksum file for the raw data
+	if err = createMD5File(path.ChecksumFilename(), md5Raw); err != nil {
+		return
+	}
+
 	log.Info().Str("src", path.Location).
+		Str("checksum_raw", fmt.Sprintf("%x", md5Raw)).
+		Str("checksum", fmt.Sprintf("%x", md5Cmp)).
 		Str("to", outPath).Msg("compressed")
 
 	return
@@ -455,7 +482,6 @@ func RemoveFile(path FilePath) error {
 // predicates are true only after earlier work in the WorkPlan is complete,
 // they will pass, provided work is ranked in the appropriate order.
 func makeWork(path FilePath, plan WorkPlan) (Work, error) {
-
 	if plan.IsEmpty() {
 		return Work{WorkFunc: DoNothing}, nil
 	}
@@ -496,19 +522,26 @@ func makeWork(path FilePath, plan WorkPlan) (Work, error) {
 }
 
 func createMD5File(path string, md5sum []byte) (err error) { // NRV
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	f, err := ioutil.TempFile(os.TempDir(), "valet-")
 	if err != nil {
-		err = errors.Wrap(err, "will not overwrite an existing MD5 file")
+		return
+	}
+
+	_, err = f.WriteString(fmt.Sprintf("%x\n", md5sum))
+	if err = f.Close(); err != nil {
 		return
 	}
 
 	defer func() {
-		err = utilities.CombineErrors(err, f.Close())
+		// Clean up if we got this far and the temp file still exists
+		if rerr := os.Remove(f.Name()); !os.IsNotExist(rerr) {
+			err = utilities.CombineErrors(err, rerr)
+		}
 	}()
 
-	encoded := make([]byte, hex.EncodedLen(len(md5sum)))
-	hex.Encode(encoded, md5sum)
-	_, err = f.Write(append(encoded, '\n'))
+	if err = os.Rename(f.Name(), path); err != nil {
+		return
+	}
 
 	return
 }
