@@ -355,6 +355,7 @@ func MakeIsArchived(localBase string, remoteBase string,
 				Str("expected_checksum", chk).
 				Str("checksum", obj.Checksum()).
 				Msg("not archived: checksum not confirmed")
+			return
 		}
 
 		ok, err = obj.HasValidChecksumMetadata(chk)
