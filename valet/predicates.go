@@ -330,12 +330,6 @@ func MakeIsArchived(localBase string, remoteBase string,
 			return
 		}
 
-		var checksum []byte
-		checksum, err = ReadMD5ChecksumFile(chkFile)
-		if err != nil {
-			return
-		}
-
 		obj := ex.NewDataObject(client, dest)
 		ok, err = obj.Exists()
 		if err != nil || !ok {
@@ -344,13 +338,16 @@ func MakeIsArchived(localBase string, remoteBase string,
 			return
 		}
 
-		chk := string(checksum)
-		ok, err = obj.HasValidChecksum(chk)
-		if err != nil {
+		var checksum []byte
+		if checksum, err = ReadMD5ChecksumFile(chkFile); err != nil {
+			log.Debug().Str("path", path.Location).
+				Msg("not archived: checksum file not readable")
 			return
 		}
 
-		if !ok {
+		chk := string(checksum)
+		ok, err = obj.HasValidChecksum(chk)
+		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
 				Str("expected_checksum", chk).
 				Str("checksum", obj.Checksum()).
