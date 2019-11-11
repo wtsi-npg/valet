@@ -536,9 +536,7 @@ func createMD5File(path string, md5sum []byte) (err error) { // NRV
 		}
 	}()
 
-	if err = os.Rename(f.Name(), path); err != nil {
-		return
-	}
+	err = os.Rename(f.Name(), path)
 
 	return
 }
