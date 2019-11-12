@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -37,20 +38,6 @@ type FileResource struct {
 type FilePath struct {
 	FileResource
 	Info os.FileInfo
-}
-
-type FilePathArr []FilePath
-
-func (f FilePathArr) Len() int {
-	return len(f)
-}
-
-func (f FilePathArr) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
-}
-
-func (f FilePathArr) Less(i, j int) bool {
-	return f[i].Location < f[j].Location
 }
 
 // NewFilePath returns a new instance where the path has been cleaned and made
@@ -69,6 +56,13 @@ func NewFilePath(path string) (FilePath, error) {
 	fp.FileResource = FileResource{absPath}
 
 	return fp, err
+}
+
+// SortFilePaths sorts paths by Location.
+func SortFilePaths(paths []FilePath) {
+	sort.SliceStable(paths, func(i, j int) bool {
+		return paths[i].Location < paths[j].Location
+	})
 }
 
 // ChecksumFilename returns the expected path of the checksum file belonging

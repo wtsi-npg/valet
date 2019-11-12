@@ -29,7 +29,6 @@ import (
 	"time"
 
 	ex "github.com/kjsanger/extendo"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -217,25 +216,24 @@ var _ = Describe("Find files at intervals", func() {
 		found := make(map[string]valet.FilePath) // FilePaths are not comparable
 
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(1)
+
+		timeout := time.After(5 * interval)
 
 		go func() {
 			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(5 * interval)
-			<-timer.C
-		}()
-
-		go func() {
-			defer wg.Done()
-			defer cancel()
-
-			for path := range paths {
-				found[path.Location] = path
-				if len(found) >= len(expectedPaths) {
-					// Find files
+			for {
+				select {
+				case <-timeout:
 					return
+				case path := <-paths:
+					found[path.Location] = path
+					if len(found) >= len(expectedPaths) {
+						// Find files
+						return
+					}
 				}
 			}
 		}()
@@ -304,25 +302,23 @@ var _ = Describe("Watch for file changes", func() {
 		found := make(map[string]valet.FilePath)
 
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(1)
+		timeout := time.After(5 * interval)
 
 		go func() {
 			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(5 * interval)
-			<-timer.C
-		}()
-
-		go func() {
-			defer wg.Done()
-			defer cancel()
-
-			for path := range paths {
-				found[path.Location] = path
-				if len(found) >= len(expectedPaths) {
-					// Detect files
+			for {
+				select {
+				case <-timeout:
 					return
+				case path := <-paths:
+					found[path.Location] = path
+					if len(found) >= len(expectedPaths) {
+						// Detect files
+						return
+					}
 				}
 			}
 		}()
@@ -411,27 +407,23 @@ var _ = Describe("Watch for file changes with pruning", func() {
 		found := make(map[string]valet.FilePath)
 
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(1)
+		timeout := time.After(3 * interval)
 
 		go func() {
 			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(3 * interval)
-			<-timer.C
-			return
-		}()
-
-
-		go func() {
-			defer wg.Done()
-			defer cancel()
-
-			for path := range paths {
-				found[path.Location] = path
-				if len(found) >= len(expectedPaths) {
-					// Detect files
+			for {
+				select {
+				case <-timeout:
 					return
+				case path := <-paths:
+					found[path.Location] = path
+					if len(found) >= len(expectedPaths) {
+						// Detect files
+						return
+					}
 				}
 			}
 		}()
@@ -454,7 +446,6 @@ var _ = Describe("Watch for file changes with pruning", func() {
 
 	When("using a file predicate", func() {
 		It("should find files", func() {
-
 
 			Expect(foundFiles).To(WithTransform(pathTransform,
 				ConsistOf(expectedPaths)))
@@ -499,10 +490,8 @@ var _ = Describe("Find MinKNOW files", func() {
 			foundPaths = append(foundPaths, relPath)
 		}
 
-		select {
-		case err := <-errs:
+		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
-		default:
 		}
 
 		cancel()
@@ -727,7 +716,7 @@ var _ = Describe("Archive MINKnow files", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(1)
 
 		// Find files or timeout and cancel
 		perr := make(chan error, 1)
@@ -754,33 +743,30 @@ var _ = Describe("Archive MINKnow files", func() {
 			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(60 * time.Second)
-			<-timer.C
-			return
-		}()
-
-		go func() {
-			defer wg.Done()
-			defer cancel()
-
 			client, err := clientPool.Get()
 			if err != nil {
 				return
 			}
 
+			timeout := time.After(120 * time.Second)
+
 			for {
-				time.Sleep(2 * time.Second)
+				select {
+				case <-timeout:
+					return
+				default:
+					time.Sleep(2 * time.Second)
 
-				coll := ex.NewCollection(client, workColl)
-				if exists, _ := coll.Exists(); exists {
-					contents, err := coll.FetchContentsRecurse()
-					if err != nil {
-						return
-					}
-
-					if len(contents) >= len(expectedArchived) {
-						// Detect iRODS paths
-						return
+					coll := ex.NewCollection(client, workColl)
+					if exists, _ := coll.Exists(); exists {
+						contents, err := coll.FetchContentsRecurse()
+						if err != nil {
+							return
+						}
+						if len(contents) >= len(expectedArchived) {
+							// Detect iRODS paths
+							return
+						}
 					}
 				}
 			}

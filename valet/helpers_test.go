@@ -26,7 +26,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"sort"
 
 	ex "github.com/kjsanger/extendo"
 	. "github.com/onsi/ginkgo"
@@ -172,11 +171,11 @@ func tmpRodsPath(root string, prefix string) string {
 }
 
 func toArray(m map[string]valet.FilePath) ([]valet.FilePath, error) {
-	var fp valet.FilePathArr
+	var fp []valet.FilePath
 	for _, path := range m {
 		fp = append(fp, path)
 	}
-	sort.Sort(fp)
+	valet.SortFilePaths(fp)
 
 	return fp, nil
 }
