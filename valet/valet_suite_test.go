@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	ex "github.com/kjsanger/extendo"
@@ -214,34 +215,40 @@ var _ = Describe("Find files at intervals", func() {
 
 		// Find files or timeout and cancel
 		found := make(map[string]valet.FilePath) // FilePaths are not comparable
-		done := make(chan bool, 2)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
 			timer := time.NewTimer(5 * interval)
 			<-timer.C
-			done <- true // Timeout
 		}()
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
 			for path := range paths {
 				found[path.Location] = path
 				if len(found) >= len(expectedPaths) {
-					done <- true // Find files
+					// Find files
 					return
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 
 		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
 		}
-		foundFiles = toArray(found)
+
+		var ferr error
+		foundFiles, ferr = toArray(found)
+		Expect(ferr).NotTo(HaveOccurred())
 	})
 
 	When("using a file predicate", func() {
@@ -295,34 +302,40 @@ var _ = Describe("Watch for file changes", func() {
 
 		// Detect updated files or timeout and cancel
 		found := make(map[string]valet.FilePath)
-		done := make(chan bool, 2)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
 			timer := time.NewTimer(5 * interval)
 			<-timer.C
-			done <- true // Timeout
 		}()
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
 			for path := range paths {
 				found[path.Location] = path
-				if len(foundFiles) >= len(expectedPaths) {
-					done <- true // Detect files
+				if len(found) >= len(expectedPaths) {
+					// Detect files
 					return
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 
 		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
 		}
-		foundFiles = toArray(found)
+
+		var ferr error
+		foundFiles, ferr = toArray(found)
+		Expect(ferr).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -395,35 +408,43 @@ var _ = Describe("Watch for file changes with pruning", func() {
 		Expect(cerr).NotTo(HaveOccurred())
 
 		// Detect updated files or timeout and cancel
-		done := make(chan bool, 2)
 		found := make(map[string]valet.FilePath)
 
+		var wg sync.WaitGroup
+		wg.Add(2)
+
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
 			timer := time.NewTimer(3 * interval)
 			<-timer.C
-			done <- true // Timeout
+			return
 		}()
 
+
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
 			for path := range paths {
 				found[path.Location] = path
-				if len(foundFiles) >= len(expectedPaths) {
-					done <- true // Detect files
+				if len(found) >= len(expectedPaths) {
+					// Detect files
 					return
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 
 		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
 		}
-		foundFiles = toArray(found)
+
+		var ferr error
+		foundFiles, ferr = toArray(found)
+		Expect(ferr).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -433,6 +454,8 @@ var _ = Describe("Watch for file changes with pruning", func() {
 
 	When("using a file predicate", func() {
 		It("should find files", func() {
+
+
 			Expect(foundFiles).To(WithTransform(pathTransform,
 				ConsistOf(expectedPaths)))
 		})
@@ -694,7 +717,6 @@ var _ = Describe("Archive MINKnow files", func() {
 		cerr := copyFilesRelative(dataDir, tmpDir, allFiles, readWriteFile)
 		Expect(cerr).NotTo(HaveOccurred())
 
-
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		sweepInterval := 10 * time.Second
 
@@ -704,8 +726,10 @@ var _ = Describe("Archive MINKnow files", func() {
 		defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDir)
 		Expect(err).NotTo(HaveOccurred())
 
+		var wg sync.WaitGroup
+		wg.Add(2)
+
 		// Find files or timeout and cancel
-		done := make(chan bool, 2)
 		perr := make(chan error, 1)
 
 		go func() {
@@ -727,21 +751,22 @@ var _ = Describe("Archive MINKnow files", func() {
 		}()
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(120 * time.Second)
+			timer := time.NewTimer(60 * time.Second)
 			<-timer.C
-			done <- true // Timeout
+			return
 		}()
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
 			client, err := clientPool.Get()
 			if err != nil {
 				return
 			}
-			defer clientPool.Return(client)
 
 			for {
 				time.Sleep(2 * time.Second)
@@ -754,14 +779,14 @@ var _ = Describe("Archive MINKnow files", func() {
 					}
 
 					if len(contents) >= len(expectedArchived) {
-						done <- true // Detect iRODS paths
+						// Detect iRODS paths
 						return
 					}
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 
 		// TODO: This is currently getting tripped by timeouts from the
 		// iRODS mkdir workaround, so I have disabled it temporarily.

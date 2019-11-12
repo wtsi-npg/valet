@@ -171,12 +171,12 @@ func tmpRodsPath(root string, prefix string) string {
 	return filepath.Join(root, d)
 }
 
-func toArray(m map[string]valet.FilePath) []valet.FilePath {
+func toArray(m map[string]valet.FilePath) ([]valet.FilePath, error) {
 	var fp valet.FilePathArr
 	for _, path := range m {
 		fp = append(fp, path)
 	}
 	sort.Sort(fp)
 
-	return fp
+	return fp, nil
 }
