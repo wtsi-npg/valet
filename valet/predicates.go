@@ -258,7 +258,8 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 }
 
 // MakeIsArchived returns a predicate that will return true if its argument has
-// been successfully archived from localBase to remoteBase.
+// been successfully archived from localBase to remoteBase and no errors occur
+// while confirming this.
 //
 // The criteria for archived state are:
 //
@@ -268,6 +269,9 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 // 2. The data object exists in the archive.
 //
 // 3. The checksum of the data object in the archive matches the expected
+//    checksum.
+//
+// 4. The data object has metadata under the "md5" key whose value matches the
 //    checksum.
 func MakeIsArchived(localBase string, remoteBase string,
 	cPool *ex.ClientPool) FilePredicate {
@@ -282,12 +286,12 @@ func MakeIsArchived(localBase string, remoteBase string,
 		var dest string
 		dest, err = translatePath(localBase, remoteBase, path)
 		if err != nil {
-			return
+			return false, err
 		}
 
 		client, err := cPool.Get()
 		if err != nil {
-			return
+			return false, err
 		}
 
 		defer func() {
@@ -297,51 +301,51 @@ func MakeIsArchived(localBase string, remoteBase string,
 		var chkFile FilePath
 		chkFile, err = NewFilePath(path.ChecksumFilename())
 		if err != nil {
-			return
+			return false, err
 		}
 
 		log := logs.GetLogger()
+
 		ok, err = HasValidChecksumFile(path)
 		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
 				Msg("not archived: no valid checksum file")
-			return
-		}
-
-		var checksum []byte
-		checksum, err = ReadMD5ChecksumFile(chkFile)
-		if err != nil {
-			return
+			return false, err
 		}
 
 		obj := ex.NewDataObject(client, dest)
+
 		ok, err = obj.Exists()
 		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
 				Msg("not archived: data object not confirmed")
-			return
+			return false, err
+		}
+
+		var checksum []byte
+		if checksum, err = ReadMD5ChecksumFile(chkFile); err != nil {
+			log.Debug().Str("path", path.Location).
+				Msg("not archived: checksum file not readable")
+			return false, err
 		}
 
 		chk := string(checksum)
 		ok, err = obj.HasValidChecksum(chk)
-		if err != nil {
-			return
-		}
-
-		if !ok {
+		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
 				Str("expected_checksum", chk).
 				Str("checksum", obj.Checksum()).
 				Msg("not archived: checksum not confirmed")
+			return false, err
 		}
 
 		ok, err = obj.HasValidChecksumMetadata(chk)
 		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
 				Msg("not archived: checksum metadata not confirmed")
-			return
+			return false, err
 		}
 
-		return
+		return true, err
 	}
 }

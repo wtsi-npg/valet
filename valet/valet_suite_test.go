@@ -510,6 +510,120 @@ var _ = Describe("Find MinKNOW files", func() {
 	})
 })
 
+var _ = Describe("IsArchived", func() {
+	var (
+		rootColl, workColl, remotePath string
+		isArchived                     valet.FilePredicate
+		path                           valet.FilePath
+
+		clientPool *ex.ClientPool
+		client     *ex.Client
+		obj        *ex.DataObject
+
+		localPath = "testdata/valet/1/reads/fast5/reads1.fast5"
+	)
+
+	BeforeEach(func() {
+		var err error
+		path, err = valet.NewFilePath(localPath)
+		Expect(err).NotTo(HaveOccurred())
+
+		rootColl = "/testZone/home/irods"
+		workColl = tmpRodsPath(rootColl, "ValetIsArchived")
+		remotePath = filepath.Join(workColl, "reads1.fast5")
+
+		clientPool = ex.NewClientPool(2, time.Second)
+		client, err = clientPool.Get()
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = ex.MakeCollection(client, workColl)
+		Expect(err).NotTo(HaveOccurred())
+		obj, err = ex.PutDataObject(client, localPath, remotePath)
+		Expect(err).NotTo(HaveOccurred())
+
+		// The expected and correct metadata
+		err = obj.AddMetadata([]ex.AVU{{
+			Attr:  "md5",
+			Value: "1181c1834012245d785120e3505ed169"}})
+		Expect(err).NotTo(HaveOccurred())
+
+		local, err := filepath.Abs("testdata/valet/1/reads/fast5")
+		Expect(err).NotTo(HaveOccurred())
+		// The predicate to be tested
+		isArchived = valet.MakeIsArchived(local, workColl, clientPool)
+	})
+
+	AfterEach(func() {
+		err := removeTmpCollection(workColl)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = clientPool.Return(client)
+		Expect(err).NotTo(HaveOccurred())
+
+		clientPool.Close()
+	})
+
+	When("a data object exists with correct checksum and md5 metadata", func() {
+		It("is archived", func() {
+			Expect(isArchived(path)).To(BeTrue())
+		})
+	})
+
+	When("a data object does not exist", func() {
+		BeforeEach(func() {
+			err := obj.Remove()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is not archived", func() {
+			Expect(isArchived(path)).To(BeFalse())
+		})
+	})
+
+	When("a data object exists, but has no md5 metadata", func() {
+		BeforeEach(func() {
+			err := obj.RemoveMetadata([]ex.AVU{{
+				Attr:  "md5",
+				Value: "1181c1834012245d785120e3505ed169"}})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is not archived", func() {
+			Expect(isArchived(path)).To(BeFalse())
+		})
+	})
+
+	When("a data object exists, but has mismatched md5 metadata", func() {
+		BeforeEach(func() {
+			err := obj.RemoveMetadata([]ex.AVU{{
+				Attr:  "md5",
+				Value: "1181c1834012245d785120e3505ed169"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = obj.AddMetadata([]ex.AVU{{
+				Attr:  "md5",
+				Value: "999999999912245d785120e3505ed169"}})
+		})
+
+		It("is not archived", func() {
+			Expect(isArchived(path)).To(BeFalse())
+		})
+	})
+
+	When("a data object exists, but has a mismatched checksum", func() {
+		BeforeEach(func() {
+			wrongFile := "testdata/valet/1/reads/fast5/reads2.fast5"
+			_, err := ex.PutDataObject(client, wrongFile, remotePath)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is not archived", func() {
+			Expect(isArchived(path)).To(BeFalse())
+		})
+	})
+
+})
+
 var _ = Describe("Archive MINKnow files", func() {
 	var (
 		allFiles []string
