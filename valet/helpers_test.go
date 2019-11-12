@@ -26,15 +26,17 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 
 	ex "github.com/kjsanger/extendo"
 	. "github.com/onsi/ginkgo"
 
 	"github.com/kjsanger/valet/utilities"
+	"github.com/kjsanger/valet/valet"
 )
 
 type itemPathTransform func(i []ex.RodsItem) []string
-type localPathTransform func(p []string) []string
+type localPathTransform func(p []valet.FilePath) []string
 
 func makeRodsItemTransform(workColl string) func(i []ex.RodsItem) []string {
 	return func(items []ex.RodsItem) []string {
@@ -47,11 +49,14 @@ func makeRodsItemTransform(workColl string) func(i []ex.RodsItem) []string {
 	}
 }
 
-func makeLocalPathTransform(root string) func(i []string) []string {
-	return func(items []string) []string {
+func makeLocalPathTransform(root string) func(i []valet.FilePath) []string {
+	return func(items []valet.FilePath) []string {
 		var paths []string
 		for _, p := range items {
-			r, _ := filepath.Rel(root, p)
+			r, err := filepath.Rel(root, p.Location)
+			if err != nil {
+				panic(err)
+			}
 			paths = append(paths, r)
 		}
 		return paths
@@ -103,16 +108,17 @@ func mkdirAllRelative(root string, subdirs []string) error {
 type copyFn func(to string, from string) error
 
 // Copy files to subdirs under root
-func copyFilesRelative(root string, relPaths []string, fn copyFn) error {
+func copyFilesRelative(from string, to string, relPaths []string, fn copyFn) error {
+	fr, err := filepath.Abs(from)
+	if err != nil {
+		return err
+	}
+
 	for _, p := range relPaths {
-		from, err := filepath.Abs(p)
-		if err != nil {
-			return err
-		}
+		src := filepath.Join(fr, p)
+		dst := filepath.Join(to, p)
 
-		to := filepath.Join(root, p)
-
-		err = fn(from, to)
+		err = fn(src, dst)
 		if err != nil {
 			return err
 		}
@@ -163,4 +169,14 @@ func tmpRodsPath(root string, prefix string) string {
 	r := rand.New(s)
 	d := fmt.Sprintf("%s.%d.%010d", prefix, os.Getpid(), r.Uint32())
 	return filepath.Join(root, d)
+}
+
+func toArray(m map[string]valet.FilePath) []valet.FilePath {
+	var fp valet.FilePathArr
+	for _, path := range m {
+		fp = append(fp, path)
+	}
+	sort.Sort(fp)
+
+	return fp
 }

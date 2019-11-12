@@ -39,6 +39,20 @@ type FilePath struct {
 	Info os.FileInfo
 }
 
+type FilePathArr []FilePath
+
+func (f FilePathArr) Len() int {
+	return len(f)
+}
+
+func (f FilePathArr) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+func (f FilePathArr) Less(i, j int) bool {
+	return f[i].Location < f[j].Location
+}
+
 // NewFilePath returns a new instance where the path has been cleaned and made
 // absolute and the FileInfo populated by os.Stat. FilePaths should be
 // created using this constructor to ensure that always have a clean, absolute
