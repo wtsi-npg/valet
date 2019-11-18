@@ -240,6 +240,12 @@ var _ = Describe("Find files at intervals", func() {
 
 		wg.Wait()
 
+		for _ = range paths {
+			// Discard any remaining paths to unblock any sending goroutines
+			// started by FindFilesInterval (it can have a number running
+			// because it starts a new one at each interval). This closes the
+			// errs channel too.
+		}
 		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
 		}
