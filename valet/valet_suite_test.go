@@ -624,6 +624,8 @@ var _ = Describe("Archive MINKnow files", func() {
 		tmpDir       string
 		getRodsPaths itemPathTransform
 
+		clientPool *ex.ClientPool
+
 		rootColl = "/testZone/home/irods"
 		dataDir  = "testdata/platform/ont/minknow/gridion"
 
@@ -709,7 +711,7 @@ var _ = Describe("Archive MINKnow files", func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		sweepInterval := 10 * time.Second
 
-		clientPool := ex.NewClientPool(6, time.Second*1)
+		clientPool = ex.NewClientPool(6, time.Second)
 		deleteLocal := true
 
 		defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDir)
@@ -747,6 +749,9 @@ var _ = Describe("Archive MINKnow files", func() {
 			if err != nil {
 				return
 			}
+			defer func() {
+				clientPool.Return(client)
+			}()
 
 			timeout := time.After(120 * time.Second)
 
@@ -786,6 +791,8 @@ var _ = Describe("Archive MINKnow files", func() {
 
 		err = removeTmpCollection(workColl)
 		Expect(err).NotTo(HaveOccurred())
+
+		clientPool.Close()
 	})
 
 	When("using a file predicate", func() {
