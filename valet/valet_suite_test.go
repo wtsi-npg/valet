@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	ex "github.com/kjsanger/extendo"
@@ -37,252 +38,250 @@ import (
 
 var _ = Describe("Find directories)", func() {
 	var (
-		foundDirs []valet.FilePath
+		foundDirs     []valet.FilePath
+		pathTransform localPathTransform
 
-		expectedPaths = []string{
-			"testdata/valet",
-			"testdata/valet/1",
-			"testdata/valet/1/reads",
-			"testdata/valet/1/reads/fast5",
-			"testdata/valet/1/reads/fastq",
-			"testdata/valet/testdir",
-		}
+		dataDir = "testdata/valet"
 	)
 
 	BeforeEach(func() {
+		absDataDir, err := filepath.Abs(dataDir)
+		Expect(err).NotTo(HaveOccurred())
+		pathTransform = makeLocalPathTransform(absDataDir)
+
 		cancelCtx, cancel := context.WithCancel(context.Background())
-		paths, errs := valet.FindFiles(cancelCtx, "testdata/valet",
-			valet.IsDir, valet.IsFalse)
+		paths, errs := valet.FindFiles(cancelCtx, dataDir, valet.IsDir,
+			valet.IsFalse)
 
-		for p := range paths {
-			foundDirs = append(foundDirs, p)
+		for path := range paths {
+			foundDirs = append(foundDirs, path)
 		}
-
-		select {
-		case err := <-errs:
+		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
-		default:
 		}
 
 		cancel()
 	})
 
-	Context("when using a directory predicate", func() {
+	When("using a directory predicate", func() {
+		expectedPaths := []string{
+			".",
+			"1",
+			"1/reads",
+			"1/reads/fast5",
+			"1/reads/fastq",
+			"testdir",
+		}
+
 		It("should find directories", func() {
-			Expect(len(foundDirs)).To(Equal(len(expectedPaths)))
-
-			for i, ep := range expectedPaths {
-				a, err := filepath.Abs(ep)
-				Expect(err).NotTo(HaveOccurred())
-
-				fp, _ := valet.NewFilePath(a)
-
-				Expect(foundDirs[i].Location).To(Equal(fp.Location))
-				Expect(foundDirs[i].Info).ToNot(BeNil())
-			}
+			Expect(foundDirs).To(WithTransform(pathTransform,
+				ConsistOf(expectedPaths)))
 		})
 	})
 })
 
 var _ = Describe("Find regular files)", func() {
 	var (
-		foundFiles []valet.FilePath
+		foundFiles    []valet.FilePath
+		pathTransform localPathTransform
 
-		expectedPaths = []string{
-			"testdata/valet/1/reads/fast5/reads1.fast5",
-			"testdata/valet/1/reads/fast5/reads1.fast5.md5",
-			"testdata/valet/1/reads/fast5/reads2.fast5",
-			"testdata/valet/1/reads/fast5/reads3.fast5",
-			"testdata/valet/1/reads/fastq/reads1.fastq",
-			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
-			"testdata/valet/1/reads/fastq/reads2.fastq",
-			"testdata/valet/1/reads/fastq/reads2.fastq.gz",
-			"testdata/valet/1/reads/fastq/reads3.fastq",
-			"testdata/valet/testdir/.gitignore",
-		}
+		dataDir = "testdata/valet"
 	)
 
 	BeforeEach(func() {
+		absDataDir, err := filepath.Abs(dataDir)
+		Expect(err).NotTo(HaveOccurred())
+		pathTransform = makeLocalPathTransform(absDataDir)
+
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		paths, errs := valet.FindFiles(cancelCtx, "testdata/valet",
 			valet.IsRegular, valet.IsFalse)
 
-		for p := range paths {
-			foundFiles = append(foundFiles, p)
+		for path := range paths {
+			foundFiles = append(foundFiles, path)
 		}
-
-		select {
-		case err := <-errs:
+		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
-		default:
 		}
 
 		cancel()
 	})
 
-	Context("when using a file predicate", func() {
+	When("using a file predicate", func() {
 		It("should find files", func() {
-
-			Expect(len(foundFiles)).To(Equal(len(expectedPaths)))
-
-			for i, ep := range expectedPaths {
-				a, err := filepath.Abs(ep)
-				Expect(err).NotTo(HaveOccurred())
-
-				fp, _ := valet.NewFilePath(a)
-
-				Expect(foundFiles[i].Location).To(Equal(fp.Location))
-				Expect(foundFiles[i].Info).ToNot(BeNil())
+			expectedPaths := []string{
+				"1/reads/fast5/reads1.fast5",
+				"1/reads/fast5/reads1.fast5.md5",
+				"1/reads/fast5/reads2.fast5",
+				"1/reads/fast5/reads3.fast5",
+				"1/reads/fastq/reads1.fastq",
+				"1/reads/fastq/reads1.fastq.md5",
+				"1/reads/fastq/reads2.fastq",
+				"1/reads/fastq/reads2.fastq.gz",
+				"1/reads/fastq/reads3.fastq",
+				"testdir/.gitignore",
 			}
+			Expect(foundFiles).To(WithTransform(pathTransform,
+				ConsistOf(expectedPaths)))
 		})
 	})
 })
 
 var _ = Describe("Find files with pruning", func() {
 	var (
-		expectedPaths = []string{
-			"testdata/valet",
-			"testdata/valet/1",
-			"testdata/valet/testdir",
-		}
+		foundDirs     []valet.FilePath
+		pathTransform localPathTransform
 
-		pruneFn = func(pf valet.FilePath) (bool, error) {
+		dataDir = "testdata/valet"
+
+		pruneFn = func(path valet.FilePath) (bool, error) {
 			pattern, err := filepath.Abs("testdata/valet/1/reads")
 			if err != nil {
 				return false, err
 			}
 
-			match, err := filepath.Match(pattern, pf.Location)
+			match, err := filepath.Match(pattern, path.Location)
 			if err == nil && match {
 				return match, filepath.SkipDir
 			}
 			return match, err
 		}
-
-		foundDirs []valet.FilePath
 	)
 
 	BeforeEach(func() {
+		absDataDir, err := filepath.Abs(dataDir)
+		Expect(err).NotTo(HaveOccurred())
+		pathTransform = makeLocalPathTransform(absDataDir)
+
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		paths, errs := valet.FindFiles(cancelCtx, "testdata/valet",
 			valet.IsDir, pruneFn)
 
-		for p := range paths {
-			foundDirs = append(foundDirs, p)
+		for path := range paths {
+			foundDirs = append(foundDirs, path)
 		}
-
-		select {
-		case err := <-errs:
+		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
-		default:
 		}
 
 		cancel()
 	})
 
-	Context("Using a prune function", func() {
+	When("using a prune function", func() {
 		It("should find paths, except those pruned", func() {
-			Expect(len(foundDirs)).To(Equal(len(expectedPaths)))
-
-			for i, ep := range expectedPaths {
-				a, err := filepath.Abs(ep)
-				Expect(err).NotTo(HaveOccurred())
-
-				fp, _ := valet.NewFilePath(a)
-
-				Expect(foundDirs[i].Location).To(Equal(fp.Location))
-				Expect(foundDirs[i].Info).ToNot(BeNil())
+			expectedPaths := []string{
+				".",
+				"1",
+				"testdir",
 			}
+
+			Expect(foundDirs).To(WithTransform(pathTransform,
+				ConsistOf(expectedPaths)))
 		})
 	})
 })
 
 var _ = Describe("Find files at intervals", func() {
 	var (
-		expectedPaths = []string{
-			"testdata/valet/1/reads/fast5/reads1.fast5",
-			"testdata/valet/1/reads/fast5/reads1.fast5.md5",
-			"testdata/valet/1/reads/fast5/reads2.fast5",
-			"testdata/valet/1/reads/fast5/reads3.fast5",
-			"testdata/valet/1/reads/fastq/reads1.fastq",
-			"testdata/valet/1/reads/fastq/reads1.fastq.md5",
-			"testdata/valet/1/reads/fastq/reads2.fastq",
-			"testdata/valet/1/reads/fastq/reads2.fastq.gz",
-			"testdata/valet/1/reads/fastq/reads3.fastq",
-		}
+		foundFiles    []valet.FilePath
+		pathTransform localPathTransform
 
-		foundFiles = map[string]bool{}
+		dataDir = "testdata/valet"
+
+		expectedPaths = []string{
+			"1/reads/fast5/reads1.fast5",
+			"1/reads/fast5/reads1.fast5.md5",
+			"1/reads/fast5/reads2.fast5",
+			"1/reads/fast5/reads3.fast5",
+			"1/reads/fastq/reads1.fastq",
+			"1/reads/fastq/reads1.fastq.md5",
+			"1/reads/fastq/reads2.fastq",
+			"1/reads/fastq/reads2.fastq.gz",
+			"1/reads/fastq/reads3.fastq",
+		}
 	)
 
 	BeforeEach(func() {
+		absDataDir, err := filepath.Abs(dataDir)
+		Expect(err).NotTo(HaveOccurred())
+		pathTransform = makeLocalPathTransform(absDataDir)
+
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		interval := 500 * time.Millisecond
 
-		paths, errs := valet.FindFilesInterval(cancelCtx, "testdata/valet",
+		paths, errs := valet.FindFilesInterval(cancelCtx, dataDir,
 			valet.IsRegular, valet.IsFalse, interval)
 
 		// Find files or timeout and cancel
-		done := make(chan bool, 2)
+		found := make(map[string]valet.FilePath) // FilePaths are not comparable
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		timeout := time.After(5 * interval)
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(5 * interval)
-			<-timer.C
-			done <- true // Timeout
-		}()
-
-		go func() {
-			defer cancel()
-
-			foundFiles = make(map[string]bool) // FilePaths are not comparable
-			for p := range paths {
-				foundFiles[p.Location] = true
-				if len(foundFiles) >= len(expectedPaths) {
-					done <- true // Find files
+			for {
+				select {
+				case <-timeout:
 					return
+				case path := <-paths:
+					found[path.Location] = path
+					if len(found) >= len(expectedPaths) {
+						// Find files
+						return
+					}
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 
-		select {
-		case err := <-errs:
-			Expect(err).NotTo(HaveOccurred())
-		default:
+		for _ = range paths {
+			// Discard any remaining paths to unblock any sending goroutines
+			// started by FindFilesInterval (it can have a number running
+			// because it starts a new one at each interval). This closes the
+			// errs channel too.
 		}
+		for err := range errs {
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		var ferr error
+		foundFiles, ferr = toArray(found)
+		Expect(ferr).NotTo(HaveOccurred())
 	})
 
-	Context("when using a file predicate", func() {
+	When("using a file predicate", func() {
 		It("should find files", func() {
-			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
-
-			for _, ep := range expectedPaths {
-				a, err := filepath.Abs(ep)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(foundFiles[a]).To(BeTrue())
-			}
+			Expect(foundFiles).To(WithTransform(pathTransform,
+				ConsistOf(expectedPaths)))
 		})
 	})
 })
 
 var _ = Describe("Watch for file changes", func() {
 	var (
-		tmpDir     string
-		foundFiles = map[string]bool{}
+		foundFiles    []valet.FilePath
+		pathTransform localPathTransform
+		tmpDir        string
+
+		dataDir = "testdata/valet"
 
 		expectedPaths = []string{
-			"testdata/valet/1/reads/fast5/reads1.fast5",
-			"testdata/valet/1/reads/fast5/reads2.fast5",
-			"testdata/valet/1/reads/fast5/reads3.fast5",
-			"testdata/valet/1/reads/fastq/reads1.fastq",
-			"testdata/valet/1/reads/fastq/reads2.fastq",
-			"testdata/valet/1/reads/fastq/reads3.fastq",
+			"1/reads/fast5/reads1.fast5",
+			"1/reads/fast5/reads2.fast5",
+			"1/reads/fast5/reads3.fast5",
+			"1/reads/fastq/reads1.fastq",
+			"1/reads/fastq/reads2.fastq",
+			"1/reads/fastq/reads3.fastq",
 		}
 		expectedDirs = []string{
-			"testdata/valet/1/reads/fast5/",
-			"testdata/valet/1/reads/fastq/",
+			"1/reads/fast5/",
+			"1/reads/fastq/",
 		}
 	)
 
@@ -293,6 +292,7 @@ var _ = Describe("Watch for file changes", func() {
 		td, terr := ioutil.TempDir("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
+		pathTransform = makeLocalPathTransform(tmpDir)
 
 		// Set up dirs to watch first
 		derr := mkdirAllRelative(tmpDir, expectedDirs)
@@ -301,40 +301,43 @@ var _ = Describe("Watch for file changes", func() {
 		paths, errs :=
 			valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, valet.IsFalse)
 
-		cerr := copyFilesRelative(tmpDir, expectedPaths, moveFile)
+		cerr := copyFilesRelative(dataDir, tmpDir, expectedPaths, moveFile)
 		Expect(cerr).NotTo(HaveOccurred())
 
 		// Detect updated files or timeout and cancel
-		done := make(chan bool, 2)
+		found := make(map[string]valet.FilePath)
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		timeout := time.After(5 * interval)
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(5 * interval)
-			<-timer.C
-			done <- true // Timeout
-		}()
-
-		go func() {
-			defer cancel()
-
-			foundFiles = make(map[string]bool) // FilePaths are not comparable
-			for p := range paths {
-				foundFiles[p.Location] = true
-				if len(foundFiles) >= len(expectedPaths) {
-					done <- true // Detect files
+			for {
+				select {
+				case <-timeout:
 					return
+				case path := <-paths:
+					found[path.Location] = path
+					if len(found) >= len(expectedPaths) {
+						// Detect files
+						return
+					}
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 
-		select {
-		case err := <-errs:
+		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
-		default:
 		}
+
+		var ferr error
+		foundFiles, ferr = toArray(found)
+		Expect(ferr).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -342,52 +345,41 @@ var _ = Describe("Watch for file changes", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("when using a file predicate", func() {
+	When("using a file predicate", func() {
 		It("should find files", func() {
-			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
-
-			for _, ep := range expectedPaths {
-				a := filepath.Join(tmpDir, ep)
-				Expect(foundFiles[a]).To(BeTrue())
-			}
+			Expect(foundFiles).To(WithTransform(pathTransform,
+				ConsistOf(expectedPaths)))
 		})
 	})
 })
 
 var _ = Describe("Watch for file changes with pruning", func() {
 	var (
-		tmpDir     string
-		foundFiles = map[string]bool{}
+		foundFiles    []valet.FilePath
+		pathTransform localPathTransform
+		tmpDir        string
+
+		dataDir = "testdata/valet"
 
 		allPaths = []string{
-			"testdata/valet/1/reads/fast5/reads1.fast5",
-			"testdata/valet/1/reads/fast5/reads2.fast5",
-			"testdata/valet/1/reads/fast5/reads3.fast5",
-			"testdata/valet/1/reads/fastq/reads1.fastq",
-			"testdata/valet/1/reads/fastq/reads2.fastq",
-			"testdata/valet/1/reads/fastq/reads3.fastq",
+			"1/reads/fast5/reads1.fast5",
+			"1/reads/fast5/reads2.fast5",
+			"1/reads/fast5/reads3.fast5",
+			"1/reads/fastq/reads1.fastq",
+			"1/reads/fastq/reads2.fastq",
+			"1/reads/fastq/reads3.fastq",
 		}
 		allDirs = []string{
-			"testdata/valet/1/reads/fast5/",
-			"testdata/valet/1/reads/fastq/",
+			"1/reads/fast5/",
+			"1/reads/fastq/",
 		}
 
-		expectedPaths = allPaths[:4]
+		expectedPaths = []string{
+			"1/reads/fast5/reads1.fast5",
+			"1/reads/fast5/reads2.fast5",
+			"1/reads/fast5/reads3.fast5",
+		}
 	)
-
-	pruneFn := func(pf valet.FilePath) (bool, error) {
-		pattern, err := filepath.Abs("testdata/valet/1/reads/fastq")
-		if err != nil {
-			return false, err
-		}
-
-		match, err := filepath.Match(pattern, pf.Location)
-		if err == nil && match {
-			return match, filepath.SkipDir
-		}
-
-		return match, err
-	}
 
 	BeforeEach(func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -396,48 +388,61 @@ var _ = Describe("Watch for file changes with pruning", func() {
 		td, terr := ioutil.TempDir("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
+		pathTransform = makeLocalPathTransform(tmpDir)
 
 		// Set up dirs to watch first
 		derr := mkdirAllRelative(tmpDir, allDirs)
 		Expect(derr).NotTo(HaveOccurred())
 
-		paths, errs :=
-			valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, pruneFn)
+		pattern := filepath.Join(tmpDir, "1/reads/fastq")
+		pruneFn := func(path valet.FilePath) (b bool, e error) {
+			match, err := filepath.Match(pattern, path.Location)
+			if err == nil && match {
+				return match, filepath.SkipDir
+			}
 
-		cerr := copyFilesRelative(tmpDir, allPaths, moveFile)
+			return match, err
+		}
+
+		paths, errs := valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, pruneFn)
+
+		cerr := copyFilesRelative(dataDir, tmpDir, allPaths, moveFile)
 		Expect(cerr).NotTo(HaveOccurred())
 
 		// Detect updated files or timeout and cancel
-		done := make(chan bool, 2)
+		found := make(map[string]valet.FilePath)
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		timeout := time.After(3 * interval)
 
 		go func() {
+			defer wg.Done()
 			defer cancel()
 
-			timer := time.NewTimer(5 * interval)
-			<-timer.C
-			done <- true // Timeout
-		}()
-
-		go func() {
-			defer cancel()
-
-			foundFiles = make(map[string]bool)
-			for p := range paths {
-				foundFiles[p.Location] = true
-				if len(foundFiles) >= len(expectedPaths) {
-					done <- true // Detect files
+			for {
+				select {
+				case <-timeout:
 					return
+				case path := <-paths:
+					found[path.Location] = path
+					if len(found) >= len(expectedPaths) {
+						// Detect files
+						return
+					}
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 
-		select {
-		case err := <-errs:
+		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
-		default:
 		}
+
+		var ferr error
+		foundFiles, ferr = toArray(found)
+		Expect(ferr).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -445,14 +450,11 @@ var _ = Describe("Watch for file changes with pruning", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("when using a file predicate", func() {
+	When("using a file predicate", func() {
 		It("should find files", func() {
-			Expect(len(foundFiles)).Should(Equal(len(expectedPaths)))
 
-			for _, ep := range expectedPaths {
-				a := filepath.Join(tmpDir, ep)
-				Expect(foundFiles[a]).To(BeTrue())
-			}
+			Expect(foundFiles).To(WithTransform(pathTransform,
+				ConsistOf(expectedPaths)))
 		})
 	})
 })
@@ -494,16 +496,14 @@ var _ = Describe("Find MinKNOW files", func() {
 			foundPaths = append(foundPaths, relPath)
 		}
 
-		select {
-		case err := <-errs:
+		for err := range errs {
 			Expect(err).NotTo(HaveOccurred())
-		default:
 		}
 
 		cancel()
 	})
 
-	Context("Using an experiment prune function", func() {
+	When("using an experiment prune function", func() {
 		It("should find only experiment files", func() {
 			Expect(foundPaths).To(ConsistOf(expectedPaths))
 		})
@@ -626,153 +626,146 @@ var _ = Describe("IsArchived", func() {
 
 var _ = Describe("Archive MINKnow files", func() {
 	var (
-		allFiles []string
-		allDirs  []string
-
-		tmpDir, tmpDataDir string
-		rootColl, workColl string
-
-		dataDir = "testdata/platform/ont/minknow/gridion"
-
+		workColl     string
+		tmpDir       string
 		getRodsPaths itemPathTransform
+
+		clientPool *ex.ClientPool
+
+		rootColl = "/testZone/home/irods"
+		dataDir  = "testdata/platform/ont/minknow/gridion"
+
+		expectedArchived = []string{
+			".",
+			"66",
+			"66/DN585561I_A1",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
+
+			// Ancillary files
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
+				"GXB02004_20190904_151413_FAL01979_gridion_sequencing_run_" +
+				"DN585561I_A1_sequencing_summary.txt.gz",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
+				"final_summary.txt.gz",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/duty_time.csv",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.md",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.pdf",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/throughput.csv",
+
+			// Fast5 fail
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
+			// Fast5 pass
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_0.fast5",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fast5",
+			// Fastq fail
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
+			// Fastq pass
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fastq.gz",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
+				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_4.fastq.gz",
+		}
 	)
 
 	BeforeEach(func() {
-		ad, err := findDirsRelative(dataDir)
-		allDirs = ad
-		Expect(err).NotTo(HaveOccurred())
+		allDirs, err := findDirsRelative(dataDir)
+		for i, _ := range allDirs {
+			allDirs[i], err = filepath.Rel(dataDir, allDirs[i])
+			Expect(err).NotTo(HaveOccurred())
+		}
 
-		af, err := findFilesRelative(dataDir)
-		allFiles = af
-		Expect(err).NotTo(HaveOccurred())
+		allFiles, err := findFilesRelative(dataDir)
+		for i, _ := range allFiles {
+			allFiles[i], err = filepath.Rel(dataDir, allFiles[i])
+			Expect(err).NotTo(HaveOccurred())
+		}
 
 		td, terr := ioutil.TempDir("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
-		tmpDataDir = filepath.Join(tmpDir, "testdata/platform/ont/minknow/gridion")
-
-		rootColl = "/testZone/home/irods"
-		workColl = tmpRodsPath(rootColl, "ValetArchive")
 
 		// Set up copy of test data (test is destructive)
 		derr := mkdirAllRelative(tmpDir, allDirs)
 		Expect(derr).NotTo(HaveOccurred())
 
+		workColl = tmpRodsPath(rootColl, "ValetArchive")
 		getRodsPaths = makeRodsItemTransform(workColl)
 
-		cerr := copyFilesRelative(tmpDir, allFiles, readWriteFile)
+		cerr := copyFilesRelative(dataDir, tmpDir, allFiles, readWriteFile)
 		Expect(cerr).NotTo(HaveOccurred())
-	})
 
-	AfterEach(func() {
-		err := os.RemoveAll(tmpDir)
+		cancelCtx, cancel := context.WithCancel(context.Background())
+		sweepInterval := 10 * time.Second
+
+		clientPool = ex.NewClientPool(6, time.Second)
+		deleteLocal := true
+
+		defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDir)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = removeTmpCollection(workColl)
-		Expect(err).NotTo(HaveOccurred())
-	})
+		var wg sync.WaitGroup
+		wg.Add(1)
 
-	Context("when using a file predicate", func() {
-		It("should find files", func() {
-			cancelCtx, cancel := context.WithCancel(context.Background())
-			sweepInterval := 10 * time.Second
+		// Find files or timeout and cancel
+		perr := make(chan error, 1)
 
-			clientPool := ex.NewClientPool(6, time.Second*1)
-			deleteLocal := true
+		go func() {
+			plan := valet.ArchiveFilesWorkPlan(tmpDir, workColl,
+				clientPool, deleteLocal)
 
-			defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDataDir)
-			Expect(err).NotTo(HaveOccurred())
+			matchFn := valet.Or(
+				valet.RequiresArchiving,
+				valet.RequiresCompression)
 
-			expectedArchived := []string{
-				".",
-				"66",
-				"66/DN585561I_A1",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
+			perr <- valet.ProcessFiles(cancelCtx, valet.ProcessParams{
+				Root:          tmpDir,
+				MatchFunc:     matchFn,
+				PruneFunc:     defaultPruneFn,
+				Plan:          plan,
+				SweepInterval: sweepInterval,
+				MaxProc:       4,
+			})
+		}()
 
-				// Ancillary files
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
-					"GXB02004_20190904_151413_FAL01979_gridion_sequencing_run_" +
-					"DN585561I_A1_sequencing_summary.txt.gz",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
-					"final_summary.txt.gz",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/duty_time.csv",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.md",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.pdf",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/throughput.csv",
+		go func() {
+			defer wg.Done()
+			defer cancel()
 
-				// Fast5 fail
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
-				// Fast5 pass
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_0.fast5",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fast5",
-				// Fastq fail
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
-				// Fastq pass
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fastq.gz",
-				"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-					"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_4.fastq.gz",
+			client, err := clientPool.Get()
+			if err != nil {
+				return
 			}
-
-			// Find files or timeout and cancel
-			done := make(chan bool, 2)
-			perr := make(chan error, 1)
-
-			go func() {
-				plan := valet.ArchiveFilesWorkPlan(tmpDataDir, workColl,
-					clientPool, deleteLocal)
-
-				matchFn := valet.Or(
-					valet.RequiresArchiving,
-					valet.RequiresCompression)
-
-				perr <- valet.ProcessFiles(cancelCtx, valet.ProcessParams{
-					Root:          tmpDataDir,
-					MatchFunc:     matchFn,
-					PruneFunc:     defaultPruneFn,
-					Plan:          plan,
-					SweepInterval: sweepInterval,
-					MaxProc:       4,
-				})
+			defer func() {
+				clientPool.Return(client)
 			}()
 
-			go func() {
-				defer cancel()
+			timeout := time.After(120 * time.Second)
 
-				timer := time.NewTimer(120 * time.Second)
-				<-timer.C
-				done <- true // Timeout
-			}()
-
-			go func() {
-				defer cancel()
-
-				client, err := clientPool.Get()
-				if err != nil {
+			for {
+				select {
+				case <-timeout:
 					return
-				}
-
-				for {
+				default:
 					time.Sleep(2 * time.Second)
 
 					coll := ex.NewCollection(client, workColl)
@@ -781,21 +774,36 @@ var _ = Describe("Archive MINKnow files", func() {
 						if err != nil {
 							return
 						}
-
 						if len(contents) >= len(expectedArchived) {
-							done <- true // Detect iRODS paths
+							// Detect iRODS paths
 							return
 						}
 					}
 				}
-			}()
+			}
+		}()
 
-			<-done
+		wg.Wait()
 
-			// TODO: This is currently getting tripped by timeouts from the
-			// iRODS mkdir workaround, so I have disabled it temporarily.
-			//
-			// Expect(<-perr).NotTo(HaveOccurred())
+		// TODO: This is currently getting tripped by timeouts from the
+		// iRODS mkdir workaround, so I have disabled it temporarily.
+		//
+		// Expect(<-perr).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		err := os.RemoveAll(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = removeTmpCollection(workColl)
+		Expect(err).NotTo(HaveOccurred())
+
+		clientPool.Close()
+	})
+
+	When("using a file predicate", func() {
+		It("should find files", func() {
+			clientPool := ex.NewClientPool(1, time.Second*1)
 
 			client, err := clientPool.Get()
 			Expect(err).NotTo(HaveOccurred())
@@ -808,7 +816,7 @@ var _ = Describe("Archive MINKnow files", func() {
 			Expect(contents).To(WithTransform(getRodsPaths,
 				ConsistOf(expectedArchived)))
 
-			remaining, err := findFilesRelative(tmpDataDir)
+			remaining, err := findFilesRelative(tmpDir)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(remaining).To(BeEmpty())
 		})
@@ -827,7 +835,7 @@ var _ = Describe("Count files without a checksum", func() {
 		numFilesFound = n
 	})
 
-	Context("when there are data files without checksum files", func() {
+	When("there are data files without checksum files", func() {
 		It("should count those files", func() {
 			Expect(numFilesFound).Should(Equal(numFilesExpected))
 		})

@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -55,6 +56,13 @@ func NewFilePath(path string) (FilePath, error) {
 	fp.FileResource = FileResource{absPath}
 
 	return fp, err
+}
+
+// SortFilePaths sorts paths by Location.
+func SortFilePaths(paths []FilePath) {
+	sort.SliceStable(paths, func(i, j int) bool {
+		return paths[i].Location < paths[j].Location
+	})
 }
 
 // ChecksumFilename returns the expected path of the checksum file belonging
