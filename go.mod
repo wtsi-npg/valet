@@ -9,7 +9,7 @@ require (
 	github.com/kjsanger/logshim-zerolog v1.0.0
 	github.com/klauspost/compress v1.9.1 // indirect
 	github.com/klauspost/pgzip v1.2.1
-	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/ginkgo v1.10.3
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
 	github.com/rs/zerolog v1.17.2
