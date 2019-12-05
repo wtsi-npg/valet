@@ -16,6 +16,7 @@ github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpO
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/kjsanger/extendo v1.0.0 h1:nDkGjGMcwc2Cknjc2TrpUV8IEDlILE/25BL6M+XeabM=
 github.com/kjsanger/extendo v1.0.0/go.mod h1:NndFVAMbjkN7h/wDYCN0Klpdhjl+lgllUNt9rzygYMg=
+github.com/kjsanger/extendo v1.1.0 h1:a0ipKrSjfg+bs6InwbvbHzvoKsxXeicog8A1SN8kg84=
 github.com/kjsanger/extendo v1.1.0/go.mod h1:+yIZaVGDr2lzCoEjti+iCg9No52VKA72AdKaJY5u/zs=
 github.com/kjsanger/fsnotify v1.4.8-0.20190705153444-45ca73e9793a h1:eEXk79VRqIscsPHonU4g+oCU1KSt1zbJlOjQHU1RgOE=
 github.com/kjsanger/fsnotify v1.4.8-0.20190705153444-45ca73e9793a/go.mod h1:4sKo+f997RhF5HZNa2h3t/N7TD7RNcbGzRO7xFpRBYM=

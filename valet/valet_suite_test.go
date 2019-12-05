@@ -22,6 +22,7 @@ package valet_test
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -240,7 +241,7 @@ var _ = Describe("Find files at intervals", func() {
 
 		wg.Wait()
 
-		for _ = range paths {
+		for range paths {
 			// Discard any remaining paths to unblock any sending goroutines
 			// started by FindFilesInterval (it can have a number running
 			// because it starts a new one at each interval). This closes the
@@ -603,6 +604,7 @@ var _ = Describe("IsArchived", func() {
 			err = obj.AddMetadata([]ex.AVU{{
 				Attr:  "md5",
 				Value: "999999999912245d785120e3505ed169"}})
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("is not archived", func() {
@@ -689,13 +691,17 @@ var _ = Describe("Archive MINKnow files", func() {
 
 	BeforeEach(func() {
 		allDirs, err := findDirsRelative(dataDir)
-		for i, _ := range allDirs {
+		Expect(err).NotTo(HaveOccurred())
+
+		for i := range allDirs {
 			allDirs[i], err = filepath.Rel(dataDir, allDirs[i])
 			Expect(err).NotTo(HaveOccurred())
 		}
 
 		allFiles, err := findFilesRelative(dataDir)
-		for i, _ := range allFiles {
+		Expect(err).NotTo(HaveOccurred())
+
+		for i := range allFiles {
 			allFiles[i], err = filepath.Rel(dataDir, allFiles[i])
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -756,7 +762,9 @@ var _ = Describe("Archive MINKnow files", func() {
 				return
 			}
 			defer func() {
-				clientPool.Return(client)
+				if e := clientPool.Return(client); e != nil {
+					fmt.Fprint(os.Stderr, e.Error())
+				}
 			}()
 
 			timeout := time.After(120 * time.Second)
