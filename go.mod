@@ -3,7 +3,7 @@ module github.com/kjsanger/valet
 go 1.12
 
 require (
-	github.com/kjsanger/extendo v1.0.0
+	github.com/kjsanger/extendo v1.1.0
 	github.com/kjsanger/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
 	github.com/kjsanger/logshim v1.0.0
 	github.com/kjsanger/logshim-zerolog v1.0.0
