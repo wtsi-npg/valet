@@ -89,6 +89,8 @@ func init() {
 	valetCmd.PersistentFlags().IntVarP(&allCliFlags.maxProc,
 		"max-proc", "m", defaultMaxProc,
 		"set the maximum number of processes to use")
+
+	valetCmd.SetVersionTemplate(`{{printf "%s\n" .Version}}`)
 }
 
 func runValetCmd(cmd *cobra.Command, args []string) {
