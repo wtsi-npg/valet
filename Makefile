@@ -1,5 +1,5 @@
 VERSION := $(shell git describe --always --tags --dirty)
-ldflags := "-X valet/valet.Version=${VERSION}"
+ldflags := "-X github.com/kjsanger/valet/valet.Version=${VERSION}"
 build_path = "build/valet-${VERSION}"
 
 .PHONY: build coverage dist install lint test check clean
