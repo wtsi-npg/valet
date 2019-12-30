@@ -61,3 +61,47 @@ func TestCombineErrors(t *testing.T) {
 			"multiple errors with nils were not combined correctly")
 	}
 }
+
+func TestIsDescendantPath(t *testing.T) {
+	// All these should be false
+	isDesc, err := IsDescendantPath("/", "/")
+	if assert.NoError(t, err) {
+		assert.False(t, isDesc, "/ is not a descendant of /")
+	}
+
+	isDesc, err = IsDescendantPath("/tmp", "/tmp")
+	if assert.NoError(t, err) {
+		assert.False(t, isDesc, "/tmp is not a descendant of /tmp")
+	}
+
+	isDesc, err = IsDescendantPath("/tmp/foo", "/tmp")
+	if assert.NoError(t, err) {
+		assert.False(t, isDesc, "/tmp is not a descendant of /tmp/foo")
+	}
+
+	// All these should be true
+	isDesc, err = IsDescendantPath("/", "/tmp")
+	if assert.NoError(t, err) {
+		assert.True(t, isDesc, "/tmp is a descendant of /")
+	}
+
+	isDesc, err = IsDescendantPath("/", "/tmp/foo")
+	if assert.NoError(t, err) {
+		assert.True(t, isDesc, "/tmp/foo is a descendant of /")
+	}
+
+	isDesc, err = IsDescendantPath("/tmp", "/tmp/foo")
+	if assert.NoError(t, err) {
+		assert.True(t, isDesc, "/tmp/foo is a descendant of /tmp")
+	}
+
+	isDesc, err = IsDescendantPath("/tmp/foo", "/tmp/foo/bar")
+	if assert.NoError(t, err) {
+		assert.True(t, isDesc, "/tmp/foo/bar is a descendant of /tmp/foo")
+	}
+
+	isDesc, err = IsDescendantPath("/tmp", "/tmp/foo/bar")
+	if assert.NoError(t, err) {
+		assert.True(t, isDesc, "/tmp/foo/bar is a descendant of /tmp")
+	}
+}

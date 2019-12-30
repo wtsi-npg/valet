@@ -27,8 +27,10 @@ import (
 
 	ex "github.com/kjsanger/extendo"
 	logs "github.com/kjsanger/logshim"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/kjsanger/valet/utilities"
 	"github.com/kjsanger/valet/valet"
 )
 
@@ -119,13 +121,13 @@ func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 	collection := allCliFlags.archiveRoot
 
 	if allCliFlags.sweepInterval < valet.MinSweep {
-		log.Error().Msgf("Invalid interval %s (must be > %s)",
+		log.Error().Msgf("invalid interval %s (must be > %s)",
 			allCliFlags.sweepInterval, valet.MinSweep)
 		os.Exit(1)
 	}
 
-	err:= CreateArchive(root, collection, archiveParams{
-		exclude:     allCliFlags.excludeDirs,
+	err := CreateArchive(root, collection, archiveParams{
+		exclude:     archiveExcludeDirs(root, allCliFlags),
 		interval:    allCliFlags.sweepInterval,
 		maxProc:     allCliFlags.maxProc,
 		dryRun:      allCliFlags.dryRun,
@@ -175,4 +177,24 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 		SweepInterval: params.interval,
 		MaxProc:       params.maxProc,
 	})
+}
+
+// Exclude TMPDIR if it has been set to be under the data root by the user
+func archiveExcludeDirs(root string, flags *cliFlags) []string {
+	tempDir := os.TempDir()
+	rootContainsTemp, err := utilities.IsDescendantPath(root, tempDir)
+	if err != nil {
+		log.Error().Err(err).
+			Msgf("error excluding temp directory '%s' from archiving",
+				os.TempDir())
+		os.Exit(1)
+	}
+
+	excludeDirs := flags.excludeDirs
+	if rootContainsTemp {
+		log.Info().Str("root", root).Str("temp_dir", tempDir).
+			Msg("excluding temp directory from the archiving process")
+		excludeDirs = append(excludeDirs, tempDir)
+	}
+	return excludeDirs
 }

@@ -23,6 +23,7 @@ package utilities
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -98,4 +99,33 @@ func (err *combinedError) Error() string {
 
 func (err *combinedError) Errors() []error {
 	return make([]error, len(err.errors))
+}
+
+// IsDescendantPath returns true if path is a descendant of root i.e. is
+// somehow contained within root, directly or indirectly. This is achieved by
+// lexical comparison; the neither root nor path are required to exist.
+func IsDescendantPath(root string, path string) (bool, error) {
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return false, err
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return false, err
+	}
+
+	if absRoot == absPath {
+		return false, nil
+	}
+
+	for {
+		absPath = filepath.Dir(absPath)
+
+		if absPath == absRoot {
+			return true, nil
+		}
+		if absPath == "/" {
+			return false, nil
+		}
+	}
 }
