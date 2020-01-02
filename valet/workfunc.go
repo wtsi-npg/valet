@@ -74,9 +74,10 @@ func (s WorkArr) IsEmpty() bool {
 // WorkMatch is an association between a FilePredicate and Work to be done. If
 // the predicate returns true then the work will be done.
 type WorkMatch struct {
-	pred FilePredicate // Predicate to match against candidate FilePath
-	work Work          // Work to be executed on a matching FilePath
-	desc string        // A short description of the match criteria and work
+	pred    FilePredicate // Predicate to match against candidate FilePath
+	work    Work          // Work to be executed on a matching FilePath
+	predDoc string        // A short description of the match criteria
+	workDoc string        // A short description of the work
 }
 
 // WorkPlan is a slice of WorkMatches. Where more than one Work is matched,
@@ -102,25 +103,28 @@ func (p WorkPlan) IsEmpty() bool {
 // DryRunWorkPlan matches any FilePath and does DoNothing Work.
 func DryRunWorkPlan() WorkPlan {
 	return []WorkMatch{{
-		pred: IsTrue,
-		work: Work{WorkFunc: DoNothing},
-		desc: "IsTrue => DoNothing"}}
+		pred:    IsTrue,
+		predDoc: "Is True",
+		work:    Work{WorkFunc: DoNothing},
+		workDoc: "Do Nothing"}}
 }
 
 // CreateChecksumWorkPlan manages checksum files.
 func CreateChecksumWorkPlan() WorkPlan {
 	return []WorkMatch{{
-		pred: RequiresChecksum,
-		work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile},
-		desc: "RequiresChecksum => CreateOrUpdateMD5ChecksumFile"}}
+		pred:    RequiresChecksum,
+		predDoc: "Requires Local Checksum File",
+		work:    Work{WorkFunc: CreateOrUpdateMD5ChecksumFile},
+		workDoc: "Create Or Update Local MD5 Checksum File"}}
 }
 
 // ChecksumStateWorkPlan counts files that do not have a checksum.
 func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 	return []WorkMatch{{
-		pred: RequiresChecksum,
-		work: Work{WorkFunc: countFunc},
-		desc: "RequiresChecksum => Count"}}
+		pred:    RequiresChecksum,
+		predDoc: "Requires Local Checksum File",
+		work:    Work{WorkFunc: countFunc},
+		workDoc: "Count File"}}
 }
 
 func ArchiveFilesWorkPlan(localBase string, remoteBase string,
@@ -131,28 +135,32 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 
 	plan := []WorkMatch{
 		{
-			pred: RequiresCompression,
-			work: Work{WorkFunc: CompressFile, Rank: 1},
-			desc: "RequiresCompression => CompressFile",
+			pred:    RequiresCompression,
+			predDoc: "Requires Compression Locally",
+			work:    Work{WorkFunc: CompressFile, Rank: 1},
+			workDoc: "Compress Local File",
 		},
 		{
-			pred: RequiresChecksum,
-			work: Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 2},
-			desc: "RequiresChecksum => CreateOrUpdateMD5ChecksumFile",
+			pred:    RequiresChecksum,
+			predDoc: "Requires Local Checksum File",
+			work:    Work{WorkFunc: CreateOrUpdateMD5ChecksumFile, Rank: 2},
+			workDoc: "Create Or Update Local MD5 Checksum File",
 		},
 		{
-			pred: And(RequiresArchiving, Not(isArchived)),
-			work: Work{WorkFunc: archiver, Rank: 3},
-			desc: "RequiresArchiving && Not Archived => Archive",
+			pred:    And(RequiresArchiving, Not(isArchived)),
+			predDoc: "Requires Archiving && Is Not Archived",
+			work:    Work{WorkFunc: archiver, Rank: 3},
+			workDoc: "Archive",
 		},
 	}
 
 	if deleteLocal {
 		plan = append(plan,
 			WorkMatch{
-				pred: HasCompressedVersion,
-				work: Work{WorkFunc: RemoveFile, Rank: 4},
-				desc: "HasCompressedVersion => RemoveFile",
+				pred:    HasCompressedVersion,
+				predDoc: "Has Local Compressed Version",
+				work:    Work{WorkFunc: RemoveFile, Rank: 4},
+				workDoc: "Remove Local Uncompressed Version",
 			},
 			WorkMatch{
 				// The IsArchived test expects an MD5 file to be present and
@@ -167,14 +175,16 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 				// filters are operated on according to that plan.
 				//
 				// TODO: Maybe a choice of WorkPlans at runtime?
-				pred: And(RequiresArchiving, isArchived),
-				work: Work{WorkFunc: RemoveFile, Rank: 5},
-				desc: "IsArchived => RemoveFile",
+				pred:    And(RequiresArchiving, isArchived),
+				predDoc: "Requires Archiving && Is Archived",
+				work:    Work{WorkFunc: RemoveFile, Rank: 5},
+				workDoc: "Remove Local File",
 			},
 			WorkMatch{
-				pred: HasChecksumFile,
-				work: Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 6},
-				desc: "HasChecksumFile => RemoveMD5ChecksumFile",
+				pred:    HasChecksumFile,
+				predDoc: "Has Local Checksum File",
+				work:    Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 6},
+				workDoc: "Remove Local MD5 Checksum File",
 			})
 	}
 
@@ -243,7 +253,7 @@ func UpdateMD5ChecksumFile(path FilePath) error {
 	}
 
 	log := logs.GetLogger()
-	log.Info().Str("path", path.Location).
+	log.Debug().Str("path", path.Location).
 		Msg("removed stale MD5 file")
 
 	if cerr := CreateMD5ChecksumFile(path); cerr != nil {
@@ -303,7 +313,7 @@ func CompressFile(path FilePath) (err error) { // NRV
 
 	outPath := path.CompressedFilename()
 	log := logs.GetLogger()
-	log.Info().Str("src", path.Location).
+	log.Debug().Str("src", path.Location).
 		Str("to", outPath).Msg("compressing")
 
 	hCmp := md5.New()
@@ -341,7 +351,7 @@ func CompressFile(path FilePath) (err error) { // NRV
 		return
 	}
 
-	log.Info().Str("src", path.Location).
+	log.Debug().Str("src", path.Location).
 		Str("checksum_raw", fmt.Sprintf("%x", md5Raw)).
 		Str("checksum", fmt.Sprintf("%x", md5Cmp)).
 		Str("to", outPath).Msg("compressed")
@@ -427,7 +437,7 @@ func MakeArchiver(localBase string, remoteBase string,
 		checksum, err = ReadMD5ChecksumFile(chkFile)
 
 		log := logs.GetLogger()
-		log.Info().Str("src", path.Location).Str("to", dst).
+		log.Debug().Str("src", path.Location).Str("to", dst).
 			Str("checksum", string(checksum)).Msg("archiving")
 
 		var client *ex.Client
@@ -450,7 +460,7 @@ func MakeArchiver(localBase string, remoteBase string,
 			return
 		}
 
-		log.Info().Str("path", path.Location).Str("to", dst).
+		log.Debug().Str("path", path.Location).Str("to", dst).
 			Str("checksum", string(checksum)).Msg("archived")
 		return
 	}
@@ -459,7 +469,7 @@ func MakeArchiver(localBase string, remoteBase string,
 func RemoveFile(path FilePath) error {
 	log := logs.GetLogger()
 
-	log.Info().Str("path", path.Location).Msg("deleting")
+	log.Debug().Str("path", path.Location).Msg("deleting")
 
 	err := os.Remove(path.Location)
 	if os.IsNotExist(err) {
@@ -496,17 +506,17 @@ func makeWork(path FilePath, plan WorkPlan) (Work, error) {
 			}
 
 			if ok {
-				log.Debug().Str("path", fp.Location).
-					Str("desc", wm.desc).
+				log.Info().Str("path", fp.Location).
+					Str("desc", wm.String()).
 					Uint64("rank", uint64(wm.work.Rank)).
-					Msg("match, doing work")
+					Msg("working")
 
 				if err := wm.work.WorkFunc(fp); err != nil {
 					return err
 				}
 			} else {
 				log.Debug().Str("path", path.Location).
-					Str("desc", wm.desc).
+					Str("desc", wm.String()).
 					Uint64("rank", uint64(wm.work.Rank)).
 					Msg("no match, ignoring work")
 			}
