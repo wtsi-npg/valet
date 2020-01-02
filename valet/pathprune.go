@@ -32,8 +32,11 @@ var MinKNOWIgnore = []string{
 	"epi2me_inside",
 	"intermediate",
 	"npg",
+	"pings",
 	"queued_reads",
-	"reads"}
+	"reads",
+	"reports",
+}
 
 // DefaultIgnorePatterns returns glob patterns matching directories in the root
 // MinKNOW data directory that will be ignored by default.
