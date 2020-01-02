@@ -181,8 +181,13 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 				workDoc: "Remove Local File",
 			},
 			WorkMatch{
-				pred:    HasChecksumFile,
-				predDoc: "Has Local Checksum File",
+				// A checksum file for a file that has been archived
+				// successfully or a file that is not to be being archived can
+				// be cleaned up.
+				pred: Or(
+					And(Not(RequiresArchiving), HasChecksumFile), // E.g. fastq
+					And(RequiresArchiving, isArchived, HasChecksumFile)),
+				predDoc: "Has Local Checksum File No Longer Needed",
 				work:    Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 6},
 				workDoc: "Remove Local MD5 Checksum File",
 			})
