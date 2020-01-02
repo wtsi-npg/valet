@@ -82,6 +82,12 @@ var RequiresCompression = And(
 	Not(IsCompressed),
 	Not(HasCompressedVersion))
 
+// String returns a descriptive string for the WorkMatch which includes the
+// predicate and work documentation strings.
+func (m WorkMatch) String() string {
+	return fmt.Sprintf("%s => %s", m.predDoc, m.workDoc)
+}
+
 // IsTrue always returns true.
 func IsTrue(path FilePath) (bool, error) {
 	return true, nil
@@ -195,6 +201,8 @@ func HasCompressedVersion(path FilePath) (bool, error) {
 	if err == nil && !compressed {
 		_, err := os.Stat(path.CompressedFilename())
 		if err == nil {
+			logs.GetLogger().Debug().Str("path", path.Location).
+				Msg("compressed version present")
 			return true, err
 		} else if os.IsNotExist(err) {
 			return false, nil
@@ -209,6 +217,8 @@ func HasCompressedVersion(path FilePath) (bool, error) {
 func HasChecksumFile(path FilePath) (bool, error) {
 	_, err := os.Stat(path.ChecksumFilename())
 	if err == nil {
+		logs.GetLogger().Debug().Str("path", path.Location).
+			Msg("checksum file present")
 		return true, err
 	} else if os.IsNotExist(err) {
 		return false, nil
@@ -345,6 +355,11 @@ func MakeIsArchived(localBase string, remoteBase string,
 				Msg("not archived: checksum metadata not confirmed")
 			return false, err
 		}
+
+		log.Debug().Str("path", path.Location).
+			Str("to", obj.RodsPath()).
+			Str("checksum", obj.Checksum()).
+			Msg("confirmed archived with correct checksum")
 
 		return true, err
 	}
