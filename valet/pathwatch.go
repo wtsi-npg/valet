@@ -55,16 +55,15 @@ func WatchFiles(
 
 	paths, errs := make(chan FilePath), make(chan error, 1)
 
-	watcher, err := setupWatcher(root, pruneFn)
-	if err != nil {
-		errs <- err
-		return paths, errs
-	}
-
 	log := logs.GetLogger()
-	log.Info().Str("root", root).Msg("started watch")
+	watcher, serr := setupWatcher(root, pruneFn)
 
 	watchFn := func(ctx context.Context) (ferr error) { // NRV
+		if serr != nil {
+			return serr
+		}
+
+		log.Info().Str("root", root).Msg("started watch")
 		defer func() {
 			if werr := watcher.Close(); werr != nil {
 				ferr = utilities.CombineErrors(ferr, werr)
@@ -123,9 +122,8 @@ func WatchFiles(
 			close(errs)
 		}()
 
-		err = watchFn(cancelCtx)
-		if err != nil {
-			errs <- err
+		if werr := watchFn(cancelCtx); werr != nil {
+			errs <- werr
 		}
 	}()
 
@@ -174,7 +172,7 @@ func setupWatcher(root string, prune FilePredicate) (*fsnotify.Watcher, error) {
 		if ok {
 			walkErr = watcher.Add(path)
 			if walkErr == nil {
-				log.Info().Str("path", path).Msg("added watcher")
+				log.Info().Str("path", path).Msg("added to watcher")
 			}
 		}
 
@@ -203,7 +201,7 @@ func handleCreateDir(target FilePath, prune FilePredicate,
 		if err == nil {
 			log.Info().
 				Str("path", target.Location).
-				Msg("added watcher")
+				Msg("added to watcher")
 		}
 	}
 	return err
