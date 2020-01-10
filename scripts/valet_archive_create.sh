@@ -50,7 +50,7 @@ source "$CONDA_ROOT/etc/profile.d/conda.sh"
 set -x
 
 conda activate "$CONDA_ENV" && \
-  nice valet archive create \
+  TMPDIR="$TMPDIR" nice valet archive create \
   --root "$DATA_ROOT" \
   --archive-root "$ARCHIVE_ROOT" \
   --exclude "$SAFE_ROOT" \
