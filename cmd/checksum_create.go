@@ -48,8 +48,7 @@ checksum file.
   
   - File patterns supported
 
-    - *.fast5$
-    - *.fastq$
+    - All supported for archiving
 
   - Checksum file patterns supported
 
