@@ -50,6 +50,16 @@ valet archive create will monitor a directory hierarchy and locate data files
 within it that are not currently within a remote data store. valet will then
 archive them and if successful, delete the archived file from the local disk.
 
+N.B. TMPDIR use
+
+- TMPDIR must be set to the same filesystem as the data root.
+
+- valet will automatically exclude TMPDIR from its operations.
+
+TMPDIR is used by valet to compress files, after which they are moved into
+position using a rename operation. Renaming files will fail if attempted across
+filesystem boundaries.
+
 - Archiving files
   
   - Directory hierarchy styles supported
@@ -58,8 +68,7 @@ archive them and if successful, delete the archived file from the local disk.
   
   - File patterns supported
 
-    - *.fast5$
-    - *.fastq$
+    - All supported for archiving
 
   - Checksum file patterns supported
 
