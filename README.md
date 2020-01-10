@@ -24,21 +24,20 @@ Some versions of MinKNOW to do not compress fastq files and no version
 compresses the large sequencing_summary.txt files. `valet` compresses both of
 these types with a simple gzip.
 
- - File patterns supported
+- File patterns supported
 
-   - *.fastq$
-   - *.txt$
+  - *.fastq$
+  - *.txt$
 
+#### Archiving files
 
-- Archiving files
+- Files patterns supported
 
- - Files patterns supported
-
-   - *.csv$
-   - *.fast5$
-   - *.gz$
-   - *.md$
-   - *.pdf$
+  - *.csv$
+  - *.fast5$
+  - *.gz$
+  - *.md$
+  - *.pdf$
 
 #### Creating up-to-date checksum files
 
