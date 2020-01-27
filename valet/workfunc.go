@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	ex "github.com/kjsanger/extendo"
 	"github.com/klauspost/pgzip"
@@ -80,6 +81,12 @@ type WorkMatch struct {
 	workDoc string        // A short description of the work
 }
 
+// String returns a descriptive string for the WorkMatch which includes the
+// predicate and work documentation strings.
+func (m WorkMatch) String() string {
+	return fmt.Sprintf("%s => %s", m.predDoc, m.workDoc)
+}
+
 // WorkPlan is a slice of WorkMatches. Where more than one Work is matched,
 // they will be done in rank order.
 type WorkPlan []WorkMatch
@@ -98,6 +105,20 @@ func (p WorkPlan) Less(i, j int) bool {
 
 func (p WorkPlan) IsEmpty() bool {
 	return len(p) == 0
+}
+
+func (p WorkPlan) String() string {
+	b := strings.Builder{}
+	b.WriteString("[")
+	for i, m := range p {
+		b.WriteString(m.String())
+		if i < len(p)-1 {
+			b.WriteString(",")
+		}
+	}
+	b.WriteString("]")
+
+	return b.String()
 }
 
 // DryRunWorkPlan matches any FilePath and does DoNothing Work.

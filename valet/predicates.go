@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,12 +81,6 @@ var RequiresCompression = And(
 	Or(IsFastq, IsTxt),
 	Not(IsCompressed),
 	Not(HasCompressedVersion))
-
-// String returns a descriptive string for the WorkMatch which includes the
-// predicate and work documentation strings.
-func (m WorkMatch) String() string {
-	return fmt.Sprintf("%s => %s", m.predDoc, m.workDoc)
-}
 
 // IsTrue always returns true.
 func IsTrue(path FilePath) (bool, error) {
