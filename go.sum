@@ -22,6 +22,8 @@ github.com/kjsanger/fsnotify v1.4.8-0.20190705153444-45ca73e9793a h1:eEXk79VRqIs
 github.com/kjsanger/fsnotify v1.4.8-0.20190705153444-45ca73e9793a/go.mod h1:4sKo+f997RhF5HZNa2h3t/N7TD7RNcbGzRO7xFpRBYM=
 github.com/kjsanger/logshim v1.0.0 h1:1FMKd0pxtamsXumK1EB9H2twiIf2PnwFwFMV99Ub0BQ=
 github.com/kjsanger/logshim v1.0.0/go.mod h1:a0VpOYrCQgfvQUqympQP5mTuGWz766IAbtPwHeA6PEE=
+github.com/kjsanger/logshim v1.1.0 h1:43+UWmayDVVzTSuDYVeZrCZCwKyE+iahIODsxbtWVvk=
+github.com/kjsanger/logshim v1.1.0/go.mod h1:drKALnhjaOKRtZjagdHMa4k6kgd8k03+rw93ShsNiCI=
 github.com/kjsanger/logshim-zerolog v1.0.0 h1:GXcFks0aHL7HbTb4BNN2d4RA/UKPw7hbE7BO+zvA1N0=
 github.com/kjsanger/logshim-zerolog v1.0.0/go.mod h1:egXMf5/JmC+RiYFSvYNMD/BLs7DWjY0989xQZMYBvnI=
 github.com/klauspost/compress v1.9.1 h1:TWy0o9J9c6LK9C8t7Msh6IAJNXbsU/nvKLTQUU5HdaY=
