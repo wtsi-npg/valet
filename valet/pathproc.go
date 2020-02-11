@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -140,7 +140,11 @@ func DoProcessFiles(paths <-chan FilePath, workPlan WorkPlan, maxThreads int) er
 			}
 			mu.Unlock()
 
+			log.Debug().Str("path", p.Location).
+				Str("plan", workPlan.String()).Msg("starting work")
 			werr := work.WorkFunc(p)
+			log.Debug().Str("path", p.Location).
+				Str("plan", workPlan.String()).Msg("finished work")
 
 			mu.Lock()
 			delete(running, p.Location)
