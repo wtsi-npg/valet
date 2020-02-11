@@ -24,6 +24,8 @@ github.com/kjsanger/logshim v1.0.0 h1:1FMKd0pxtamsXumK1EB9H2twiIf2PnwFwFMV99Ub0B
 github.com/kjsanger/logshim v1.0.0/go.mod h1:a0VpOYrCQgfvQUqympQP5mTuGWz766IAbtPwHeA6PEE=
 github.com/kjsanger/logshim-zerolog v1.0.0 h1:GXcFks0aHL7HbTb4BNN2d4RA/UKPw7hbE7BO+zvA1N0=
 github.com/kjsanger/logshim-zerolog v1.0.0/go.mod h1:egXMf5/JmC+RiYFSvYNMD/BLs7DWjY0989xQZMYBvnI=
+github.com/kjsanger/logshim-zerolog v1.1.0 h1:gwpvOtJd17IE1GbVLgakbZDzNaUrEf96AlZeNdqnCEE=
+github.com/kjsanger/logshim-zerolog v1.1.0/go.mod h1:U5/BO2owB1e49IJn4hTaoSatqnfA91izLrj7mbjXYI4=
 github.com/klauspost/compress v1.9.1 h1:TWy0o9J9c6LK9C8t7Msh6IAJNXbsU/nvKLTQUU5HdaY=
 github.com/klauspost/compress v1.9.1/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM=
