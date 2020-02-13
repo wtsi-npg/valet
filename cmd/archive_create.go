@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,8 @@ import (
 	"os"
 	"time"
 
-	ex "github.com/kjsanger/extendo"
+	ex "github.com/kjsanger/extendo/v2"
 	logs "github.com/kjsanger/logshim"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/kjsanger/valet/utilities"
@@ -167,8 +166,8 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 		os.Exit(1)
 	}
 
-	clientPool := ex.NewClientPool(uint8(params.maxProc), time.Second*1,
-		"--silent")
+	poolParams := ex.DefaultClientPoolParams
+	clientPool := ex.NewClientPool(poolParams,"--silent")
 
 	var workPlan valet.WorkPlan
 	if params.dryRun {
@@ -192,6 +191,8 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 func archiveExcludeDirs(root string, flags *cliFlags) []string {
 	tempDir := os.TempDir()
 	rootContainsTemp, err := utilities.IsDescendantPath(root, tempDir)
+
+	log := logs.GetLogger()
 	if err != nil {
 		log.Error().Err(err).
 			Msgf("error excluding temp directory '%s' from archiving",

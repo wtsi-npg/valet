@@ -32,7 +32,7 @@ import (
 	"sort"
 	"strings"
 
-	ex "github.com/kjsanger/extendo"
+	ex "github.com/kjsanger/extendo/v2"
 	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
 

@@ -29,7 +29,7 @@ import (
 
 func TestNewFilePath(t *testing.T) {
 	// Directory
-	dirPath :="testdata/valet/testdir"
+	dirPath := "testdata/valet/testdir"
 	dir, derr := NewFilePath(dirPath)
 	assert.NoError(t, derr, "expected to create directory path")
 

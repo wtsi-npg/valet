@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	ex "github.com/kjsanger/extendo"
+	ex "github.com/kjsanger/extendo/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -533,7 +533,11 @@ var _ = Describe("IsArchived", func() {
 		workColl = tmpRodsPath(rootColl, "ValetIsArchived")
 		remotePath = filepath.Join(workColl, "reads1.fast5")
 
-		clientPool = ex.NewClientPool(2, time.Second)
+		poolParams := ex.DefaultClientPoolParams
+		poolParams.MaxSize = 2
+		poolParams.GetTimeout = time.Second
+
+		clientPool = ex.NewClientPool(poolParams)
 		client, err = clientPool.Get()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -723,7 +727,10 @@ var _ = Describe("Archive MINKnow files", func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		sweepInterval := 10 * time.Second
 
-		clientPool = ex.NewClientPool(6, time.Second)
+		poolParams := ex.DefaultClientPoolParams
+		poolParams.MaxSize = 6
+		poolParams.GetTimeout = time.Second
+		clientPool = ex.NewClientPool(poolParams)
 		deleteLocal := true
 
 		defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDir)
@@ -811,7 +818,10 @@ var _ = Describe("Archive MINKnow files", func() {
 
 	When("using a file predicate", func() {
 		It("should find files", func() {
-			clientPool := ex.NewClientPool(1, time.Second*1)
+			poolParams := ex.DefaultClientPoolParams
+			poolParams.MaxSize = 1
+			poolParams.GetTimeout = time.Second
+			clientPool := ex.NewClientPool(poolParams)
 
 			client, err := clientPool.Get()
 			Expect(err).NotTo(HaveOccurred())

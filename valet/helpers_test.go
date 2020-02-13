@@ -27,7 +27,7 @@ import (
 	"os"
 	"path/filepath"
 
-	ex "github.com/kjsanger/extendo"
+	ex "github.com/kjsanger/extendo/v2"
 	. "github.com/onsi/ginkgo"
 
 	"github.com/kjsanger/valet/utilities"
