@@ -117,3 +117,18 @@ function, or another) from operating on a particular file concurrently.
 ### Bugs
 
 - See [GitHub issues](https://github.com/kjsanger/valet/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+
+
+#### Status
+
+[![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
+
+#### Dependencies:
+
+https://github.com/kjsanger/extendo
+
+  Versions >= 2.0.0
+
+https://github.com/wtsi-npg/baton
+
+  Versions >= 2.0.0
