@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	ex "github.com/kjsanger/extendo"
+	ex "github.com/kjsanger/extendo/v2"
 	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
 
