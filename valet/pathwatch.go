@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,56 +53,58 @@ func WatchFiles(
 	pred FilePredicate,
 	pruneFn FilePredicate) (<-chan FilePath, <-chan error) {
 
+	// Buffer any error that may occur starting the watcher, so that
+	// we can send it to the channel without blocking WatchFiles from returning
 	paths, errs := make(chan FilePath), make(chan error, 1)
-
 	log := logs.GetLogger()
-	watcher, serr := setupWatcher(root, pruneFn)
 
-	watchFn := func(ctx context.Context) (ferr error) { // NRV
-		if serr != nil {
-			return serr
-		}
-
+	// Returns an error on failure to finish cleanly. Errors encountered
+	// while running are sent to the error channel.
+	watchFn := func(ctx context.Context, w *fsnotify.Watcher) (ferr error) { // NRV
 		log.Info().Str("root", root).Msg("started watch")
 		defer func() {
-			if werr := watcher.Close(); werr != nil {
-				ferr = utilities.CombineErrors(ferr, werr)
+			if err := w.Close(); err != nil {
+				ferr = utilities.CombineErrors(ferr, err)
 			}
 		}()
 
 		for {
 			select {
-			case event := <-watcher.Events:
+			case event := <-w.Events:
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
 					// Don't try to create FilePaths for removed files
 					continue
 				}
 
 				var p FilePath
-				p, ferr = NewFilePath(event.Name)
-				if ferr != nil {
-					if os.IsNotExist(ferr) {
-						log.Warn().Err(ferr).Msg("path deleted externally")
-						ferr = nil
-						return
+				p, err := NewFilePath(event.Name)
+				if err != nil {
+					if os.IsNotExist(err) {
+						log.Warn().Err(err).Msg("path deleted externally")
+						continue
 					}
 
-					return
+					errs <- errors.WithMessagef(err,
+						"on event: %s", event.Name)
+					continue
 				}
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					if ferr = handleCreateDir(p, pruneFn, watcher); ferr != nil {
-						return
+					if err = handleCreateDir(p, pruneFn, w); err != nil {
+						errs <- errors.WithMessagef(err,
+							"on directory creation: %s", p.Location)
 					}
 				}
 				if event.Op&fsnotify.Close == fsnotify.Close {
 					if ferr = handleCloseFile(p, pred, paths); ferr != nil {
-						return
+						errs <- errors.WithMessagef(err,
+							"on file close: %s", p.Location)
 					}
 				}
 				if event.Op&fsnotify.Movedto == fsnotify.Movedto {
 					if ferr = handleMovedtoFile(p, pred, paths); ferr != nil {
-						return
+						errs <- errors.WithMessagef(err,
+							"on file move: %s", p.Location)
 					}
 				}
 
@@ -110,10 +112,16 @@ func WatchFiles(
 				log.Info().Str("root", root).Msg("cancelled watch")
 				return
 
-			case ferr = <-watcher.Errors:
-				return
+			case err := <-w.Errors:
+				errs <- err
 			}
 		}
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		watcher = nil
+		errs <- err
 	}
 
 	go func() {
@@ -122,26 +130,26 @@ func WatchFiles(
 			close(errs)
 		}()
 
-		if werr := watchFn(cancelCtx); werr != nil {
-			errs <- werr
+		if watcher != nil {
+			// We might encounter an error before adding all possible dirs. It's
+			// better for production if we handle the error by logging and press
+			// on. The logs will be monitored. Meanwhile, data may still load
+			// via the filesystem sweeps.
+			if err := addWatchDirs(watcher, root, pruneFn); err != nil {
+				errs <- err
+			}
+			if err := watchFn(cancelCtx, watcher); err != nil {
+				errs <- err
+			}
 		}
 	}()
 
 	return paths, errs
 }
 
-func setupWatcher(root string, prune FilePredicate) (*fsnotify.Watcher, error) {
+func addWatchDirs(watcher *fsnotify.Watcher, root string, prune FilePredicate) error {
 	if err := ensureIsDir(root); err != nil {
-		return nil, err
-	}
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		if watcher != nil {
-			return watcher, utilities.CombineErrors(err, watcher.Close())
-		}
-
-		return watcher, err
+		return err
 	}
 
 	log := logs.GetLogger()
@@ -160,7 +168,9 @@ func setupWatcher(root string, prune FilePredicate) (*fsnotify.Watcher, error) {
 
 	walkFn := func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
-			return walkErr
+			log.Error().Err(walkErr).Str("path", path).
+				Msg("when setting up initial watches")
+			return nil
 		}
 
 		fp := FilePath{FileResource{path}, info}
@@ -179,9 +189,7 @@ func setupWatcher(root string, prune FilePredicate) (*fsnotify.Watcher, error) {
 		return walkErr
 	}
 
-	err = filepath.Walk(root, walkFn)
-
-	return watcher, err
+	return filepath.Walk(root, walkFn)
 }
 
 func handleCreateDir(target FilePath, prune FilePredicate,
@@ -242,6 +250,7 @@ func handleMovedtoFile(target FilePath, pred FilePredicate,
 		Str("op", "Movedto").Msg("handled event")
 
 	ok, err := pred(target)
+
 	if err != nil {
 		return err
 	}

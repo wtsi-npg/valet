@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +49,8 @@ func FindFiles(
 	root string,
 	pred FilePredicate,
 	pruneFn FilePredicate) (<-chan FilePath, <-chan error) {
-	paths, errs := make(chan FilePath), make(chan error, 1)
+
+	paths, errs := make(chan FilePath), make(chan error)
 
 	log := logs.GetLogger()
 	log.Debug().Str("root", root).Msg("started find")
@@ -64,11 +65,14 @@ func FindFiles(
 		default:
 			if err != nil {
 				if os.IsNotExist(err) {
-					log.Warn().Err(err).Msg("file was deleted")
+					log.Warn().Err(err).Str("path", path).
+						Msg("file was deleted")
 					return nil
 				}
 
-				return err
+				log.Error().Err(err).Str("path", path).
+					Msg("while walking")
+				return nil
 			}
 
 			p := FilePath{FileResource{path}, info}
@@ -125,7 +129,7 @@ func FindFilesInterval(
 	pruneFn FilePredicate,
 	interval time.Duration) (<-chan FilePath, <-chan error) {
 
-	paths, errs := make(chan FilePath), make(chan error, 1)
+	paths, errs := make(chan FilePath), make(chan error)
 
 	log := logs.GetLogger()
 	findTick := time.NewTicker(interval)
@@ -141,12 +145,13 @@ func FindFilesInterval(
 				Time("at", now).Msg("starting interval sweep")
 
 			ipaths, ierrs := FindFiles(ctx, root, pred, pruneFn)
-			for p := range ipaths {
+
+			for path := range ipaths {
 				log.Debug().Msg("interval sweep sending path")
-				paths <- p
+				paths <- path
 			}
-			for e := range ierrs {
-				errs <- e
+			for err := range ierrs {
+				errs <- err
 			}
 		}
 

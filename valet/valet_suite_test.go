@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -123,6 +123,94 @@ var _ = Describe("Find regular files)", func() {
 				"testdir/.gitignore",
 			}
 			Expect(foundFiles).To(WithTransform(pathTransform,
+				ConsistOf(expectedPaths)))
+		})
+	})
+})
+
+var _ = Describe("Handle errors while finding files", func() {
+	var (
+		tmpDir        string
+		foundPaths    []valet.FilePath
+		pathTransform func(i []valet.FilePath) []string
+	)
+
+	BeforeEach(func() {
+		td, terr := ioutil.TempDir("", "ValetHandleErrors")
+		Expect(terr).NotTo(HaveOccurred())
+		tmpDir = td
+
+		pathTransform = makeLocalPathTransform(tmpDir)
+
+		// Make some data directories
+		for i := 0; i < 10; i++ {
+			mode := os.FileMode(0700)
+
+			// Make odd-numbered directories unreadable to cause errors both in
+			// setting up watches and in directory walks
+			if i%2 == 1 {
+				mode = os.FileMode(0300)
+			}
+
+			d := filepath.Join(tmpDir, fmt.Sprintf("data%d", i))
+
+			err := os.MkdirAll(d, mode)
+			Expect(err).NotTo(HaveOccurred())
+
+			f, err := os.Create(filepath.Join(d, "test.txt"))
+			Expect(err).NotTo(HaveOccurred())
+			err = f.Close()
+			Expect(err).NotTo(HaveOccurred())
+		}
+	})
+
+	AfterEach(func() {
+		files, err := ioutil.ReadDir(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, file := range files {
+			path := filepath.Join(tmpDir, file.Name())
+			err := os.Chmod(path, os.FileMode(0700)) // restore permissions for cleanup
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		err = os.RemoveAll(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	When("some data directories are unreadable", func() {
+		BeforeEach(func() {
+			cancelCtx, cancel := context.WithCancel(context.Background())
+
+			paths, errs := valet.FindFiles(cancelCtx, tmpDir, valet.IsTrue,
+				valet.IsFalse)
+
+			for path := range paths {
+				foundPaths = append(foundPaths, path)
+			}
+			for err := range errs {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			cancel()
+		})
+
+		It("should still find reachable files", func() {
+			expectedPaths := []string{
+				".",
+				"data0",
+				"data0/test.txt",
+				"data2",
+				"data2/test.txt",
+				"data4",
+				"data4/test.txt",
+				"data6",
+				"data6/test.txt",
+				"data8",
+				"data8/test.txt",
+			}
+
+			Expect(foundPaths).To(WithTransform(pathTransform,
 				ConsistOf(expectedPaths)))
 		})
 	})
@@ -301,6 +389,7 @@ var _ = Describe("Watch for file changes", func() {
 
 		paths, errs :=
 			valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, valet.IsFalse)
+		time.Sleep(time.Second * 2) // Allow watches to be established
 
 		cerr := copyFilesRelative(dataDir, tmpDir, expectedPaths, moveFile)
 		Expect(cerr).NotTo(HaveOccurred())
@@ -347,7 +436,7 @@ var _ = Describe("Watch for file changes", func() {
 	})
 
 	When("using a file predicate", func() {
-		It("should find files", func() {
+		It("should detect files", func() {
 			Expect(foundFiles).To(WithTransform(pathTransform,
 				ConsistOf(expectedPaths)))
 		})
@@ -406,6 +495,7 @@ var _ = Describe("Watch for file changes with pruning", func() {
 		}
 
 		paths, errs := valet.WatchFiles(cancelCtx, tmpDir, valet.IsRegular, pruneFn)
+		time.Sleep(time.Second * 2) // Allow watches to be established
 
 		cerr := copyFilesRelative(dataDir, tmpDir, allPaths, moveFile)
 		Expect(cerr).NotTo(HaveOccurred())
@@ -452,7 +542,7 @@ var _ = Describe("Watch for file changes with pruning", func() {
 	})
 
 	When("using a file predicate", func() {
-		It("should find files", func() {
+		It("should detect files", func() {
 
 			Expect(foundFiles).To(WithTransform(pathTransform,
 				ConsistOf(expectedPaths)))
