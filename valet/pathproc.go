@@ -27,22 +27,29 @@ import (
 
 	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
-
-	"github.com/kjsanger/valet/utilities"
 )
 
 type token struct{}
 type semaphore chan token
 
 type ProcessParams struct {
-	Root          string        // The local root directory to work on
-	MatchFunc     FilePredicate // The file selecting predicate
-	PruneFunc     FilePredicate // The local directory tree pruning predicate
-	Plan          WorkPlan      // The plan for selected files
-	SweepInterval time.Duration // The interval between sweeps of the local directory tree
-	MaxProc       int           // The maximum number of threads to run
+	Root          string        // The local root directory to work on.
+	MatchFunc     FilePredicate // The file selecting predicate.
+	PruneFunc     FilePredicate // The local directory tree pruning predicate.
+	Plan          WorkPlan      // The plan for selected files.
+	SweepInterval time.Duration // The interval between sweeps of the local directory tree.
+	MaxProc       int           // The maximum number of threads to run.
 }
 
+// ProcessFiles detects files to work on, dispatches any files found to
+// suitable work functions and monitors any errors that occur during the
+// detection and processing steps. The function will continue to run until
+// cancelled.
+//
+// Errors that occur in detection are logged as warnings, but do not cause this
+// function to return an error itself. Error that occur during processing are
+// counted. If when cancelled, this function has counted any processing errors,
+// it will return an error itself.
 func ProcessFiles(cancelCtx context.Context, params ProcessParams) error {
 
 	wpaths, werrs := WatchFiles(cancelCtx, params.Root, params.MatchFunc,
@@ -50,38 +57,51 @@ func ProcessFiles(cancelCtx context.Context, params ProcessParams) error {
 	fpaths, ferrs := FindFilesInterval(cancelCtx, params.Root, params.MatchFunc,
 		params.PruneFunc, params.SweepInterval)
 
-	mpaths := MergeFileChannels(wpaths, fpaths)
-	merrs := MergeErrorChannels(werrs, ferrs)
-	done := make(chan token)
-
+	paths := MergeFileChannels(wpaths, fpaths)
+	errs := MergeErrorChannels(werrs, ferrs)
 	log := logs.GetLogger()
-	var errs []error
 
+	// Inform the user that cancellation has started because it can take a
+	// while for jobs to complete. This blocks until then, or until the data-
+	// and error-processing goroutines return, when a send on the noCancelMsg
+	// channel allows this goroutine to return.
+	noCancelMsg := make(chan token, 1)
 	go func() {
-		defer func() { done <- token{} }()
-
-		errs = append(errs, DoProcessFiles(mpaths, params.Plan, params.MaxProc))
-	}()
-
-done:
-	for {
 		select {
-		case <-done:
-			log.Info().Msg("processing done")
-			break done
+		case <-noCancelMsg:
+			return
 		case <-cancelCtx.Done():
 			log.Info().Msg("processing cancelled, waiting for jobs")
-			<-done // Wait for DoProcessFiles to finish
-			log.Info().Msg("processing done")
-			break done
+			return
 		}
-	}
+	}()
 
-	for merr := range merrs {
-		errs = append(errs, merr)
-	}
+	wg := sync.WaitGroup{}
+	var perr error
 
-	return utilities.CombineErrors(errs...)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		perr = DoProcessFiles(paths, params.Plan, params.MaxProc)
+	}()
+
+	// Log as warnings any errors encountered
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for err := range errs {
+			log.Warn().Err(err).Msg("while detecting files")
+		}
+	}()
+
+	wg.Wait()
+
+	noCancelMsg <- token{}
+	log.Info().Msg("processing done")
+
+	return perr
 }
 
 // DoProcessFiles operates by applying workPlan to each FilePath in the paths
