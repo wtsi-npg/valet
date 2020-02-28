@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - [![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
 
+## [1.2.0] - 2020-02-28
+
 ### Added
 
 - A systemd unit template and wrapper script.
@@ -17,11 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved verbose level logging for consistency and information.
 - Added to default paths to ignore in the data root.
 
+- Bump github.com/kjsanger/extendo from 1.1.0 to 2.0.0
 - Bump github.com/onsi/ginkgo from 1.10.3 to 1.12.0
 - Bump github.com/onsi/gomega from 1.7.1 to 1.9.0
 
 ### Fixed
 
+- Hang or failure to exit cleanly when encountering errors, such as
+  unreadable directories.
 - Hang on cancel when data root does not exist.
 - Exclude TMPDIR from archiving.
 - A --version CLI option.
