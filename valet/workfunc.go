@@ -148,11 +148,45 @@ func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 		workDoc: "Count File"}}
 }
 
+// ArchiveFilesWorkPlan copies files and metadata to iRODS via the following
+// steps:
+//
+// 1. Compresses local files where needed
+// 2. Creates or updated checksum files
+// 3. Copies files to iRODS
+// 4. Annotates metadata in iRODS
+//
+// Additional steps are done if deleteLocal is true:
+//
+// 5. Uncompressed copies of local compressed files are removed
+// 6. Successfully archived local files are removed
+// 7. Redundant local checksum files are removed
 func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 	cPool *ex.ClientPool, deleteLocal bool) WorkPlan {
 
-	archiver := MakeArchiver(localBase, remoteBase, cPool)
-	isArchived := MakeIsArchived(localBase, remoteBase, cPool)
+	copyFile := MakeCopier(localBase, remoteBase, cPool)
+	isCopied := MakeIsCopied(localBase, remoteBase, cPool)
+
+	annotateFile := MakeAnnotator(localBase, remoteBase, cPool)
+	isAnnotated := MakeIsAnnotated(localBase, remoteBase, cPool)
+
+	// The isCopied test expects an MD5 file to be present and will raise an
+	// error if not (and MD5 is essential). The RequiresCopying test is applied
+	// first to avoid errors on files that are just being compressed by this
+	// plan, prior to a later call to this same WorkPlan to do the archiving.
+	isArchived := Or(
+		And(RequiresCopying, isCopied, And(RequiresAnnotation, isAnnotated)),
+		And(RequiresCopying, isCopied, Not(RequiresAnnotation)))
+
+	hasRedundantChecksumFile := Or(
+		And(Not(RequiresCopying), HasChecksumFile), // E.g. fastq
+		And(RequiresCopying, isCopied, HasChecksumFile))
+
+	// Currently the entire processing pipeline is launched with a single
+	// WorkPlan as a parameter. All files passing the filters are operated on
+	// according to that plan.
+	//
+	// TODO: Maybe a choice of WorkPlans at runtime?
 
 	plan := []WorkMatch{
 		{
@@ -168,9 +202,15 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 			workDoc: "Create Or Update Local MD5 Checksum File",
 		},
 		{
-			pred:    And(RequiresArchiving, Not(isArchived)),
-			predDoc: "Requires Archiving && Is Not Archived",
-			work:    Work{WorkFunc: archiver, Rank: 3},
+			pred:    And(RequiresCopying, Not(isCopied)),
+			predDoc: "Requires Copying && Is Not Copied",
+			work:    Work{WorkFunc: copyFile, Rank: 3},
+			workDoc: "Archive",
+		},
+		{
+			pred:    And(RequiresAnnotation, Not(isAnnotated)),
+			predDoc: "Requires Annotation && Is Not Annotated",
+			work:    Work{WorkFunc: annotateFile, Rank: 4},
 			workDoc: "Archive",
 		},
 	}
@@ -180,36 +220,22 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 			WorkMatch{
 				pred:    HasCompressedVersion,
 				predDoc: "Has Local Compressed Version",
-				work:    Work{WorkFunc: RemoveFile, Rank: 4},
+				work:    Work{WorkFunc: RemoveFile, Rank: 5},
 				workDoc: "Remove Local Uncompressed Version",
 			},
 			WorkMatch{
-				// The IsArchived test expects an MD5 file to be present and
-				// will raise an error if not (and MD5 is essential).
-				// The RequiresArchiving test is applied first to avoid errors
-				// on files that are just being compressed by this plan,
-				// prior to a later call to this same WorkPlan to do the
-				// archiving.
-				//
-				// Currently the entire processing pipeline is launched with a
-				// single WorkPlan as a parameter. All files passing the
-				// filters are operated on according to that plan.
-				//
-				// TODO: Maybe a choice of WorkPlans at runtime?
-				pred:    And(RequiresArchiving, isArchived),
+				pred:    isArchived,
 				predDoc: "Requires Archiving && Is Archived",
-				work:    Work{WorkFunc: RemoveFile, Rank: 5},
+				work:    Work{WorkFunc: RemoveFile, Rank: 6},
 				workDoc: "Remove Local File",
 			},
 			WorkMatch{
 				// A checksum file for a file that has been archived
 				// successfully or a file that is not to be being archived can
 				// be cleaned up.
-				pred: Or(
-					And(Not(RequiresArchiving), HasChecksumFile), // E.g. fastq
-					And(RequiresArchiving, isArchived, HasChecksumFile)),
+				pred: hasRedundantChecksumFile,
 				predDoc: "Has Local Checksum File No Longer Needed",
-				work:    Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 6},
+				work:    Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 7},
 				workDoc: "Remove Local MD5 Checksum File",
 			})
 	}
@@ -426,7 +452,7 @@ func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
 	return
 }
 
-// MakeArchiver returns a WorkFunc capable of archiving files to iRODS. Each
+// MakeCopier returns a WorkFunc capable of copying files to iRODS. Each
 // file passed to the WorkFunc will have its path relative to localBase
 // calculated. This relative path will then be appended to remoteBase to give
 // the full destination path in iRODS. E.g.
@@ -445,8 +471,8 @@ func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
 //
 // WorkFunc prerequisites: CreateOrUpdateMD5ChecksumFile
 //
-// i.e. files for archiving are expected to have an MD5 checksum file.
-func MakeArchiver(localBase string, remoteBase string,
+// i.e. files for copying are expected to have an MD5 checksum file.
+func MakeCopier(localBase string, remoteBase string,
 	cPool *ex.ClientPool) WorkFunc {
 
 	return func(path FilePath) (err error) { // NRV
@@ -488,6 +514,58 @@ func MakeArchiver(localBase string, remoteBase string,
 
 		log.Debug().Str("path", path.Location).Str("to", dst).
 			Str("checksum", string(checksum)).Msg("archived")
+		return
+	}
+}
+
+// MakeAnnotator returns a WorkFunc that will add to iRODS any annotation
+// associated with local files. Each file passed to the WorkFunc will be
+// examined to see if has associated metadata e.g. it might contain metadata
+// itself, or be somehow linked to some metadata. Any relevant metadata will
+// be copied to iRODS e.g. it might be added to the file's data object in
+// iRODS, or to some other data object or collection.
+//
+// The capabilities are listed below:
+//
+// -  MinKNOW report files.
+//
+//    The metadata contained in MinKNOW report files is parsed abd added to the
+//    collection containing the report data object in iRODS.
+func MakeAnnotator(localBase string, remoteBase string,
+	cPool *ex.ClientPool) WorkFunc {
+
+	return func(path FilePath) (err error) { // NRV
+		var dst string
+		dst, err = translatePath(localBase, remoteBase, path)
+
+		var client *ex.Client
+		if client, err = cPool.Get(); err != nil {
+			return
+		}
+
+		defer func() {
+			err = utilities.CombineErrors(err, cPool.Return(client))
+		}()
+
+		var isReport bool
+		isReport, err = IsMinKNOWReport(path)
+		if err != nil {
+			return
+		}
+
+		if isReport {
+			var report MinKNOWReport
+			report, err = ParseReport(path.Location)
+			if err != nil {
+				return
+			}
+
+			obj := ex.NewDataObject(client, dst)
+			err = obj.Parent().AddMetadata(report.AsMetadata())
+			if err != nil {
+				return
+			}
+		}
 		return
 	}
 }

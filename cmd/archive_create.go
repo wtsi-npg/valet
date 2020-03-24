@@ -179,7 +179,7 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 
 	return valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 		Root:          root,
-		MatchFunc:     valet.Or(valet.RequiresCompression, valet.RequiresArchiving),
+		MatchFunc:     valet.Or(valet.RequiresCompression, valet.RequiresCopying),
 		PruneFunc:     valet.Or(userPruneFn, defaultPruneFn),
 		Plan:          workPlan,
 		SweepInterval: params.interval,
