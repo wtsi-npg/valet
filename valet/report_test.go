@@ -28,7 +28,7 @@ import (
 
 func TestParsePromethIONReport(t *testing.T) {
 	path := "./testdata/valet/report_PAE48813_20200130_0940_16917585.md"
-	report, err := ParseReport(path)
+	report, err := ParseMinKNOWReport(path)
 	if assert.NoError(t, err) {
 		assert.Equal(t,"2-E1-H1", report.DeviceID)
 		assert.Equal(t, "promethion", report.DeviceType)
@@ -44,7 +44,7 @@ func TestParsePromethIONReport(t *testing.T) {
 
 func TestParseGridIONReport(t *testing.T) {
 	path := "./testdata/valet/report_ABQ808_20200204_1257_e2e93dd1.md"
-	report, err := ParseReport(path)
+	report, err := ParseMinKNOWReport(path)
 	if assert.NoError(t, err) {
 		assert.Equal(t,"X2", report.DeviceID)
 		assert.Equal(t, "gridion", report.DeviceType)

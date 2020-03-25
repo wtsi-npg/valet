@@ -452,6 +452,12 @@ func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
 	return
 }
 
+// AddMinKNOWReportAnnotation adds annotation from report to the parent
+// collection of the archived report obj.
+func AddMinKNOWReportAnnotation(obj *ex.DataObject, report MinKNOWReport) error {
+	return obj.Parent().ReplaceMetadata(report.AsMetadata())
+}
+
 // MakeCopier returns a WorkFunc capable of copying files to iRODS. Each
 // file passed to the WorkFunc will have its path relative to localBase
 // calculated. This relative path will then be appended to remoteBase to give
@@ -555,13 +561,13 @@ func MakeAnnotator(localBase string, remoteBase string,
 
 		if isReport {
 			var report MinKNOWReport
-			report, err = ParseReport(path.Location)
+			report, err = ParseMinKNOWReport(path.Location)
 			if err != nil {
 				return
 			}
 
 			obj := ex.NewDataObject(client, dst)
-			err = obj.Parent().ReplaceMetadata(report.AsMetadata())
+			err = AddMinKNOWReportAnnotation(obj, report)
 			if err != nil {
 				return
 			}

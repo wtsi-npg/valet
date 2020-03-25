@@ -389,14 +389,59 @@ func MakeIsAnnotated(localBase string, remoteBase string,
 			return false, err
 		}
 
+		report, err := ParseMinKNOWReport(path.Location)
+		if err != nil {
+			return false, err
+		}
+
 		obj := ex.NewDataObject(client, dest)
-		ok, err = validateReportMetadata(path, obj)
+		ok, err = HasValidReportAnnotation(obj, report)
 		if !ok || err != nil {
 			return false, err
 		}
 
 		return true, err
 	}
+}
+
+// HasValidReportAnnotation returns true if the metadata in report, which has
+// been archived as obj, is up-to-date in the remote archive.
+func HasValidReportAnnotation(obj *ex.DataObject, report MinKNOWReport) (bool, error) {
+	log := logs.GetLogger()
+
+	// The metadata to check is on the collection containing the file in
+	// iRODS
+	coll := obj.Parent()
+	_, err := coll.FetchMetadata()
+	if err != nil {
+		return false, err
+	}
+
+	metadata := report.AsMetadata()
+	if !coll.HasAllMetadata(metadata) {
+		for _, avu := range metadata {
+			if !coll.HasMetadatum(avu) {
+				log.Debug().Str("path", coll.RodsPath()).
+					Str("attr", avu.Attr).
+					Str("value", avu.Value).Msg("missing this AVU")
+			}
+		}
+
+		log.Debug().Str("path", report.Path).
+			Str("to", coll.RodsPath()).
+			Msg("report metadata NOT confirmed")
+
+		return false, nil
+	}
+
+	for _, avu := range metadata {
+		log.Debug().Str("path", report.Path).
+			Str("attribute", avu.Attr).
+			Str("value", avu.Value).
+			Msg("report metadata confirmed")
+	}
+
+	return true, nil
 }
 
 // validateObjChecksum checks that the data file at path has a corresponding
@@ -440,49 +485,6 @@ func validateObjChecksum(path FilePath, obj *ex.DataObject) (bool, error) {
 		log.Debug().Str("path", path.Location).
 			Msg("checksum metadata NOT confirmed")
 		return false, err
-	}
-
-	return true, nil
-}
-
-func validateReportMetadata(path FilePath, obj *ex.DataObject) (bool, error) {
-	log := logs.GetLogger()
-
-	report, err := ParseReport(path.Location)
-	if err != nil {
-		return false, err
-	}
-
-	// The metadata to check is on the collection containing the file in
-	// iRODS
-	coll := obj.Parent()
-	_, err = coll.FetchMetadata()
-	if err != nil {
-		return false, err
-	}
-
-	metadata := report.AsMetadata()
-	if !coll.HasAllMetadata(metadata) {
-		for _, avu := range metadata {
-			if !coll.HasMetadatum(avu) {
-				log.Debug().Str("path", coll.RodsPath()).
-					Str("attr", avu.Attr).
-					Str("value", avu.Value).Msg("missing this AVU")
-			}
-		}
-
-		log.Debug().Str("path", path.Location).
-			Str("to", coll.RodsPath()).
-			Msg("report metadata NOT confirmed")
-
-		return false, nil
-	}
-
-	for _, avu := range metadata {
-		log.Debug().Str("path", path.Location).
-			Str("attribute", avu.Attr).
-			Str("value", avu.Value).
-			Msg("report metadata confirmed")
 	}
 
 	return true, nil

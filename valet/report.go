@@ -33,18 +33,21 @@ const dutyTimeField = "Duty Time"
 const trackingIDField = "Tracking ID"
 
 type MinKNOWReport struct {
-	DeviceID            string `json:"device_id"`
-	DeviceType          string `json:"device_type"`
-	DistributionVersion string `json:"distribution_version"`
-	FlowcellID          string `json:"flow_cell_id"`
-	GuppyVersion        string `json:"guppy_version"`
-	Hostname            string `json:"hostname"`
-	ProtocolGroupID     string `json:"protocol_group_id"`
-	RunID               string `json:"run_id"`
-	SampleID            string `json:"sample_id"`
+	Path                string // The path of the report
+	DeviceID            string `json:"device_id"`            // The device ID (flowcell position)
+	DeviceType          string `json:"device_type"`          // The device type e.g. promethion
+	DistributionVersion string `json:"distribution_version"` // The MinKNOW version
+	FlowcellID          string `json:"flow_cell_id"`         // The flowcell ID
+	GuppyVersion        string `json:"guppy_version"`        // The Guppy basecaller version
+	Hostname            string `json:"hostname"`             // The sequencing instrument hostname
+	ProtocolGroupID     string `json:"protocol_group_id"`    // The user-supplied experiment name
+	RunID               string `json:"run_id"`               // The automatically generated run ID
+	SampleID            string `json:"sample_id"`            // The user-supplied sample ID
 }
 
-func ParseReport(path string) (MinKNOWReport, error) {
+// ParseMinKNOWReport parses a file at path and extracts MinKNOW run metadata
+// from it.
+func ParseMinKNOWReport(path string) (MinKNOWReport, error) {
 	var report MinKNOWReport
 
 	bytes, err := ioutil.ReadFile(path)
@@ -71,13 +74,15 @@ func ParseReport(path string) (MinKNOWReport, error) {
 	if err = json.Unmarshal([]byte(targetRegion), &report); err != nil {
 		return MinKNOWReport{}, err
 	}
+	report.Path = path
 
 	return report, nil
 }
 
+// AsMetadata returns the report content as iRODS AVUs.
 func (report MinKNOWReport) AsMetadata() []ex.AVU {
 	return []ex.AVU{
-		{Attr:"device_id", Value: report.DeviceID},
+		{Attr: "device_id", Value: report.DeviceID},
 		{Attr: "device_type", Value: report.DeviceType},
 		{Attr: "distribution_version", Value: report.DistributionVersion},
 		{Attr: "flowcell_id", Value: report.FlowcellID},

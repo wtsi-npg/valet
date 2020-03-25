@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,19 +42,27 @@ import (
 	"github.com/kjsanger/logshim-zerolog/zlog"
 )
 
-type cliFlags struct {
-	debug         bool          // Enable debug logging
-	verbose       bool          // Enable verbose logging
-	dryRun        bool          // Enable dry-run mode
-	deleteLocal   bool          // Enable local file deletion on archiving
-	maxProc       int           // The maximum number of threads to use
-	sweepInterval time.Duration // The interval at which to perform sweeps
-	localRoot     string        // The root directory to monitor
-	archiveRoot   string        // The root collection of the archive
-	excludeDirs   []string      // Directories to exclude from monitoring
+type baseCliFlags struct {
+	debug   bool // Enable debug logging
+	verbose bool // Enable verbose logging
+	dryRun  bool // Enable dry-run mode
+	maxProc int  // The maximum number of threads to use
 }
 
-var allCliFlags = &cliFlags{}
+type dataDirCliFlags struct {
+	archiveRoot   string        // The root collection of the archive
+	deleteLocal   bool          // Delete local files on successful archiving
+	excludeDirs   []string      // Directories to exclude from monitoring
+	localRoot     string        // The root directory to monitor
+	sweepInterval time.Duration // The interval at which to perform sweeps
+}
+
+type dataFileCliFlags struct {
+	archivePath string // The path of the file in the archive
+	localPath   string // The path of the file on the local filesystem
+}
+
+var baseFlags = &baseCliFlags{}
 
 var valetCmd = &cobra.Command{
 	Use: "valet",
@@ -80,13 +88,13 @@ func init() {
 		defaultMaxProc = 12
 	}
 
-	valetCmd.PersistentFlags().BoolVar(&allCliFlags.debug,
+	valetCmd.PersistentFlags().BoolVar(&baseFlags.debug,
 		"debug", false,
 		"enable debug output")
-	valetCmd.PersistentFlags().BoolVar(&allCliFlags.verbose,
+	valetCmd.PersistentFlags().BoolVar(&baseFlags.verbose,
 		"verbose", false,
 		"enable verbose output")
-	valetCmd.PersistentFlags().IntVarP(&allCliFlags.maxProc,
+	valetCmd.PersistentFlags().IntVarP(&baseFlags.maxProc,
 		"max-proc", "m", defaultMaxProc,
 		"set the maximum number of processes to use")
 
@@ -100,7 +108,7 @@ func runValetCmd(cmd *cobra.Command, args []string) {
 	}
 }
 
-func setupLogger(flags *cliFlags) logs.Logger {
+func setupLogger(flags *baseCliFlags) logs.Logger {
 	var level logs.Level
 	if flags.debug {
 		level = logs.DebugLevel
