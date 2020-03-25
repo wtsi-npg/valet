@@ -561,7 +561,7 @@ func MakeAnnotator(localBase string, remoteBase string,
 			}
 
 			obj := ex.NewDataObject(client, dst)
-			err = obj.Parent().AddMetadata(report.AsMetadata())
+			err = obj.Parent().ReplaceMetadata(report.AsMetadata())
 			if err != nil {
 				return
 			}
