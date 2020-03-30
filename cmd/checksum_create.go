@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ valet checksum create --root /data --exclude /data/intermediate \
 }
 
 func init() {
-	checksumCreateCmd.Flags().StringVarP(&allCliFlags.localRoot,
+	checksumCreateCmd.Flags().StringVarP(&checksumFlags.localRoot,
 		"root", "r", "",
 		"the root directory of the monitor")
 
@@ -73,15 +73,15 @@ func init() {
 		os.Exit(1)
 	}
 
-	checksumCreateCmd.Flags().DurationVarP(&allCliFlags.sweepInterval,
+	checksumCreateCmd.Flags().DurationVarP(&checksumFlags.sweepInterval,
 		"interval", "i", valet.DefaultSweep,
 		"directory sweep interval, minimum 30s")
 
-	checksumCreateCmd.Flags().BoolVar(&allCliFlags.dryRun,
+	checksumCreateCmd.Flags().BoolVar(&baseFlags.dryRun,
 		"dry-run", false,
 		"dry-run (make no changes)")
 
-	checksumCreateCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs,
+	checksumCreateCmd.Flags().StringArrayVar(&checksumFlags.excludeDirs,
 		"exclude", []string{},
 		"patterns matching directories to prune "+
 			"from both monitoring and interval sweeps")
@@ -90,20 +90,20 @@ func init() {
 }
 
 func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
-	log := setupLogger(allCliFlags)
-	root := allCliFlags.localRoot
-	exclude := allCliFlags.excludeDirs
-	interval := allCliFlags.sweepInterval
-	maxProc := allCliFlags.maxProc
-	dryRun := allCliFlags.dryRun
+	log := setupLogger(baseFlags)
 
-	if interval < valet.MinSweep {
+	if checksumFlags.sweepInterval < valet.MinSweep {
 		log.Error().Msgf("Invalid interval %s (must be > %s)",
-			interval, valet.MinSweep)
+			checksumFlags.sweepInterval, valet.MinSweep)
 		os.Exit(1)
 	}
 
-	err := CreateChecksumFiles(root, exclude, interval, maxProc, dryRun)
+	err := CreateChecksumFiles(
+		checksumFlags.localRoot,
+		checksumFlags.excludeDirs,
+		checksumFlags.sweepInterval,
+		baseFlags.maxProc,
+		baseFlags.dryRun)
 
 	if err != nil {
 		log.Error().Err(err).Msg("checksum creation failed")
@@ -111,6 +111,9 @@ func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
 	}
 }
 
+// CreateChecksumFiles searches for files recursively under root (subject
+// to any exclusions patterns in exclude) and creates checksum files for any
+// that do not have one.
 func CreateChecksumFiles(root string, exclude []string, interval time.Duration,
 	maxProc int, dryRun bool) error {
 	log := logs.GetLogger()

@@ -51,6 +51,7 @@ var markdownRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", MarkdownSuffix))
 var pdfRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", PDFSuffix))
 var csvRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", CSVSuffix))
 var gzipRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", GzipSuffix))
+var reportRegex = regexp.MustCompile(fmt.Sprintf("report.*[.]%s$", MarkdownSuffix))
 
 // Matches the run ID of MinKNOW c. August 2019 for GridION and PromethION
 // i.e. of the form:
@@ -59,7 +60,7 @@ var gzipRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", GzipSuffix))
 //
 var MinKNOWRunIDRegex = regexp.MustCompile(`^\d+_\d+_\S+_[A-Za-z0-9]+_[A-Za-z0-9]+$`)
 
-var RequiresArchiving = Or(
+var RequiresCopying = Or(
 	IsFast5,
 	And(IsFastq, IsCompressed),
 	And(IsTxt, IsCompressed),
@@ -72,7 +73,7 @@ var RequiresArchiving = Or(
 // checksum file that is stale.
 var RequiresChecksum = And(
 	IsRegular,
-	RequiresArchiving,
+	RequiresCopying,
 	Or(Not(HasChecksumFile), HasStaleChecksumFile))
 
 var HasValidChecksumFile = Not(HasStaleChecksumFile)
@@ -81,6 +82,8 @@ var RequiresCompression = And(
 	Or(IsFastq, IsTxt),
 	Not(IsCompressed),
 	Not(HasCompressedVersion))
+
+var RequiresAnnotation = IsMinKNOWReport
 
 // IsTrue always returns true.
 func IsTrue(path FilePath) (bool, error) {
@@ -261,11 +264,18 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 	return IsMinKNOWRunID(filepath.Base(path.Location)), nil
 }
 
-// MakeIsArchived returns a predicate that will return true if its argument has
-// been successfully archived from localBase to remoteBase and no errors occur
+// Is IsMinKNOWReport returns true if path is a MinNKNOW run report file. This
+// file is Markdown that contains a section of JSON metadata describing details
+// of the run.
+func IsMinKNOWReport(path FilePath) (bool, error) {
+	return reportRegex.MatchString(path.Location), nil
+}
+
+// MakeIsCopied returns a predicate that will return true if its argument has
+// been successfully copied from localBase to remoteBase, and no errors occur
 // while confirming this.
 //
-// The criteria for archived state are:
+// The criteria for copied state are:
 //
 // 1. The file has a valid checksum file (not stale), otherwise there could
 //    be no way to test the checksum against the checksum in the archive.
@@ -277,13 +287,13 @@ func IsMinKNOWRunDir(path FilePath) (bool, error) {
 //
 // 4. The data object has metadata under the "md5" key whose value matches the
 //    checksum.
-func MakeIsArchived(localBase string, remoteBase string,
+func MakeIsCopied(localBase string, remoteBase string,
 	cPool *ex.ClientPool) FilePredicate {
 
 	return func(path FilePath) (ok bool, err error) { // NRV
 		defer func() {
 			if err != nil {
-				err = errors.Wrap(err, "IsArchived")
+				err = errors.Wrap(err, "IsCopied")
 			}
 		}()
 
@@ -302,59 +312,180 @@ func MakeIsArchived(localBase string, remoteBase string,
 			err = utilities.CombineErrors(err, cPool.Return(client))
 		}()
 
-		var chkFile FilePath
-		chkFile, err = NewFilePath(path.ChecksumFilename())
-		if err != nil {
-			return false, err
-		}
-
 		log := logs.GetLogger()
-
-		ok, err = HasValidChecksumFile(path)
-		if err != nil || !ok {
-			log.Debug().Str("path", path.Location).
-				Msg("not archived: no valid checksum file")
-			return false, err
-		}
-
 		obj := ex.NewDataObject(client, dest)
-
 		ok, err = obj.Exists()
 		if err != nil || !ok {
 			log.Debug().Str("path", path.Location).
-				Msg("not archived: data object not confirmed")
+				Str("to", obj.RodsPath()).
+				Msg("copy NOT confirmed")
 			return false, err
 		}
 
-		var checksum []byte
-		if checksum, err = ReadMD5ChecksumFile(chkFile); err != nil {
-			log.Debug().Str("path", path.Location).
-				Msg("not archived: checksum file not readable")
-			return false, err
-		}
-
-		chk := string(checksum)
-		ok, err = obj.HasValidChecksum(chk)
-		if err != nil || !ok {
-			log.Debug().Str("path", path.Location).
-				Str("expected_checksum", chk).
-				Str("checksum", obj.Checksum()).
-				Msg("not archived: checksum not confirmed")
-			return false, err
-		}
-
-		ok, err = obj.HasValidChecksumMetadata(chk)
-		if err != nil || !ok {
-			log.Debug().Str("path", path.Location).
-				Msg("not archived: checksum metadata not confirmed")
-			return false, err
+		ok, err = validateObjChecksum(path, obj)
+		if !ok || err != nil {
+			return ok, err
 		}
 
 		log.Debug().Str("path", path.Location).
 			Str("to", obj.RodsPath()).
 			Str("checksum", obj.Checksum()).
-			Msg("confirmed archived with correct checksum")
+			Msg("copy confirmed")
 
 		return true, err
 	}
+}
+
+// MakeIsAnnotated returns a predicate that will return true if its argument has
+// had its associated metadata annotated in iRODS, and no errors occur while
+// confirming this.
+//
+// The criteria for annotated state are:
+//
+// 1. The metadata associated with the file has been obtained e.g. parsed from
+//    a file.
+//
+// 2. The metadata are annotated in iRODS.
+//
+// Note that is not testing for the presence of a specific data object e.g. the
+// report file that contained the metadata. That is achieved using the IsCopied
+// predicate.
+func MakeIsAnnotated(localBase string, remoteBase string,
+	cPool *ex.ClientPool) FilePredicate {
+
+	return func(path FilePath) (ok bool, err error) { // NRV
+		defer func() {
+			if err != nil {
+				err = errors.Wrap(err, "IsAnnotated")
+			}
+		}()
+
+		var dest string
+		dest, err = translatePath(localBase, remoteBase, path)
+		if err != nil {
+			return false, err
+		}
+
+		var client *ex.Client
+		client, err = cPool.Get()
+		if err != nil {
+			return false, err
+		}
+
+		defer func() {
+			err = utilities.CombineErrors(err, cPool.Return(client))
+		}()
+
+		var isReport bool
+		isReport, err = IsMinKNOWReport(path)
+		if err != nil {
+			return false, err
+		}
+
+		log := logs.GetLogger()
+		if !isReport {
+			log.Debug().Str("path", path.Location).
+				Msg("not a MinKNOW report, annotation NOT confirmed")
+			return false, err
+		}
+
+		report, err := ParseMinKNOWReport(path.Location)
+		if err != nil {
+			return false, err
+		}
+
+		obj := ex.NewDataObject(client, dest)
+		ok, err = HasValidReportAnnotation(obj, report)
+		if !ok || err != nil {
+			return false, err
+		}
+
+		return true, err
+	}
+}
+
+// HasValidReportAnnotation returns true if the metadata in report, which has
+// been archived as obj, is up-to-date in the remote archive.
+func HasValidReportAnnotation(obj *ex.DataObject, report MinKNOWReport) (bool, error) {
+	log := logs.GetLogger()
+
+	// The metadata to check is on the collection containing the file in
+	// iRODS
+	coll := obj.Parent()
+	_, err := coll.FetchMetadata()
+	if err != nil {
+		return false, err
+	}
+
+	metadata := report.AsMetadata()
+	if !coll.HasAllMetadata(metadata) {
+		for _, avu := range metadata {
+			if !coll.HasMetadatum(avu) {
+				log.Debug().Str("path", coll.RodsPath()).
+					Str("attr", avu.Attr).
+					Str("value", avu.Value).Msg("missing this AVU")
+			}
+		}
+
+		log.Debug().Str("path", report.Path).
+			Str("to", coll.RodsPath()).
+			Msg("report metadata NOT confirmed")
+
+		return false, nil
+	}
+
+	for _, avu := range metadata {
+		log.Debug().Str("path", report.Path).
+			Str("attribute", avu.Attr).
+			Str("value", avu.Value).
+			Msg("report metadata confirmed")
+	}
+
+	return true, nil
+}
+
+// validateObjChecksum checks that the data file at path has a corresponding
+// checksum file, that the checksum in that file is the same as that recorded
+// for the corresponding data object in iRODS, and that the data object has the
+// same checksum present in its metadata.
+func validateObjChecksum(path FilePath, obj *ex.DataObject) (bool, error) {
+	log := logs.GetLogger()
+
+	chkFile, err := NewFilePath(path.ChecksumFilename())
+	if err != nil {
+		return false, err
+	}
+
+	ok, err := HasValidChecksumFile(path)
+	if err != nil || !ok {
+		log.Debug().Str("path", path.Location).
+			Msg("valid checksum file NOT present")
+		return false, err
+	}
+
+	checksum, err := ReadMD5ChecksumFile(chkFile)
+	if err != nil {
+		log.Debug().Str("path", path.Location).
+			Msg("checksum file NOT readable")
+		return false, err
+	}
+
+	chk := string(checksum)
+	ok, err = obj.HasValidChecksum(chk)
+	if err != nil || !ok {
+		log.Debug().Str("path", path.Location).
+			Str("expected_checksum", chk).
+			Str("checksum", obj.Checksum()).
+			Msg("checksum NOT confirmed")
+		return false, err
+	}
+
+	ok, err = obj.HasValidChecksumMetadata(chk)
+	if err != nil || !ok {
+		log.Debug().Str("path", path.Location).
+			Msg("checksum metadata NOT confirmed")
+		return false, err
+	}
+
+	return true, nil
 }

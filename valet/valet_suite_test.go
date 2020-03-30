@@ -120,6 +120,8 @@ var _ = Describe("Find regular files)", func() {
 				"1/reads/fastq/reads2.fastq",
 				"1/reads/fastq/reads2.fastq.gz",
 				"1/reads/fastq/reads3.fastq",
+				"report_ABQ808_20200204_1257_e2e93dd1.md",
+				"report_PAE48813_20200130_0940_16917585.md",
 				"testdir/.gitignore",
 			}
 			Expect(foundFiles).To(WithTransform(pathTransform,
@@ -601,10 +603,10 @@ var _ = Describe("Find MinKNOW files", func() {
 	})
 })
 
-var _ = Describe("IsArchived", func() {
+var _ = Describe("IsCopied", func() {
 	var (
 		rootColl, workColl, remotePath string
-		isArchived                     valet.FilePredicate
+		isCopied                       valet.FilePredicate
 		path                           valet.FilePath
 
 		clientPool *ex.ClientPool
@@ -620,7 +622,7 @@ var _ = Describe("IsArchived", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		rootColl = "/testZone/home/irods"
-		workColl = tmpRodsPath(rootColl, "ValetIsArchived")
+		workColl = tmpRodsPath(rootColl, "ValetIsCopied")
 		remotePath = filepath.Join(workColl, "reads1.fast5")
 
 		poolParams := ex.DefaultClientPoolParams
@@ -642,10 +644,10 @@ var _ = Describe("IsArchived", func() {
 			Value: "1181c1834012245d785120e3505ed169"}})
 		Expect(err).NotTo(HaveOccurred())
 
-		local, err := filepath.Abs("testdata/valet/1/reads/fast5")
+		local, err := filepath.Abs("testdata/valet/1/reads/fast5/")
 		Expect(err).NotTo(HaveOccurred())
 		// The predicate to be tested
-		isArchived = valet.MakeIsArchived(local, workColl, clientPool)
+		isCopied = valet.MakeIsCopied(local, workColl, clientPool)
 	})
 
 	AfterEach(func() {
@@ -660,7 +662,7 @@ var _ = Describe("IsArchived", func() {
 
 	When("a data object exists with correct checksum and md5 metadata", func() {
 		It("is archived", func() {
-			Expect(isArchived(path)).To(BeTrue())
+			Expect(isCopied(path)).To(BeTrue())
 		})
 	})
 
@@ -671,7 +673,7 @@ var _ = Describe("IsArchived", func() {
 		})
 
 		It("is not archived", func() {
-			Expect(isArchived(path)).To(BeFalse())
+			Expect(isCopied(path)).To(BeFalse())
 		})
 	})
 
@@ -684,7 +686,7 @@ var _ = Describe("IsArchived", func() {
 		})
 
 		It("is not archived", func() {
-			Expect(isArchived(path)).To(BeFalse())
+			Expect(isCopied(path)).To(BeFalse())
 		})
 	})
 
@@ -701,8 +703,8 @@ var _ = Describe("IsArchived", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("is not archived", func() {
-			Expect(isArchived(path)).To(BeFalse())
+		It("is not copied", func() {
+			Expect(isCopied(path)).To(BeFalse())
 		})
 	})
 
@@ -713,11 +715,123 @@ var _ = Describe("IsArchived", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("is not archived", func() {
-			Expect(isArchived(path)).To(BeFalse())
+		It("is not copied", func() {
+			Expect(isCopied(path)).To(BeFalse())
+		})
+	})
+})
+
+var _ = Describe("IsAnnotated", func() {
+	var (
+		rootColl, workColl, remotePath string
+		isAnnotated                    valet.FilePredicate
+		path                           valet.FilePath
+
+		clientPool *ex.ClientPool
+		client     *ex.Client
+		coll       *ex.Collection
+		obj        *ex.DataObject
+
+		localPath = "testdata/valet/report_ABQ808_20200204_1257_e2e93dd1.md"
+	)
+
+	BeforeEach(func() {
+		var err error
+		path, err = valet.NewFilePath(localPath)
+		Expect(err).NotTo(HaveOccurred())
+
+		rootColl = "/testZone/home/irods"
+		workColl = tmpRodsPath(rootColl, "ValetIsAnnotated")
+		remotePath = filepath.Join(workColl, "report_ABQ808_20200204_1257_e2e93dd1.md")
+
+		poolParams := ex.DefaultClientPoolParams
+		poolParams.MaxSize = 2
+		poolParams.GetTimeout = time.Second
+
+		clientPool = ex.NewClientPool(poolParams)
+		client, err = clientPool.Get()
+		Expect(err).NotTo(HaveOccurred())
+
+		coll, err = ex.MakeCollection(client, workColl)
+		Expect(err).NotTo(HaveOccurred())
+		obj, err = ex.PutDataObject(client, localPath, remotePath)
+		Expect(err).NotTo(HaveOccurred())
+
+		// The expected and correct metadata. Note that this is expected to be
+		// on the collection containing the report data object, not on the data
+		// object itself.
+		err = coll.AddMetadata([]ex.AVU{
+			{Attr: "device_id", Value: "X2"},
+			{Attr: "device_type", Value: "gridion"},
+			{Attr: "distribution_version", Value: "19.12.2"},
+			{Attr: "flowcell_id", Value: "ABQ808"},
+			{Attr: "guppy_version", Value: "3.2.8+bd67289"},
+			{Attr: "hostname", Value: "GXB02004"},
+			{Attr: "protocol_group_id", Value: "85"},
+			{Attr: "run_id", Value: "5531cbcf622d2d98dbff00af0261c6f19f91340f"},
+			{Attr: "sample_id", Value: "DN615089W_B1"},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		local, err := filepath.Abs("testdata/valet/")
+		Expect(err).NotTo(HaveOccurred())
+		// The predicate to be tested
+		isAnnotated = valet.MakeIsAnnotated(local, workColl, clientPool)
+	})
+
+	AfterEach(func() {
+		err := removeTmpCollection(workColl)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = clientPool.Return(client)
+		Expect(err).NotTo(HaveOccurred())
+
+		clientPool.Close()
+	})
+
+	When("correct collection annotation exists", func() {
+		It("is annotated", func() {
+			Expect(isAnnotated(path)).To(BeTrue())
 		})
 	})
 
+	When("correct collection annotation exists, but the report does not", func() {
+		BeforeEach(func() {
+			err := obj.Remove()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is annotated", func() {
+			Expect(isAnnotated(path)).To(BeTrue())
+		})
+	})
+
+	When("a metadata AVU is missing", func() {
+		BeforeEach(func() {
+			err := coll.RemoveMetadata([]ex.AVU{{
+				Attr:  "device_id",
+				Value: "X2"}})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is not annotated", func() {
+			Expect(isAnnotated(path)).To(BeFalse())
+		})
+	})
+
+	When("a metadata AVU is mismatched", func() {
+		BeforeEach(func() {
+			err := coll.RemoveMetadata([]ex.AVU{{Attr: "device_id", Value: "X2"}})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = coll.AddMetadata([]ex.AVU{{Attr: "device_id", Value: "X5"}})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is not annotated", func() {
+			Expect(isAnnotated(path)).To(BeFalse())
+		})
+	})
 })
 
 var _ = Describe("Archive MINKnow files", func() {
@@ -808,7 +922,7 @@ var _ = Describe("Archive MINKnow files", func() {
 		derr := mkdirAllRelative(tmpDir, allDirs)
 		Expect(derr).NotTo(HaveOccurred())
 
-		workColl = tmpRodsPath(rootColl, "ValetArchive")
+		workColl = tmpRodsPath(rootColl, "ArchiveMinKNOWFiles")
 		getRodsPaths = makeRodsItemTransform(workColl)
 
 		cerr := copyFilesRelative(dataDir, tmpDir, allFiles, readWriteFile)
@@ -837,7 +951,7 @@ var _ = Describe("Archive MINKnow files", func() {
 				clientPool, deleteLocal)
 
 			matchFn := valet.Or(
-				valet.RequiresArchiving,
+				valet.RequiresCopying,
 				valet.RequiresCompression)
 
 			perr <- valet.ProcessFiles(cancelCtx, valet.ProcessParams{
@@ -934,7 +1048,7 @@ var _ = Describe("Archive MINKnow files", func() {
 var _ = Describe("Count files without a checksum", func() {
 	var (
 		numFilesFound    uint64
-		numFilesExpected uint64 = 3 // Only fast5 and fastq.gz
+		numFilesExpected uint64 = 5 // fast5, fastq.gz and md (reports)
 	)
 
 	BeforeEach(func() {

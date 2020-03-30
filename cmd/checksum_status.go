@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ valet checksum status --root /data --exclude /data/intermediate \
 }
 
 func init() {
-	checksumStatusCmd.Flags().StringVarP(&allCliFlags.localRoot,
+	checksumStatusCmd.Flags().StringVarP(&checksumFlags.localRoot,
 		"root", "r", "",
 		"the root directory of the monitor")
 
@@ -58,7 +58,7 @@ func init() {
 		os.Exit(1)
 	}
 
-	checksumStatusCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs,
+	checksumStatusCmd.Flags().StringArrayVar(&checksumFlags.excludeDirs,
 		"exclude", []string{},
 		"patterns matching directories to prune "+
 			"from the completeness check")
@@ -67,25 +67,29 @@ func init() {
 }
 
 func runChecksumStatusCmd(cmd *cobra.Command, args []string) {
-	log := setupLogger(allCliFlags)
-	root := allCliFlags.localRoot
-	exclude := allCliFlags.excludeDirs
+	log := setupLogger(baseFlags)
 
-	numWithoutChecksum, err := CountFilesWithoutChecksum(root, exclude)
+	numWithoutChecksum, err :=
+	 	CountFilesWithoutChecksum(checksumFlags.localRoot,
+			checksumFlags.excludeDirs)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	if numWithoutChecksum == 0 {
-		log.Info().Str("root", root).Msg("all checksum files present")
+		log.Info().Str("root", checksumFlags.localRoot).
+			Msg("all checksum files present")
 	} else {
-		log.Error().Str("root", root).
+		log.Error().Str("root", checksumFlags.localRoot).
 			Uint64("count", numWithoutChecksum).
 			Msg("checksum files missing")
 		os.Exit(1)
 	}
 }
 
+// CountFilesWithoutChecksum searches for files recursively under root (subject
+// to any exclusions patterns in exclude) and counts those that do not have an
+// up-to-date checksum file.
 func CountFilesWithoutChecksum(root string, exclude []string) (uint64, error) {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	setupSignalHandler(cancel)

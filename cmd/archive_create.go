@@ -33,13 +33,16 @@ import (
 	"github.com/kjsanger/valet/valet"
 )
 
+
 type archiveParams struct {
+	deleteLocal bool
+	dryRun      bool
 	exclude     []string
 	interval    time.Duration
 	maxProc     int
-	dryRun      bool
-	deleteLocal bool
 }
+
+var archCreateFlags = &dataDirCliFlags{}
 
 var archiveCreateCmd = &cobra.Command{
 	Use:   "create",
@@ -81,7 +84,7 @@ valet archive create --root /data --exclude /data/custom \
 }
 
 func init() {
-	archiveCreateCmd.Flags().StringVarP(&allCliFlags.localRoot,
+	archiveCreateCmd.Flags().StringVarP(&archCreateFlags.localRoot,
 		"root", "r", "",
 		"the root directory of the monitor")
 
@@ -92,7 +95,7 @@ func init() {
 		os.Exit(1)
 	}
 
-	archiveCreateCmd.Flags().StringVarP(&allCliFlags.archiveRoot,
+	archiveCreateCmd.Flags().StringVarP(&archCreateFlags.archiveRoot,
 		"archive-root", "a", "",
 		"the archive root collection")
 
@@ -103,20 +106,20 @@ func init() {
 		os.Exit(1)
 	}
 
-	archiveCreateCmd.Flags().DurationVarP(&allCliFlags.sweepInterval,
+	archiveCreateCmd.Flags().DurationVarP(&archCreateFlags.sweepInterval,
 		"interval", "i", valet.DefaultSweep,
 		"directory sweep interval, minimum 30s")
 
-	archiveCreateCmd.Flags().BoolVar(&allCliFlags.dryRun,
+	archiveCreateCmd.Flags().BoolVar(&baseFlags.dryRun,
 		"dry-run", false,
 		"dry-run (make no changes)")
 
-	archiveCreateCmd.Flags().StringArrayVar(&allCliFlags.excludeDirs,
+	archiveCreateCmd.Flags().StringArrayVar(&archCreateFlags.excludeDirs,
 		"exclude", []string{},
 		"patterns matching directories to prune "+
 			"from both monitoring and interval sweeps")
 
-	archiveCreateCmd.Flags().BoolVar(&allCliFlags.deleteLocal,
+	archiveCreateCmd.Flags().BoolVar(&archCreateFlags.deleteLocal,
 		"delete-on-archive", false,
 		"delete local files on successful archiving")
 
@@ -124,22 +127,23 @@ func init() {
 }
 
 func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
-	log := setupLogger(allCliFlags)
-	root := allCliFlags.localRoot
-	collection := allCliFlags.archiveRoot
+	log := setupLogger(baseFlags)
 
-	if allCliFlags.sweepInterval < valet.MinSweep {
+	if archCreateFlags.sweepInterval < valet.MinSweep {
 		log.Error().Msgf("invalid interval %s (must be > %s)",
-			allCliFlags.sweepInterval, valet.MinSweep)
+			archCreateFlags.sweepInterval, valet.MinSweep)
 		os.Exit(1)
 	}
 
-	err := CreateArchive(root, collection, archiveParams{
-		exclude:     archiveExcludeDirs(root, allCliFlags),
-		interval:    allCliFlags.sweepInterval,
-		maxProc:     allCliFlags.maxProc,
-		dryRun:      allCliFlags.dryRun,
-		deleteLocal: allCliFlags.deleteLocal,
+	err := CreateArchive(
+		archCreateFlags.localRoot,
+		archCreateFlags.archiveRoot,
+		archiveParams{
+			dryRun:      baseFlags.dryRun,
+			maxProc:     baseFlags.maxProc,
+			exclude:     archiveExcludeDirs(archCreateFlags.localRoot, archCreateFlags),
+			interval:    archCreateFlags.sweepInterval,
+			deleteLocal: archCreateFlags.deleteLocal,
 	})
 
 	if err != nil {
@@ -148,6 +152,8 @@ func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 	}
 }
 
+// CreateArchive archives files found locally under root to remote archiveRoot,
+// preserving the relative directory hierarchy.
 func CreateArchive(root string, archiveRoot string, params archiveParams) error {
 	log := logs.GetLogger()
 
@@ -167,7 +173,7 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 	}
 
 	poolParams := ex.DefaultClientPoolParams
-	clientPool := ex.NewClientPool(poolParams,"--silent")
+	clientPool := ex.NewClientPool(poolParams, "--silent")
 
 	var workPlan valet.WorkPlan
 	if params.dryRun {
@@ -179,7 +185,7 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 
 	return valet.ProcessFiles(cancelCtx, valet.ProcessParams{
 		Root:          root,
-		MatchFunc:     valet.Or(valet.RequiresCompression, valet.RequiresArchiving),
+		MatchFunc:     valet.Or(valet.RequiresCompression, valet.RequiresCopying),
 		PruneFunc:     valet.Or(userPruneFn, defaultPruneFn),
 		Plan:          workPlan,
 		SweepInterval: params.interval,
@@ -188,7 +194,7 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 }
 
 // Exclude TMPDIR if it has been set to be under the data root by the user
-func archiveExcludeDirs(root string, flags *cliFlags) []string {
+func archiveExcludeDirs(root string, flags *dataDirCliFlags) []string {
 	tempDir := os.TempDir()
 	rootContainsTemp, err := utilities.IsDescendantPath(root, tempDir)
 

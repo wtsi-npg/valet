@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@ import (
 	logs "github.com/kjsanger/logshim"
 	"github.com/spf13/cobra"
 )
+
+var checksumFlags = &dataDirCliFlags{}
 
 var checksumCmd = &cobra.Command{
 	Use:   "checksum",
