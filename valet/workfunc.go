@@ -455,7 +455,12 @@ func ReadMD5ChecksumFile(path FilePath) (md5sum []byte, err error) { // NRV
 // AddMinKNOWReportAnnotation adds annotation from report to the parent
 // collection of the archived report obj.
 func AddMinKNOWReportAnnotation(obj *ex.DataObject, report MinKNOWReport) error {
-	return obj.Parent().ReplaceMetadata(report.AsMetadata())
+	meta, err := report.AsEnhancedMetadata()
+	if err != nil {
+		return err
+	}
+
+	return obj.Parent().ReplaceMetadata(meta)
 }
 
 // MakeCopier returns a WorkFunc capable of copying files to iRODS. Each

@@ -6,12 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - [![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
 
+### Added
+
+- Add experiment_name and instrument_slot to report metadata.
+
+### Changed
+
+- Bump github.com/stretchr/testify from 1.5.1 to 1.6.0
+- Bump github.com/onsi/ginkgo from 1.12.0 to 1.12.2
+
 ## [1.2.0] - 2020-02-28
 
 ### Added
 
 - A systemd unit template and wrapper script.
-- A String() method for WorkPlan.   
+- A String() method for WorkPlan.
 - Logging immediately before and after a work function is called.
 
 ### Changed
