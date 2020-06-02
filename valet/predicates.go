@@ -417,7 +417,13 @@ func HasValidReportAnnotation(obj *ex.DataObject, report MinKNOWReport) (bool, e
 		return false, err
 	}
 
-	metadata := report.AsMetadata()
+	metadata, err := report.AsEnhancedMetadata()
+	if err != nil {
+		log.Error().Err(err).
+			Str("path", coll.RodsPath()).
+			Msg("report metadata invalid")
+	}
+
 	if !coll.HasAllMetadata(metadata) {
 		for _, avu := range metadata {
 			if !coll.HasMetadatum(avu) {

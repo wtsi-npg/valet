@@ -23,6 +23,7 @@ package valet
 import (
 	"encoding/json"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	ex "github.com/kjsanger/extendo/v2"
@@ -44,6 +45,8 @@ type MinKNOWReport struct {
 	RunID               string `json:"run_id"`               // The automatically generated run ID
 	SampleID            string `json:"sample_id"`            // The user-supplied sample ID
 }
+
+var deviceIDRegex = regexp.MustCompile(`^(?:GA|X)(\d)`)
 
 // ParseMinKNOWReport parses a file at path and extracts MinKNOW run metadata
 // from it.
@@ -92,4 +95,30 @@ func (report MinKNOWReport) AsMetadata() []ex.AVU {
 		{Attr: "run_id", Value: report.RunID},
 		{Attr: "sample_id", Value: report.SampleID},
 	}
+}
+
+// AsEnhancedMetadata returns the report as iRODS AVUs. It returns all the AVUs
+// of AsMetadata with some additional members:
+//
+// The value of 'protocol_group_id' is duplicated under the attribute
+// 'experiment_name'.
+//
+// The value of 'device_id' is normalized to a position (in the range 1-5 for
+// GridION, representing slot position on the instrument). The device ID may
+// be of the form "GAn0000" or "Xn" (for GridION), where n is the position.
+// The value is added under the attribute 'instrument_slot'
+//
+func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
+	avus := report.AsMetadata()
+
+	deviceID := report.DeviceID
+	idMatch := deviceIDRegex.FindStringSubmatch(deviceID)
+	if idMatch == nil {
+		return avus, errors.Errorf("Failed to parse device ID '%s'", deviceID)
+	}
+
+	avus = append(avus, ex.MakeAVU("instrument_slot", idMatch[1]))
+	avus = append(avus, ex.MakeAVU("experiment_name", report.ProtocolGroupID))
+
+	return avus, nil
 }
