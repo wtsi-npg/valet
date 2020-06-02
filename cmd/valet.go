@@ -67,9 +67,9 @@ var baseFlags = &baseCliFlags{}
 var valetCmd = &cobra.Command{
 	Use: "valet",
 	Long: `
-valet is a utility for performing small, but important data management tasks
-automatically. Once started, valet will continue working until interrupted by
-SIGINT or SIGTERM, when it will stop gracefully.
+valet is a utility for performing data management tasks automatically. Once
+started, valet will continue working until interrupted by SIGINT or SIGTERM,
+when it will stop gracefully.
 `,
 	Run:     runValetCmd,
 	Version: valet.Version,
