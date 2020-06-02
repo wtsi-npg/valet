@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - [![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
 
+## [1.3.0] - 2020-06-02
+
 ### Added
 
 - Add experiment_name and instrument_slot to report metadata.
