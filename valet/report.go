@@ -84,7 +84,7 @@ func ParseMinKNOWReport(path string) (MinKNOWReport, error) {
 
 // AsMetadata returns the report content as iRODS AVUs.
 func (report MinKNOWReport) AsMetadata() []ex.AVU {
-	return []ex.AVU{
+	avus := []ex.AVU{
 		{Attr: "device_id", Value: report.DeviceID},
 		{Attr: "device_type", Value: report.DeviceType},
 		{Attr: "distribution_version", Value: report.DistributionVersion},
@@ -95,6 +95,12 @@ func (report MinKNOWReport) AsMetadata() []ex.AVU {
 		{Attr: "run_id", Value: report.RunID},
 		{Attr: "sample_id", Value: report.SampleID},
 	}
+
+	for i := range avus {
+		avus[i] = avus[i].WithNamespace(OxfordNanoporeNamespace)
+	}
+
+	return avus
 }
 
 // AsEnhancedMetadata returns the report as iRODS AVUs. It returns all the AVUs
@@ -117,8 +123,13 @@ func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
 		return avus, errors.Errorf("Failed to parse device ID '%s'", deviceID)
 	}
 
-	avus = append(avus, ex.MakeAVU("instrument_slot", idMatch[1]))
-	avus = append(avus, ex.MakeAVU("experiment_name", report.ProtocolGroupID))
+	slot := ex.AVU{Attr:"instrument_slot", Value: idMatch[1]}.
+		WithNamespace(OxfordNanoporeNamespace)
+	expt := ex.AVU{Attr:"experiment_name", Value: report.ProtocolGroupID}.
+		WithNamespace(OxfordNanoporeNamespace)
+
+	avus = append(avus, slot)
+	avus = append(avus, expt)
 
 	return avus, nil
 }

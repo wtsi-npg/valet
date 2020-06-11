@@ -761,17 +761,17 @@ var _ = Describe("IsAnnotated", func() {
 		// on the collection containing the report data object, not on the data
 		// object itself.
 		err = coll.AddMetadata([]ex.AVU{
-			{Attr: "device_id", Value: "X2"},
-			{Attr: "device_type", Value: "gridion"},
-			{Attr: "distribution_version", Value: "19.12.2"},
-			{Attr: "experiment_name", Value: "85"},
-			{Attr: "flowcell_id", Value: "ABQ808"},
-			{Attr: "guppy_version", Value: "3.2.8+bd67289"},
-			{Attr: "hostname", Value: "GXB02004"},
-			{Attr: "instrument_slot", Value: "2"},
-			{Attr: "protocol_group_id", Value: "85"},
-			{Attr: "run_id", Value: "5531cbcf622d2d98dbff00af0261c6f19f91340f"},
-			{Attr: "sample_id", Value: "DN615089W_B1"},
+			{Attr: "ont:device_id", Value: "X2"},
+			{Attr: "ont:device_type", Value: "gridion"},
+			{Attr: "ont:distribution_version", Value: "19.12.2"},
+			{Attr: "ont:experiment_name", Value: "85"},
+			{Attr: "ont:flowcell_id", Value: "ABQ808"},
+			{Attr: "ont:guppy_version", Value: "3.2.8+bd67289"},
+			{Attr: "ont:hostname", Value: "GXB02004"},
+			{Attr: "ont:instrument_slot", Value: "2"},
+			{Attr: "ont:protocol_group_id", Value: "85"},
+			{Attr: "ont:run_id", Value: "5531cbcf622d2d98dbff00af0261c6f19f91340f"},
+			{Attr: "ont:sample_id", Value: "DN615089W_B1"},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -811,7 +811,7 @@ var _ = Describe("IsAnnotated", func() {
 	When("a metadata AVU is missing", func() {
 		BeforeEach(func() {
 			err := coll.RemoveMetadata([]ex.AVU{{
-				Attr:  "device_id",
+				Attr:  "ont:device_id",
 				Value: "X2"}})
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -823,10 +823,10 @@ var _ = Describe("IsAnnotated", func() {
 
 	When("a metadata AVU is mismatched", func() {
 		BeforeEach(func() {
-			err := coll.RemoveMetadata([]ex.AVU{{Attr: "device_id", Value: "X2"}})
+			err := coll.RemoveMetadata([]ex.AVU{{Attr: "ont:device_id", Value: "X2"}})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = coll.AddMetadata([]ex.AVU{{Attr: "device_id", Value: "X5"}})
+			err = coll.AddMetadata([]ex.AVU{{Attr: "ont:device_id", Value: "X5"}})
 			Expect(err).NotTo(HaveOccurred())
 		})
 
