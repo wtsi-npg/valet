@@ -81,6 +81,8 @@ type WorkMatch struct {
 	workDoc string        // A short description of the work
 }
 
+const OxfordNanoporeNamespace string = "ont"
+
 // String returns a descriptive string for the WorkMatch which includes the
 // predicate and work documentation strings.
 func (m WorkMatch) String() string {

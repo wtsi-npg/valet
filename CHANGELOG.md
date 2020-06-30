@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - [![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
 
+
+### Added
+
+- Add "ont" namespace to iRODS metadata attributes.
+
+### Changed
+
+- Bump github.com/kjsanger/extendo from 2.1.0 to 2.2.0
+
 ## [1.3.0] - 2020-06-02
 
 ### Added
@@ -14,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Bump github.com/kjsanger/extendo from 2.0.0 to 2.1.0
 - Bump github.com/stretchr/testify from 1.5.1 to 1.6.0
 - Bump github.com/onsi/ginkgo from 1.12.0 to 1.12.2
 
@@ -22,13 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - A systemd unit template and wrapper script.
-- A String() method for WorkPlan.
+- A String method to WorkPlan.
 - Logging immediately before and after a work function is called.
 
 ### Changed
 
-- Improved verbose level logging for consistency and information.
-- Added to default paths to ignore in the data root.
+- Improve verbose level logging for consistency and information.
+- Add to default paths to ignore in the data root.
 
 - Bump github.com/kjsanger/extendo from 1.1.0 to 2.0.0
 - Bump github.com/onsi/ginkgo from 1.10.3 to 1.12.0
