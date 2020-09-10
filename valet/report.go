@@ -46,7 +46,7 @@ type MinKNOWReport struct {
 	SampleID            string `json:"sample_id"`            // The user-supplied sample ID
 }
 
-var deviceIDRegex = regexp.MustCompile(`^(?:GA|X)(\d)`)
+var gridionDeviceIDRegex = regexp.MustCompile(`^(?:GA|X)(\d)`)
 
 // ParseMinKNOWReport parses a file at path and extracts MinKNOW run metadata
 // from it.
@@ -114,21 +114,28 @@ func (report MinKNOWReport) AsMetadata() []ex.AVU {
 // be of the form "GAn0000" or "Xn" (for GridION), where n is the position.
 // The value is added under the attribute 'instrument_slot'
 //
+// Slot positions are more complex for the PromethION as they are arranged in a
+// grid and therefore have an X and Y position. We have not decided how to
+// convert the position into a slot value.
+//
 func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
 	avus := report.AsMetadata()
 
-	deviceID := report.DeviceID
-	idMatch := deviceIDRegex.FindStringSubmatch(deviceID)
-	if idMatch == nil {
-		return avus, errors.Errorf("Failed to parse device ID '%s'", deviceID)
-	}
+	if report.DeviceType == "gridion" {
+		deviceID := report.DeviceID
+		idMatch := gridionDeviceIDRegex.FindStringSubmatch(deviceID)
+		if idMatch == nil {
+			return avus, errors.Errorf("Failed to parse device ID '%s'",
+				deviceID)
+		}
 
-	slot := ex.AVU{Attr:"instrument_slot", Value: idMatch[1]}.
-		WithNamespace(OxfordNanoporeNamespace)
+		slot := ex.AVU{Attr: "instrument_slot", Value: idMatch[1]}.
+			WithNamespace(OxfordNanoporeNamespace)
+		avus = append(avus, slot)
+	}
 	expt := ex.AVU{Attr:"experiment_name", Value: report.ProtocolGroupID}.
 		WithNamespace(OxfordNanoporeNamespace)
 
-	avus = append(avus, slot)
 	avus = append(avus, expt)
 
 	return avus, nil
