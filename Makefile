@@ -24,7 +24,7 @@ test:
 coverage:
 	ginkgo -r -slowSpecThreshold=60 -cover -coverprofile=coverage.out
 
-dist: build lint test build
+dist: build test build
 	cp README.md COPYING ${build_path}
 	tar -C ./build -cvj -f valet-${VERSION}.tar.bz2 valet-${VERSION}
 	shasum -a 256 valet-${VERSION}.tar.bz2 > valet-${VERSION}.tar.bz2.sha256
