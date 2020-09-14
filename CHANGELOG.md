@@ -6,10 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - [![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
 
+## [1.4.0] - 2020-09-14
 
 ### Added
 
-- Add "ont" namespace to iRODS metadata attributes.
+- PromethION support for enhanced metadata.
+- iRODS 4.2.7 clients to the test matrix.
+- "ont" namespace to iRODS metadata attributes.
 
 ### Changed
 
@@ -19,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add experiment_name and instrument_slot to report metadata.
+- experiment_name and instrument_slot to report metadata.
 
 ### Changed
 
