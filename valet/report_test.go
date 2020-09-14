@@ -23,6 +23,7 @@ package valet
 import (
 	"testing"
 
+	ex "github.com/kjsanger/extendo/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,5 +56,49 @@ func TestParseGridIONReport(t *testing.T) {
 		assert.Equal(t, "85", report.ProtocolGroupID)
 		assert.Equal(t, "5531cbcf622d2d98dbff00af0261c6f19f91340f", report.RunID)
 		assert.Equal(t, "DN615089W_B1", report.SampleID)
+	}
+}
+
+func TestEnhancedPromethIONMetadata(t *testing.T) {
+	path := "./testdata/valet/report_PAE48813_20200130_0940_16917585.md"
+	report, _ := ParseMinKNOWReport(path)
+	metadata, err := report.AsEnhancedMetadata()
+	if assert.NoError(t, err) {
+		expected := []ex.AVU{
+			{Attr:"ont:device_id", Value:"2-E1-H1"},
+			{Attr:"ont:device_type", Value:"promethion"},
+			{Attr:"ont:distribution_version", Value:"19.12.5"},
+			{Attr:"ont:flowcell_id", Value:"PAE48813"},
+			{Attr:"ont:guppy_version", Value:"3.2.8+bd67289"},
+			{Attr:"ont:hostname", Value:"PCT0016"},
+			{Attr:"ont:protocol_group_id", Value:"mMelMel3"},
+			{Attr:"ont:run_id", Value:"52a0d863bccd1d78530c425e8077150d5391fc34"},
+			{Attr:"ont:sample_id", Value:"mMelMel3"},
+			// {Attr:"ont:instrument_slot", Value:"2"} TODO: slot not yet supported
+			{Attr:"ont:experiment_name", Value:"mMelMel3"}}
+
+		assert.ElementsMatch(t, expected, metadata)
+	}
+}
+
+func TestEnhancedGridIONMetadata(t *testing.T) {
+	path := "./testdata/valet/report_ABQ808_20200204_1257_e2e93dd1.md"
+	report, _ := ParseMinKNOWReport(path)
+	metadata, err := report.AsEnhancedMetadata()
+	if assert.NoError(t, err) {
+		expected := []ex.AVU{
+			{Attr:"ont:device_id", Value:"X2"},
+			{Attr:"ont:device_type", Value:"gridion"},
+			{Attr:"ont:distribution_version", Value:"19.12.2"},
+			{Attr:"ont:flowcell_id", Value:"ABQ808"},
+			{Attr:"ont:guppy_version", Value:"3.2.8+bd67289"},
+			{Attr:"ont:hostname", Value:"GXB02004"},
+			{Attr:"ont:protocol_group_id", Value:"85"},
+			{Attr:"ont:run_id", Value:"5531cbcf622d2d98dbff00af0261c6f19f91340f"},
+			{Attr:"ont:sample_id", Value:"DN615089W_B1"},
+			{Attr:"ont:instrument_slot", Value:"2"},
+			{Attr:"ont:experiment_name", Value:"85"}}
+
+		assert.ElementsMatch(t, expected, metadata)
 	}
 }
