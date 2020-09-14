@@ -9,12 +9,12 @@ require (
 	github.com/kjsanger/logshim-zerolog v1.1.0
 	github.com/klauspost/compress v1.9.1 // indirect
 	github.com/klauspost/pgzip v1.2.1
-	github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega v1.9.0
+	github.com/onsi/ginkgo v1.12.3
+	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.18.0
+	github.com/rs/zerolog v1.19.0
 	github.com/spf13/cobra v0.0.5
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.1
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 )
 
