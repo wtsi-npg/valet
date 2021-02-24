@@ -54,9 +54,9 @@ conda activate "$CONDA_ENV" && \
   --root "$DATA_ROOT" \
   --archive-root "$ARCHIVE_ROOT" \
   --exclude "$SAFE_ROOT" \
-  --exclude "$DATA_ROOT/pings" \
-  --exclude "$DATA_ROOT/reports" \
+  --exclude "$DATA_ROOT/laboratory" \
   --max-proc "$MAX_PROC" \
   --interval "$INTERVAL" \
   --delete-on-archive \
   --verbose >> "$LOG_FILE" 2>&1
+
