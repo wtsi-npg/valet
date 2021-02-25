@@ -29,12 +29,12 @@ import (
 	"sync"
 	"time"
 
-	ex "github.com/kjsanger/extendo/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ex "github.com/wtsi-npg/extendo/v2"
 
-	"github.com/kjsanger/valet/cmd"
-	"github.com/kjsanger/valet/valet"
+	"github.com/wtsi-npg/valet/cmd"
+	"github.com/wtsi-npg/valet/valet"
 )
 
 var _ = Describe("Find directories)", func() {

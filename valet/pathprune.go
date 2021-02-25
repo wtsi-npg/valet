@@ -23,7 +23,7 @@ package valet
 import (
 	"path/filepath"
 
-	logs "github.com/kjsanger/logshim"
+	logs "github.com/wtsi-npg/logshim"
 )
 
 // Directory names within the root MinKNOW data directory (typically /data)

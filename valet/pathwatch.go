@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kjsanger/fsnotify"
-	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
+	"github.com/wtsi-npg/fsnotify"
+	logs "github.com/wtsi-npg/logshim"
 
-	"github.com/kjsanger/valet/utilities"
+	"github.com/wtsi-npg/valet/utilities"
 )
 
 // WatchFiles reports filesystem events on the directories below root. Watches
