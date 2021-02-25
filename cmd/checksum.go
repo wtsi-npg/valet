@@ -23,8 +23,8 @@ package cmd
 import (
 	"os"
 
-	logs "github.com/kjsanger/logshim"
 	"github.com/spf13/cobra"
+	logs "github.com/wtsi-npg/logshim"
 )
 
 var checksumFlags = &dataDirCliFlags{}

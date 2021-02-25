@@ -26,11 +26,11 @@ import (
 	"path/filepath"
 	"regexp"
 
-	ex "github.com/kjsanger/extendo/v2"
-	logs "github.com/kjsanger/logshim"
 	"github.com/pkg/errors"
+	ex "github.com/wtsi-npg/extendo/v2"
+	logs "github.com/wtsi-npg/logshim"
 
-	"github.com/kjsanger/valet/utilities"
+	"github.com/wtsi-npg/valet/utilities"
 )
 
 type FilePredicate func(path FilePath) (bool, error)

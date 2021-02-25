@@ -29,7 +29,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kjsanger/valet/utilities"
+	"github.com/wtsi-npg/valet/utilities"
 )
 
 func TestIsDir(t *testing.T) {

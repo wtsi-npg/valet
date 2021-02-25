@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,13 +32,13 @@ import (
 	"sort"
 	"strings"
 
-	ex "github.com/kjsanger/extendo/v2"
 	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
+	ex "github.com/wtsi-npg/extendo/v2"
 
-	"github.com/kjsanger/valet/utilities"
+	"github.com/wtsi-npg/valet/utilities"
 
-	logs "github.com/kjsanger/logshim"
+	logs "github.com/wtsi-npg/logshim"
 )
 
 // WorkFunc is a worker function used by DoProcessFiles.

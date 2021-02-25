@@ -6,8 +6,8 @@ services:
 language: go
 
 go:
-  - "1.13"
   - "1.14"
+  - "1.15"
 
 _iRODS_4_2_8: &iRODS_4_2_8 DOCKER_IMAGE="wsinpg/ub-18.04-irods-4.2.8:latest" IRODS_VERSION="==4.2.8" BATON_VERSION=">2.0.1"
 
@@ -21,9 +21,9 @@ env:
 
 jobs:
   allow_failures:
-    - go: "1.13"
-      env: *iRODS_4_2_8
     - go: "1.14"
+      env: *iRODS_4_2_8
+    - go: "1.15"
       env: *iRODS_4_2_8
 
 cache:
