@@ -20,7 +20,7 @@ disks filling.
 
 #### Compressing files
 
-Some versions of MinKNOW to do not compress fastq files and no version
+Some versions of MinKNOW do not compress fastq files and no version
 compresses the large sequencing_summary.txt files. `valet` compresses
 some files with gzip.
 
