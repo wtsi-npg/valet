@@ -3,8 +3,8 @@
 ## Overview
 
 `valet` is a utility for performing data management tasks automatically. Once
-started, `valet` will continue working until interrupted by SIGINT (^C) or
-SIGTERM (kill), when it will stop gracefully.
+started, `valet` will continue working until interrupted by `SIGINT` (^C) or
+`SIGTERM` (kill), when it will stop gracefully.
 
 It monitors filesystem events and also performs filesystem walks to ensure that
 tasks are done in a timely fashion.
@@ -20,24 +20,28 @@ disks filling.
 
 #### Compressing files
 
-Some versions of MinKNOW to do not compress fastq files and no version
-compresses the large sequencing_summary.txt files. `valet` compresses both of
-these types with a simple gzip.
+Some versions of MinKNOW do not compress fastq files and no version
+compresses the large sequencing_summary.txt files. `valet` compresses
+some files with gzip.
 
 - File patterns supported
 
-  - *.fastq$
-  - *.txt$
+  - `*.csv`
+  - `*.fastq`
+  - `*.txt`
 
 #### Archiving files
 
 - Files patterns supported
 
-  - *.csv$
-  - *.fast5$
-  - *.gz$
-  - *.md$
-  - *.pdf$
+  - `*.csv`
+  - `*.fast5`
+  - `*.fastq`
+  - `*.gz`
+  - `*.md`
+  - `*.pdf`
+  - `*.tsv`
+  - `*.txt`
 
 #### Creating up-to-date checksum files
 
@@ -55,7 +59,7 @@ it recognises for archiving.
   
   - Checksum file patterns supported
   
-    - (data file name).md5
+    - `<data file name>.md5`
 
 `valet` will monitor a directory hierarchy and locate data files within it that
 have no accompanying checksum file, or have a checksum file that is stale.
@@ -64,7 +68,7 @@ have no accompanying checksum file, or have a checksum file that is stale.
 ### Operation
 
 `valet` is a command-line program with online help. Once launched it will
-continue to run until signalled with SIGINT (^C) or SIGTERM (kill), when it
+continue to run until signalled with `SIGINT` (^C) or `SIGTERM` (kill), when it
 will stop by cancelling the filesystem monitor and waiting for any running jobs
 to exit.
 
@@ -116,16 +120,16 @@ function, or another) from operating on a particular file concurrently.
 
 ### Bugs
 
-- See [GitHub issues](https://github.com/kjsanger/valet/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+- See [GitHub issues](https://github.com/wtsi-npg/valet/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
 
 #### Status
 
-[![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
+[![Build Status](https://travis-ci.com/wtsi-npg/valet.svg?branch=devel)](https://travis-ci.com/wtsi-npg/valet)
 
 #### Dependencies:
 
-https://github.com/kjsanger/extendo
+https://github.com/wtsi-npg/extendo
 
   Versions >= 2.0.0
 

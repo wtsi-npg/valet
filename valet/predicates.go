@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,18 +40,20 @@ const FastqSuffix string = "fastq" // The recognised suffix for fastq files
 const CSVSuffix string = "csv"
 const MarkdownSuffix string = "md"
 const TxtSuffix string = "txt"
+const TsvSuffix string = "tsv"
 const PDFSuffix string = "pdf"
 const MD5Suffix string = "md5" // The recognised suffix for MD5 checksum files
 const GzipSuffix string = "gz"
 
-var fast5Regex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", Fast5Suffix))
-var fastqRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", FastqSuffix))
-var txtRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", TxtSuffix))
-var markdownRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", MarkdownSuffix))
-var pdfRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", PDFSuffix))
-var csvRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", CSVSuffix))
-var gzipRegex = regexp.MustCompile(fmt.Sprintf(".*[.]%s$", GzipSuffix))
-var reportRegex = regexp.MustCompile(fmt.Sprintf("report.*[.]%s$", MarkdownSuffix))
+var fast5Regex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", Fast5Suffix))
+var fastqRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", FastqSuffix))
+var txtRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", TxtSuffix))
+var tsvRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", TsvSuffix))
+var markdownRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", MarkdownSuffix))
+var pdfRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", PDFSuffix))
+var csvRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", CSVSuffix))
+var gzipRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", GzipSuffix))
+var reportRegex = regexp.MustCompile(fmt.Sprintf("(?i)report.*[.]%s$", MarkdownSuffix))
 
 // Matches the run ID of MinKNOW c. August 2019 for GridION and PromethION
 // i.e. of the form:
@@ -64,9 +66,10 @@ var RequiresCopying = Or(
 	IsFast5,
 	And(IsFastq, IsCompressed),
 	And(IsTxt, IsCompressed),
+	And(IsCSV, IsCompressed),
 	IsMarkdown,
 	IsPDF,
-	IsCSV)
+	IsTSV)
 
 // RequiresChecksum returns true if the argument is a regular file that is
 // recognised as a checksum target and either has no checksum file, or has a
@@ -79,7 +82,7 @@ var RequiresChecksum = And(
 var HasValidChecksumFile = Not(HasStaleChecksumFile)
 
 var RequiresCompression = And(
-	Or(IsFastq, IsTxt),
+	Or(IsFastq, IsTxt, IsCSV),
 	Not(IsCompressed),
 	Not(HasCompressedVersion))
 
@@ -171,7 +174,7 @@ func IsTxt(path FilePath) (bool, error) {
 //  IsMarkdown returns true if path matches the recognised markdown file
 //  pattern.
 func IsMarkdown(path FilePath) (bool, error) {
-	return markdownRegex.MatchString(path.Location), nil
+	return markdownRegex.MatchString(path.UncompressedFilename()), nil
 }
 
 // IsPDF returns true if path matches the recognised PDF file pattern.
@@ -181,7 +184,12 @@ func IsPDF(path FilePath) (bool, error) {
 
 // IsCSV returns true if path matches the recognised CSV file pattern.
 func IsCSV(path FilePath) (bool, error) {
-	return csvRegex.MatchString(path.Location), nil
+	return csvRegex.MatchString(path.UncompressedFilename()), nil
+}
+
+// IsTSV returns true if path matches the recognised TSV file pattern.
+func IsTSV(path FilePath) (bool, error) {
+	return tsvRegex.MatchString(path.UncompressedFilename()), nil
 }
 
 // IsCompressed returns true if the path matches the recognised compressed file
