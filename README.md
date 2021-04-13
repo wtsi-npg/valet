@@ -125,7 +125,7 @@ function, or another) from operating on a particular file concurrently.
 
 #### Status
 
-[![Build Status](https://travis-ci.com/wtsi-npg/valet.svg?branch=devel)](https://travis-ci.com/wtsi-npg/valet)
+[![Unit tests](https://github.com/wtsi-npg/valet/actions/workflows/run-tests.yml/badge.svg)](https://github.com/wtsi-npg/valet/actions/workflows/run-tests.yml)
 
 #### Dependencies:
 
