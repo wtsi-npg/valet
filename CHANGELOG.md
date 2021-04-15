@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+## [1.5.0] - 2021-04-15
+
+### Added
+
 - Add Github Actions test workflow
 - Improve recognition of files to be processed and archived
 - Add support for TSV files.
