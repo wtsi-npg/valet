@@ -1,5 +1,5 @@
 VERSION := $(shell git describe --always --tags --dirty)
-ldflags := "-X github.com/kjsanger/valet/valet.Version=${VERSION}"
+ldflags := "-X github.com/wtsi-npg/valet/valet.Version=${VERSION}"
 build_path = "build/valet-${VERSION}"
 
 .PHONY: build coverage dist install lint test check clean
@@ -11,7 +11,7 @@ install:
 
 build:
 	mkdir -p ${build_path}
-	go build -v -ldflags ${ldflags} -o ${build_path}/valet github.com/kjsanger/valet
+	go build -v -ldflags ${ldflags} -o ${build_path}/valet github.com/wtsi-npg/valet
 
 lint:
 	golangci-lint run ./...

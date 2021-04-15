@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,12 +29,12 @@ import (
 	"sync"
 	"time"
 
-	ex "github.com/kjsanger/extendo/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	ex "github.com/wtsi-npg/extendo/v2"
 
-	"github.com/kjsanger/valet/cmd"
-	"github.com/kjsanger/valet/valet"
+	"github.com/wtsi-npg/valet/cmd"
+	"github.com/wtsi-npg/valet/valet"
 )
 
 var _ = Describe("Find directories)", func() {
@@ -111,6 +111,7 @@ var _ = Describe("Find regular files)", func() {
 	When("using a file predicate", func() {
 		It("should find files", func() {
 			expectedPaths := []string{
+				"1/ancillary.csv.gz",
 				"1/reads/fast5/reads1.fast5",
 				"1/reads/fast5/reads1.fast5.md5",
 				"1/reads/fast5/reads2.fast5",
@@ -280,6 +281,7 @@ var _ = Describe("Find files at intervals", func() {
 		dataDir = "testdata/valet"
 
 		expectedPaths = []string{
+			"1/ancillary.csv.gz",
 			"1/reads/fast5/reads1.fast5",
 			"1/reads/fast5/reads1.fast5.md5",
 			"1/reads/fast5/reads2.fast5",
@@ -863,10 +865,12 @@ var _ = Describe("Archive MINKnow files", func() {
 				"DN585561I_A1_sequencing_summary.txt.gz",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
 				"final_summary.txt.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/duty_time.csv",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/duty_time.csv.gz",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.md",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.pdf",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/throughput.csv",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/throughput.csv.gz",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
+				"barcode_alignment_FAL01979_43578c8f.tsv",
 
 			// Fast5 fail
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
@@ -1050,7 +1054,7 @@ var _ = Describe("Archive MINKnow files", func() {
 var _ = Describe("Count files without a checksum", func() {
 	var (
 		numFilesFound    uint64
-		numFilesExpected uint64 = 5 // fast5, fastq.gz and md (reports)
+		numFilesExpected uint64 = 6 // csv, fast5, fastq.gz and md (reports)
 	)
 
 	BeforeEach(func() {

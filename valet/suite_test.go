@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kjsanger/logshim-zerolog/zlog"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/rs/zerolog"
+	"github.com/wtsi-npg/logshim-zerolog/zlog"
 
-	logs "github.com/kjsanger/logshim"
+	logs "github.com/wtsi-npg/logshim"
 )
 
 func TestValet(t *testing.T) {

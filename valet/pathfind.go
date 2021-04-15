@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019, 2020. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"time"
 
-	logs "github.com/kjsanger/logshim"
+	logs "github.com/wtsi-npg/logshim"
 )
 
 const DefaultSweep = 5 * time.Minute

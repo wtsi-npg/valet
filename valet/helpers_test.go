@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,11 +27,11 @@ import (
 	"os"
 	"path/filepath"
 
-	ex "github.com/kjsanger/extendo/v2"
 	. "github.com/onsi/ginkgo"
+	ex "github.com/wtsi-npg/extendo/v2"
 
-	"github.com/kjsanger/valet/utilities"
-	"github.com/kjsanger/valet/valet"
+	"github.com/wtsi-npg/valet/utilities"
+	"github.com/wtsi-npg/valet/valet"
 )
 
 type itemPathTransform func(i []ex.RodsItem) []string

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 package valet
 
-import "github.com/kjsanger/logshim"
+import "github.com/wtsi-npg/logshim"
 
 // MergeFileChannels merges values from its two input channels x and y for as
 // long as at least one of them is open. One both x and y have been closed, the

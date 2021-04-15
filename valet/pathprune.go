@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,19 +23,25 @@ package valet
 import (
 	"path/filepath"
 
-	logs "github.com/kjsanger/logshim"
+	logs "github.com/wtsi-npg/logshim"
 )
 
 // Directory names within the root MinKNOW data directory (typically /data)
 // that we will ignore by default.
 var MinKNOWIgnore = []string{
+	"core-dump-db",
+	"devices",
 	"epi2me_inside",
 	"intermediate",
+	"logs",
+	"lost+found",
+	"network",
 	"npg",
 	"pings",
 	"queued_reads",
 	"reads",
 	"reports",
+	"user_scripts",
 }
 
 // DefaultIgnorePatterns returns glob patterns matching directories in the root

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kjsanger/valet/utilities"
+	"github.com/wtsi-npg/valet/utilities"
 )
 
 func TestIsDir(t *testing.T) {
@@ -99,6 +99,20 @@ func TestIsGzipFastqMatch(t *testing.T) {
 	ok, err = IsFastq(fq)
 	if assert.NoError(t, err) {
 		assert.True(t, ok, "expected true for a gzipped fastq file")
+	}
+}
+
+func TestIsGzipCSVMatch(t *testing.T) {
+	csv, _ := NewFilePath("./testdata/valet/1/ancillarey.csv.gz")
+
+	ok, err := IsCompressed(csv)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a gzipped CSV file")
+	}
+
+	ok, err = IsCSV(csv)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a gzipped CSV file")
 	}
 }
 

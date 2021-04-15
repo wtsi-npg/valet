@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2020, 2021. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@ package valet
 import (
 	"testing"
 
-	ex "github.com/kjsanger/extendo/v2"
 	"github.com/stretchr/testify/assert"
+	ex "github.com/wtsi-npg/extendo/v2"
 )
 
 func TestParsePromethIONReport(t *testing.T) {
