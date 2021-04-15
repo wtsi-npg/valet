@@ -1,6 +1,6 @@
 module github.com/wtsi-npg/valet
 
-go 1.14
+go 1.16
 
 require (
 	github.com/klauspost/compress v1.9.1 // indirect
@@ -11,10 +11,10 @@ require (
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v0.0.7
 	github.com/stretchr/testify v1.7.0
-	github.com/wtsi-npg/extendo/v2 v2.3.0
+	github.com/wtsi-npg/extendo/v2 v2.4.0
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
-	github.com/wtsi-npg/logshim v1.2.0
-	github.com/wtsi-npg/logshim-zerolog v1.2.0
+	github.com/wtsi-npg/logshim v1.3.0
+	github.com/wtsi-npg/logshim-zerolog v1.3.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 )
 
