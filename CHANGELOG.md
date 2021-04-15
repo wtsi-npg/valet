@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - [![Build Status](https://travis-ci.org/kjsanger/valet.svg?branch=devel)](https://travis-ci.org/kjsanger/valet)
+## [Unreleased] - [![Unit tests](https://github.com/wtsi-npg/valet/actions/workflows/run-tests.yml/badge.svg)](https://github.com/wtsi-npg/valet/actions/workflows/run-tests.yml)
 
 ## [1.4.0] - 2020-09-14
 
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bump github.com/kjsanger/extendo from 2.1.0 to 2.2.0
+- Bump github.com/wtsi-npg/extendo from 2.1.0 to 2.2.0
 
 ## [1.3.0] - 2020-06-02
 
@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bump github.com/kjsanger/extendo from 2.0.0 to 2.1.0
+- Bump github.com/wtsi-npg//extendo from 2.0.0 to 2.1.0
 - Bump github.com/stretchr/testify from 1.5.1 to 1.6.0
 - Bump github.com/onsi/ginkgo from 1.12.0 to 1.12.2
 
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improve verbose level logging for consistency and information.
 - Add to default paths to ignore in the data root.
 
-- Bump github.com/kjsanger/extendo from 1.1.0 to 2.0.0
+- Bump github.com/wtsi-npg//extendo from 1.1.0 to 2.0.0
 - Bump github.com/onsi/ginkgo from 1.10.3 to 1.12.0
 - Bump github.com/onsi/gomega from 1.7.1 to 1.9.0
 
@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 
-- Bump github.com/kjsanger/extendo from 1.0.0 to 1.1.0
+- Bump github.com/wtsi-npg//extendo from 1.0.0 to 1.1.0
 - Bump github.com/onsi/gomega from 1.5.0 to 1.7.1
 - Bump github.com/onsi/ginkgo from 1.8.0 to 1.10.3
 - Bump github.com/rs/zerolog from 1.14.3 to 1.17.2
