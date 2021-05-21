@@ -8,23 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Support for BAM files.
+- support for BED files (compressed).
+
 ### Changed
 
 ## [1.5.0] - 2021-04-15
 
 ### Added
 
-- Add Github Actions test workflow
-- Improve recognition of files to be processed and archived
-- Add support for TSV files.
-- Add support for compressing CSV files.
-- Add new all ONT-specific paths to the exclusion list.
+- Github Actions test workflow.
+- Improve recognition of files to be processed and archived.
+- Support for TSV files.
+- Support for compressing CSV files.
+- Add all ONT-specific paths to the exclusion list.
 - Add the /data/laboratory WSI-specific path to the exclusion list.
-- Add iRODS 4.2.8 support
+- iRODS 4.2.8 support.
 
 ### Removed
 
-- Remove iRODS 4.1.12 support
+- RODS 4.1.12 support.
 
 ### Changed
 
@@ -94,12 +97,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Checksum creation improvements using tee'ing to avoid re-reading data.
 - Make the size of the client pool equal to the number of threads.
-- Use pgzip implementation.
 - Gzip compression of fastq and txt files.
 - Enhancements to FilePath for handling compressed files.
 - Find paths immediately, then at intervals.
 
 ## Changed
+
+- Use pgzip implementation.
 
 - Bump github.com/wtsi-npg/extendo from 1.0.0 to 1.1.0
 - Bump github.com/onsi/gomega from 1.5.0 to 1.7.1

@@ -69,6 +69,7 @@ var _ = Describe("Find directories)", func() {
 			".",
 			"1",
 			"1/reads",
+			"1/reads/alignments",
 			"1/reads/fast5",
 			"1/reads/fastq",
 			"testdir",
@@ -111,7 +112,9 @@ var _ = Describe("Find regular files)", func() {
 	When("using a file predicate", func() {
 		It("should find files", func() {
 			expectedPaths := []string{
+				"1/adaptive_sampling_roi1.bed",
 				"1/ancillary.csv.gz",
+				"1/reads/alignments/alignments1.bam",
 				"1/reads/fast5/reads1.fast5",
 				"1/reads/fast5/reads1.fast5.md5",
 				"1/reads/fast5/reads2.fast5",
@@ -281,7 +284,9 @@ var _ = Describe("Find files at intervals", func() {
 		dataDir = "testdata/valet"
 
 		expectedPaths = []string{
+			"1/adaptive_sampling_roi1.bed",
 			"1/ancillary.csv.gz",
+			"1/reads/alignments/alignments1.bam",
 			"1/reads/fast5/reads1.fast5",
 			"1/reads/fast5/reads1.fast5.md5",
 			"1/reads/fast5/reads2.fast5",
@@ -1052,9 +1057,24 @@ var _ = Describe("Archive MINKnow files", func() {
 })
 
 var _ = Describe("Count files without a checksum", func() {
+	// We expect checksums for files that either don't need to be compressed, or
+	// do need to be compressed and have been e.g. bam, csv.gz, fast5, fastq.gz
+	// and md (reports).
+	//
+	// We don't expect checksums for files that need to be compressed and
+	// haven't been e.g. fastq. Ideally we would also checksum the uncompressed
+	// data.
+	//
+	// iRODS doesn't support this (it will calculate a checksum of the
+	// compressed file once uploaded, but has no specific place for an original
+	// checksum. We could add an original checksum to the file metadata.
+	// However, we're already adding the compressed file checksum there (because
+	// iRODS has a history of checksum-related bugs) and it would be potentially
+	// confusing for customers.
+
 	var (
 		numFilesFound    uint64
-		numFilesExpected uint64 = 6 // csv, fast5, fastq.gz and md (reports)
+		numFilesExpected uint64 = 7
 	)
 
 	BeforeEach(func() {
