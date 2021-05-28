@@ -88,6 +88,34 @@ func TestIsFastqMatch(t *testing.T) {
 	}
 }
 
+func TestIsBAMMatch(t *testing.T) {
+	bam, _ := NewFilePath("./testdata/valet/1/reads/alignments/alignments1.bam")
+	ok, err := IsBAM(bam)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a BAM file")
+	}
+
+	f5, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
+	ok, err = IsBAM(f5)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a non-BAM file")
+	}
+}
+
+func TestIsBEDMatch(t *testing.T) {
+	bed, _ := NewFilePath("./testdata/valet/1/adaptive_sampling_roi1.bed")
+	ok, err := IsBED(bed)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a BED file")
+	}
+
+	f5, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
+	ok, err = IsBED(f5)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a non-BED file")
+	}
+}
+
 func TestIsGzipFastqMatch(t *testing.T) {
 	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads2.fastq.gz")
 
