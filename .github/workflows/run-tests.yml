@@ -21,10 +21,14 @@ jobs:
         baton: [ "2.1.0" ]
         experimental: [false]
         include:
-          - irods: "4.2.7"
+          - go: "1.16"
+            baton: "2.1.0"
+            irods: "4.2.7"
             server_image: "wsinpg/ub-16.04-irods-4.2.7:latest"
             experimental: false
-          - irods: "4.2.8"
+          - go: "1.16"
+            baton: "3.0.0"
+            irods: "4.2.8"
             server_image: "wsinpg/ub-18.04-irods-4.2.8:latest"
             experimental: true
 
