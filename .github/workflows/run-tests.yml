@@ -17,16 +17,19 @@ jobs:
 
     strategy:
       matrix:
-        go: [ "1.16" ]
-        baton: [ "2.1.0" ]
-        experimental: [false]
         include:
-          - irods: "4.2.7"
+          # iRODS 4.2.10 clients vs 4.2.7 server
+          - go: "1.16"
+            irods: "4.2.10"
             server_image: "wsinpg/ub-16.04-irods-4.2.7:latest"
+            baton: "3.1.0"
             experimental: false
-          - irods: "4.2.8"
-            server_image: "wsinpg/ub-18.04-irods-4.2.8:latest"
-            experimental: true
+          # iRODS 4.2.10 clients vs 4.2.10 server
+          - go: "1.16"
+            irods: "4.2.10"
+            server_image: "wsinpg/ub-18.04-irods-4.2.10:latest"
+            baton: "3.1.0"
+            experimental: false
 
     services:
       irods:
@@ -53,14 +56,13 @@ jobs:
 
         conda config --set auto_update_conda False
         conda config --prepend channels "$WSI_CONDA_CHANNEL"
-        conda config --append channels conda-forge
         conda info
 
     - name: "Install iRODS clients"
       run: |
         conda create -y -n "$CONDA_TEST_ENVIRONMENT"
-        conda install -y -n "$CONDA_TEST_ENVIRONMENT" "irods-icommands ==${{ matrix.irods }}"
-        conda install -y -n "$CONDA_TEST_ENVIRONMENT" "baton ==${{ matrix.baton }}"
+        conda install -y -n "$CONDA_TEST_ENVIRONMENT" "irods-icommands=${{ matrix.irods }}"
+        conda install -y -n "$CONDA_TEST_ENVIRONMENT" "baton=${{ matrix.baton }}"
 
     - name: "Configure iRODS clients"
       run: |
@@ -74,7 +76,7 @@ jobs:
             "irods_user_name": "irods",
             "irods_zone_name": "testZone",
             "irods_home": "/testZone/home/irods",
-            "irods_default_resource": "testResc"
+            "irods_default_resource": "replResc"
         }
         EOF
 
