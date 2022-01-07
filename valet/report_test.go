@@ -29,22 +29,6 @@ import (
 	ex "github.com/wtsi-npg/extendo/v2"
 )
 
-func TestParsePromethIONBetaReport(t *testing.T) {
-	path := "./testdata/valet/report_PAE48813_20200130_0940_16917585.md"
-	report, err := ParseMinKNOWReport(path)
-	if assert.NoError(t, err) {
-		assert.Equal(t, "2-E1-H1", report.DeviceID)
-		assert.Equal(t, "promethion", report.DeviceType)
-		assert.Equal(t, "19.12.5", report.DistributionVersion)
-		assert.Equal(t, "PAE48813", report.FlowcellID)
-		assert.Equal(t, "3.2.8+bd67289", report.GuppyVersion)
-		assert.Equal(t, "PCT0016", report.Hostname)
-		assert.Equal(t, "mMelMel3", report.ProtocolGroupID)
-		assert.Equal(t, "52a0d863bccd1d78530c425e8077150d5391fc34", report.RunID)
-		assert.Equal(t, "mMelMel3", report.SampleID)
-	}
-}
-
 func TestParsePromethION24Report(t *testing.T) {
 	path := "./testdata/valet/report_PAH48449_20211215_1420_227842f4.md"
 	report, err := ParseMinKNOWReport(path)
@@ -73,28 +57,6 @@ func TestParseGridIONReport(t *testing.T) {
 		assert.Equal(t, "85", report.ProtocolGroupID)
 		assert.Equal(t, "5531cbcf622d2d98dbff00af0261c6f19f91340f", report.RunID)
 		assert.Equal(t, "DN615089W_B1", report.SampleID)
-	}
-}
-
-func TestEnhancedPromethIONBetaMetadata(t *testing.T) {
-	path := "./testdata/valet/report_PAE48813_20200130_0940_16917585.md"
-	report, _ := ParseMinKNOWReport(path)
-	metadata, err := report.AsEnhancedMetadata()
-	if assert.NoError(t, err) {
-		expected := []ex.AVU{
-			{Attr: "ont:device_id", Value: "2-E1-H1"},
-			{Attr: "ont:device_type", Value: "promethion"},
-			{Attr: "ont:distribution_version", Value: "19.12.5"},
-			{Attr: "ont:flowcell_id", Value: "PAE48813"},
-			{Attr: "ont:guppy_version", Value: "3.2.8+bd67289"},
-			{Attr: "ont:hostname", Value: "PCT0016"},
-			{Attr: "ont:protocol_group_id", Value: "mMelMel3"},
-			{Attr: "ont:run_id", Value: "52a0d863bccd1d78530c425e8077150d5391fc34"},
-			{Attr: "ont:sample_id", Value: "mMelMel3"},
-			// {Attr:"ont:instrument_slot", Value:"2"} TODO: slot not yet supported
-			{Attr: "ont:experiment_name", Value: "mMelMel3"}}
-
-		assert.ElementsMatch(t, expected, metadata)
 	}
 }
 
