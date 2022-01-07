@@ -126,6 +126,12 @@ var _ = Describe("Find regular files)", func() {
 				"1/reads/fastq/reads3.fastq",
 				"report_ABQ808_20200204_1257_e2e93dd1.md",
 				"report_PAE48813_20200130_0940_16917585.md",
+				"report_PAH48449_20211215_1420_227842f4.md",
+				"report_PAH48449_20211215_1445_f5d8e5aa.md",
+				"report_PAH48449_20211215_1509_e045091f.md",
+				"report_PAH48449_20211215_1532_2a0a5bc7.md",
+				"report_PAH48449_20211215_1553_3720e75e.md",
+				"report_PAH48449_20211215_1617_fa1a14d5.md",
 				"testdir/.gitignore",
 			}
 			Expect(foundFiles).To(WithTransform(pathTransform,
@@ -1074,7 +1080,7 @@ var _ = Describe("Count files without a checksum", func() {
 
 	var (
 		numFilesFound    uint64
-		numFilesExpected uint64 = 7
+		numFilesExpected uint64 = 13
 	)
 
 	BeforeEach(func() {
