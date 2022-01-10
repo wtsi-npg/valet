@@ -8,10 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+## [1.6.0] - 2022-01-10
+
+### Added
+
+- Support for adding iRODS metadata for PromethION-24 runs.
 - Support for BAM files.
 - support for BED files (compressed).
+- iRODS 4.2.10 support.
 
 ### Changed
+
+- Build with Go.1.17
+
+- Bump github.com/rs/zerolog from 1.21.0 to 1.26.1
+- Bump github.com/onsi/ginkgo from 1.16.2 to 1.16.5
+- Bump github.com/onsi/gomega from 1.11.0 to 1.17.0
+- Bump github.com/spf13/cobra from 0.0.7 to 1.3.0
+
+### Removed
+
+- Travis CI configuration.
+- PromethION beta report parsing tests and unused test data.
 
 ## [1.5.0] - 2021-04-15
 
