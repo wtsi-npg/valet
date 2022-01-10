@@ -8,17 +8,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add Github Actions test workflow
-- Improve recognition of files to be processed and archived
-- Add support for TSV files.
-- Add support for compressing CSV files.
-- Add new all ONT-specific paths to the exclusion list.
-- Add the /data/laboratory WSI-specific path to the exclusion list.
-- Add iRODS 4.2.8 support
+### Changed
+
+## [1.6.0] - 2022-01-10
+
+### Added
+
+- Support for adding iRODS metadata for PromethION-24 runs.
+- Support for BAM files.
+- support for BED files (compressed).
+- iRODS 4.2.10 support.
+
+### Changed
+
+- Build with Go.1.17
+
+- Bump github.com/rs/zerolog from 1.21.0 to 1.26.1
+- Bump github.com/onsi/ginkgo from 1.16.2 to 1.16.5
+- Bump github.com/onsi/gomega from 1.11.0 to 1.17.0
+- Bump github.com/spf13/cobra from 0.0.7 to 1.3.0
 
 ### Removed
 
-- Remove iRODS 4.1.12 support
+- Travis CI configuration.
+- PromethION beta report parsing tests and unused test data.
+
+## [1.5.0] - 2021-04-15
+
+### Added
+
+- Github Actions test workflow.
+- Improve recognition of files to be processed and archived.
+- Support for TSV files.
+- Support for compressing CSV files.
+- Add all ONT-specific paths to the exclusion list.
+- Add the /data/laboratory WSI-specific path to the exclusion list.
+- iRODS 4.2.8 support.
+
+### Removed
+
+- RODS 4.1.12 support.
 
 ### Changed
 
@@ -88,12 +117,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Checksum creation improvements using tee'ing to avoid re-reading data.
 - Make the size of the client pool equal to the number of threads.
-- Use pgzip implementation.
 - Gzip compression of fastq and txt files.
 - Enhancements to FilePath for handling compressed files.
 - Find paths immediately, then at intervals.
 
 ## Changed
+
+- Use pgzip implementation.
 
 - Bump github.com/wtsi-npg/extendo from 1.0.0 to 1.1.0
 - Bump github.com/onsi/gomega from 1.5.0 to 1.7.1
