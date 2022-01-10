@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -47,6 +48,33 @@ type MinKNOWReport struct {
 }
 
 var gridionDeviceIDRegex = regexp.MustCompile(`^(?:GA|X)(\d)`)
+
+var promethion24DeviceIDMap = map[string]int{
+	"1A": 1,
+	"1B": 2,
+	"1C": 3,
+	"1D": 4,
+	"1E": 5,
+	"1F": 6,
+	"1G": 7,
+	"1H": 8,
+	"2A": 9,
+	"2B": 10,
+	"2C": 11,
+	"2D": 12,
+	"2E": 13,
+	"2F": 14,
+	"2G": 15,
+	"2H": 16,
+	"3A": 17,
+	"3B": 18,
+	"3C": 19,
+	"3D": 20,
+	"3E": 21,
+	"3F": 22,
+	"3G": 23,
+	"3H": 24,
+}
 
 // ParseMinKNOWReport parses a file at path and extracts MinKNOW run metadata
 // from it.
@@ -115,8 +143,11 @@ func (report MinKNOWReport) AsMetadata() []ex.AVU {
 // The value is added under the attribute 'instrument_slot'
 //
 // Slot positions are more complex for the PromethION as they are arranged in a
-// grid and therefore have an X and Y position. We have not decided how to
-// convert the position into a slot value.
+// grid and therefore have an X and Y position. The PromethION beta and
+// PromethION-24 have different nomenclature.
+//
+// For the PromethION-24 we are following the column-major order used by ONT's
+// MinKNOW API i.e. 1A - 1H, 2A - 2H, 3A - 3H.
 //
 func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
 	avus := report.AsMetadata()
@@ -133,7 +164,21 @@ func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
 			WithNamespace(OxfordNanoporeNamespace)
 		avus = append(avus, slot)
 	}
-	expt := ex.AVU{Attr:"experiment_name", Value: report.ProtocolGroupID}.
+
+	if report.DeviceType == "promethion" {
+		deviceID := report.DeviceID
+		id, ok := promethion24DeviceIDMap[deviceID]
+		if !ok {
+			return avus, errors.Errorf("Failed to parse device ID '%s'",
+				deviceID)
+		}
+
+		slot := ex.AVU{Attr: "instrument_slot", Value: strconv.Itoa(id)}.
+			WithNamespace(OxfordNanoporeNamespace)
+		avus = append(avus, slot)
+	}
+
+	expt := ex.AVU{Attr: "experiment_name", Value: report.ProtocolGroupID}.
 		WithNamespace(OxfordNanoporeNamespace)
 
 	avus = append(avus, expt)
