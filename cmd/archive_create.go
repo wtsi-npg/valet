@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +23,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -33,13 +35,13 @@ import (
 	"github.com/wtsi-npg/valet/valet"
 )
 
-
 type archiveParams struct {
-	deleteLocal bool
-	dryRun      bool
-	exclude     []string
-	interval    time.Duration
-	maxProc     int
+	deleteLocal   bool
+	dryRun        bool
+	exclude       []string
+	sweepInterval time.Duration
+	maxProc       int
+	cleanupDelay  time.Duration
 }
 
 var archCreateFlags = &dataDirCliFlags{}
@@ -107,8 +109,9 @@ func init() {
 	}
 
 	archiveCreateCmd.Flags().DurationVarP(&archCreateFlags.sweepInterval,
-		"interval", "i", valet.DefaultSweep,
-		"directory sweep interval, minimum 30s")
+		"interval", "i", valet.DefaultSweepInterval,
+		fmt.Sprintf("directory sweep interval, minimum %s",
+			valet.MinSweepInterval))
 
 	archiveCreateCmd.Flags().BoolVar(&baseFlags.dryRun,
 		"dry-run", false,
@@ -123,15 +126,26 @@ func init() {
 		"delete-on-archive", false,
 		"delete local files on successful archiving")
 
+	archiveCreateCmd.Flags().DurationVar(&archCreateFlags.cleanupDelay,
+		"cleanup", valet.DefaultCleanupDelay,
+		fmt.Sprintf("run directory cleanup delay, minimum %s",
+			valet.MinCleanupDelay))
+
 	archiveCmd.AddCommand(archiveCreateCmd)
 }
 
 func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 	log := setupLogger(baseFlags)
 
-	if archCreateFlags.sweepInterval < valet.MinSweep {
-		log.Error().Msgf("invalid interval %s (must be > %s)",
-			archCreateFlags.sweepInterval, valet.MinSweep)
+	if archCreateFlags.sweepInterval < valet.MinSweepInterval {
+		log.Error().Msgf("invalid sweep interval %s (must be > %s)",
+			archCreateFlags.sweepInterval, valet.MinSweepInterval)
+		os.Exit(1)
+	}
+
+	if archCreateFlags.cleanupDelay < valet.MinCleanupDelay {
+		log.Error().Msgf("invalid cleanup delay %s (must be > %s)",
+			archCreateFlags.cleanupDelay, valet.MinCleanupDelay)
 		os.Exit(1)
 	}
 
@@ -139,12 +153,13 @@ func runArchiveCreateCmd(cmd *cobra.Command, args []string) {
 		archCreateFlags.localRoot,
 		archCreateFlags.archiveRoot,
 		archiveParams{
-			dryRun:      baseFlags.dryRun,
-			maxProc:     baseFlags.maxProc,
-			exclude:     archiveExcludeDirs(archCreateFlags.localRoot, archCreateFlags),
-			interval:    archCreateFlags.sweepInterval,
-			deleteLocal: archCreateFlags.deleteLocal,
-	})
+			dryRun:        baseFlags.dryRun,
+			maxProc:       baseFlags.maxProc,
+			exclude:       archiveExcludeDirs(archCreateFlags.localRoot, archCreateFlags),
+			sweepInterval: archCreateFlags.sweepInterval,
+			deleteLocal:   archCreateFlags.deleteLocal,
+			cleanupDelay:  archCreateFlags.cleanupDelay,
+		})
 
 	if err != nil {
 		log.Error().Err(err).Msg("archive creation failed")
@@ -172,6 +187,8 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 		os.Exit(1)
 	}
 
+	userCleanupFn := valet.MakeRequiresRemoval(params.cleanupDelay)
+
 	poolParams := ex.DefaultClientPoolParams
 	clientPool := ex.NewClientPool(poolParams, "--silent")
 
@@ -180,15 +197,16 @@ func CreateArchive(root string, archiveRoot string, params archiveParams) error 
 		workPlan = valet.DryRunWorkPlan()
 	} else {
 		workPlan = valet.ArchiveFilesWorkPlan(root, archiveRoot, clientPool,
-			params.deleteLocal)
+			params.deleteLocal, params.cleanupDelay)
 	}
 
 	return valet.ProcessFiles(cancelCtx, valet.ProcessParams{
-		Root:          root,
-		MatchFunc:     valet.Or(valet.RequiresCompression, valet.RequiresCopying),
+		Root: root,
+		MatchFunc: valet.Or(valet.RequiresCompression,
+			valet.RequiresCopying, userCleanupFn),
 		PruneFunc:     valet.Or(userPruneFn, defaultPruneFn),
 		Plan:          workPlan,
-		SweepInterval: params.interval,
+		SweepInterval: params.sweepInterval,
 		MaxProc:       params.maxProc,
 	})
 }

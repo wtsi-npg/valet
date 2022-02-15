@@ -74,7 +74,7 @@ func init() {
 	}
 
 	checksumCreateCmd.Flags().DurationVarP(&checksumFlags.sweepInterval,
-		"interval", "i", valet.DefaultSweep,
+		"sweepInterval", "i", valet.DefaultSweepInterval,
 		"directory sweep interval, minimum 30s")
 
 	checksumCreateCmd.Flags().BoolVar(&baseFlags.dryRun,
@@ -92,9 +92,9 @@ func init() {
 func runChecksumCreateCmd(cmd *cobra.Command, args []string) {
 	log := setupLogger(baseFlags)
 
-	if checksumFlags.sweepInterval < valet.MinSweep {
-		log.Error().Msgf("Invalid interval %s (must be > %s)",
-			checksumFlags.sweepInterval, valet.MinSweep)
+	if checksumFlags.sweepInterval < valet.MinSweepInterval {
+		log.Error().Msgf("Invalid sweep interval %s (must be > %s)",
+			checksumFlags.sweepInterval, valet.MinSweepInterval)
 		os.Exit(1)
 	}
 
