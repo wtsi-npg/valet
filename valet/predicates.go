@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/pkg/errors"
 	ex "github.com/wtsi-npg/extendo/v2"
@@ -37,8 +39,8 @@ type FilePredicate func(path FilePath) (bool, error)
 
 const Fast5Suffix string = "fast5"
 const FastqSuffix string = "fastq"
-const BAMSuffix string ="bam"
-const BEDSuffix string ="bed"
+const BAMSuffix string = "bam"
+const BEDSuffix string = "bed"
 const CSVSuffix string = "csv"
 const MarkdownSuffix string = "md"
 const TxtSuffix string = "txt"
@@ -277,7 +279,7 @@ func HasStaleChecksumFile(path FilePath) (bool, error) {
 	return false, nil
 }
 
-// IsMinKNOWRunID returns true if name is in the form of a MinNKOW run
+// IsMinKNOWRunID returns true if name is in the form of a MinKNOW run
 // identifier (matches MinKNOWRunIDRegex).
 func IsMinKNOWRunID(name string) bool {
 	return MinKNOWRunIDRegex.MatchString(name)
@@ -287,14 +289,32 @@ func IsMinKNOWRunID(name string) bool {
 // of directory is located two levels down from the data directory, within an
 // experiment and a sample directory and its name is a MinKNOW run identifier.
 func IsMinKNOWRunDir(path FilePath) (bool, error) {
-	return IsMinKNOWRunID(filepath.Base(path.Location)), nil
+	if path.Info.IsDir() {
+		return IsMinKNOWRunID(filepath.Base(path.Location)), nil
+	}
+	return false, nil
 }
 
-// IsMinKNOWReport returns true if path is a MinNKNOW run report file. This
+// IsMinKNOWReport returns true if path is a MinKNOW run report file. This
 // file is Markdown that contains a section of JSON metadata describing details
 // of the run.
 func IsMinKNOWReport(path FilePath) (bool, error) {
 	return reportRegex.MatchString(path.Location), nil
+}
+
+// MakeIsOlderThan returns a predicate that will return true if its argument is
+// older than the specified duration.
+func MakeIsOlderThan(duration time.Duration) FilePredicate {
+	return func(path FilePath) (bool, error) {
+		return time.Now().Sub(path.Info.ModTime()) > duration, nil
+	}
+}
+
+// MakeRequiresRemoval returns a predicate that will return true if its argument
+// is a run directory that may be removed because it is older than the specified
+// duration.
+func MakeRequiresRemoval(duration time.Duration) FilePredicate {
+	return And(IsMinKNOWRunDir, MakeIsOlderThan(duration))
 }
 
 // MakeIsCopied returns a predicate that will return true if its argument has

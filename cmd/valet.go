@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,6 +56,7 @@ type dataDirCliFlags struct {
 	excludeDirs   []string      // Directories to exclude from monitoring
 	localRoot     string        // The root directory to monitor
 	sweepInterval time.Duration // The interval at which to perform sweeps
+	cleanupDelay  time.Duration // The delay after which empty run directories are removed
 }
 
 type dataFileCliFlags struct {

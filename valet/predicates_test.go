@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021, 2022. Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -255,29 +255,39 @@ func TestHasStaleChecksumFile(t *testing.T) {
 }
 
 func TestIsMinKNOWRunDir(t *testing.T) {
-	gridionRunDirs := []string{
+	gridionRunDir :=
 		"testdata/platform/ont/minknow/gridion/66/DN585561I_A1/" +
-			"20190904_1514_GA20000_FAL01979_43578c8f",
-		"testdata/platform/ont/minknow/gridion/66/DN585561I_B1/" +
-			"20190904_1514_GA30000_FAL09731_2f0f08bc",
-	}
-
-	promethionDirs := []string{
+			"20190904_1514_GA20000_FAL01979_43578c8f"
+	promethionDir :=
 		"testdata/platform/ont/minknow/promethion/DN467851H_Multiplex_Pool_1/" +
-			"DN467851H_B2_C2_E2_F2/20190820_1538_2-E7-H7_PAD71219_a4a384ec",
-		"testdata/platform/ont/minknow/promethion/DN467851H_Multiplex_Pool_2/" +
-			"DN467851H_A3_F3_G3_H3/20190821_1545_1-A1-D1_PAD73195_440ab859",
-	}
+			"DN467851H_B2_C2_E2_F2/20190820_1538_2-E7-H7_PAD71219_a4a384ec"
 
 	var allRunDirs []string
-	allRunDirs = append(allRunDirs, gridionRunDirs...)
-	allRunDirs = append(allRunDirs, promethionDirs...)
+	allRunDirs = append(allRunDirs, gridionRunDir, promethionDir)
 
 	for _, dir := range allRunDirs {
-		fp, _ := NewFilePath(dir)
-		ok, err := IsMinKNOWRunDir(fp)
+		fp, nerr := NewFilePath(dir)
+		if assert.NoError(t, nerr) {
+			ok, err := IsMinKNOWRunDir(fp)
+			if assert.NoError(t, err) {
+				assert.True(t, ok, "expected %s to be a MinKNOW run directory", dir)
+			}
+		}
+	}
+}
+
+func TestRequiresRemoval(t *testing.T) {
+	pred := MakeRequiresRemoval(time.Millisecond * 100)
+
+	gridionRunDir :=
+		"testdata/platform/ont/minknow/gridion/66/DN585561I_A1/" +
+			"20190904_1514_GA20000_FAL01979_43578c8f"
+
+	fp, nerr := NewFilePath(gridionRunDir)
+	if assert.NoError(t, nerr) {
+		ok, err := pred(fp)
 		if assert.NoError(t, err) {
-			assert.True(t, ok, "expected %s to be a GridION run directory", dir)
+			assert.True(t, ok, "expected GridION run directory to be removable")
 		}
 	}
 }

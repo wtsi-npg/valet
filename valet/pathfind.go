@@ -29,8 +29,11 @@ import (
 	logs "github.com/wtsi-npg/logshim"
 )
 
-const DefaultSweep = 5 * time.Minute
-const MinSweep = 30 * time.Second
+const DefaultSweepInterval = 5 * time.Minute
+const MinSweepInterval = 30 * time.Second
+
+const DefaultCleanupDelay = 14 * 24 * time.Hour
+const MinCleanupDelay = 60 * time.Second
 
 // FindFiles walks the directory tree under root recursively, except into
 // directories where pruneFn returns filepath.SkipDir, which prunes the

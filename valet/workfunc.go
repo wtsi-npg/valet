@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +32,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
@@ -45,8 +47,8 @@ import (
 type WorkFunc func(path FilePath) error
 
 // Work describes a function to be executed and the rank of the execution. When
-// there is a choice of Work to be executed, Work with a smallest Rank value
-// (i.e. highest rank) is performed first. In the case of a tie, either Work
+// there is a choice of Work to be executed, Work with the smallest Rank value
+// (i.e. the highest rank) is performed first. In the case of a tie, either Work
 // may be selected for execution.
 type Work struct {
 	WorkFunc WorkFunc // A WorkFunc to execute
@@ -150,6 +152,17 @@ func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 		workDoc: "Count File"}}
 }
 
+// RemoveDirectoryWorkPlan removes empty work directories that are older than
+// the specified duration.
+func RemoveDirectoryWorkPlan(duration time.Duration) WorkPlan {
+	return []WorkMatch{{
+		pred:    MakeRequiresRemoval(duration),
+		predDoc: "Requires Removal",
+		work:    Work{WorkFunc: RemoveDirectory},
+		workDoc: "Remove Old Run Folder",
+	}}
+}
+
 // ArchiveFilesWorkPlan copies files and metadata to iRODS via the following
 // steps:
 //
@@ -163,8 +176,9 @@ func ChecksumStateWorkPlan(countFunc WorkFunc) WorkPlan {
 // 5. Uncompressed copies of local compressed files are removed
 // 6. Successfully archived local files are removed
 // 7. Redundant local checksum files are removed
+// 8. Empty run directories are removed, after a delay
 func ArchiveFilesWorkPlan(localBase string, remoteBase string,
-	cPool *ex.ClientPool, deleteLocal bool) WorkPlan {
+	cPool *ex.ClientPool, deleteLocal bool, cleanup time.Duration) WorkPlan {
 
 	copyFile := MakeCopier(localBase, remoteBase, cPool)
 	isCopied := MakeIsCopied(localBase, remoteBase, cPool)
@@ -183,6 +197,8 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 	hasRedundantChecksumFile := Or(
 		And(Not(RequiresCopying), HasChecksumFile), // E.g. fastq
 		And(RequiresCopying, isCopied, HasChecksumFile))
+
+	requiresRemoval := MakeRequiresRemoval(cleanup)
 
 	// Currently the entire processing pipeline is launched with a single
 	// WorkPlan as a parameter. All files passing the filters are operated on
@@ -235,10 +251,16 @@ func ArchiveFilesWorkPlan(localBase string, remoteBase string,
 				// A checksum file for a file that has been archived
 				// successfully or a file that is not to be being archived can
 				// be cleaned up.
-				pred: hasRedundantChecksumFile,
+				pred:    hasRedundantChecksumFile,
 				predDoc: "Has Local Checksum File No Longer Needed",
 				work:    Work{WorkFunc: RemoveMD5ChecksumFile, Rank: 7},
 				workDoc: "Remove Local MD5 Checksum File",
+			},
+			WorkMatch{
+				pred:    requiresRemoval,
+				predDoc: "Requires Removal",
+				work:    Work{WorkFunc: RemoveDirectory, Rank: 8},
+				workDoc: "Remove Old Run Directory",
 			})
 	}
 
@@ -583,6 +605,7 @@ func MakeAnnotator(localBase string, remoteBase string,
 	}
 }
 
+// RemoveFile removes the specified file.
 func RemoveFile(path FilePath) error {
 	log := logs.GetLogger()
 
@@ -596,6 +619,52 @@ func RemoveFile(path FilePath) error {
 	}
 
 	return err
+}
+
+// RemoveDirectory removes directories under a root, recursively. It skips any
+// that contain files, or whose descendants contain files.
+func RemoveDirectory(path FilePath) error {
+	log := logs.GetLogger()
+	log.Info().Str("path", path.Location).Msg("safe deleting recursively")
+
+	if !path.Info.IsDir() {
+		return errors.Errorf("Failed to remove %s as it is not a directory",
+			path.Location)
+	}
+
+	safeRemoveDir := func(p string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			return nil
+		}
+
+		contents, err := os.ReadDir(p)
+		if err != nil {
+			return err
+		}
+
+		for _, e := range contents {
+			if !e.IsDir() {
+				log.Warn().
+					Str("path", p).
+					Msgf("file remains in run directory: %s", e.Name())
+			}
+		}
+
+		if len(contents) != 0 {
+			return nil
+		}
+
+		err = os.Remove(p)
+		if os.IsNotExist(err) {
+			log.Warn().Str("path", p).
+				Msg("had gone before deletion")
+			return nil
+		}
+
+		return err
+	}
+
+	return filepath.Walk(path.Location, safeRemoveDir)
 }
 
 // makeWork accepts a candidate FilePath and a WorkPlan and returns Work

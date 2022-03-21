@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -849,7 +850,7 @@ var _ = Describe("IsAnnotated", func() {
 	})
 })
 
-var _ = Describe("Archive MINKnow files", func() {
+var _ = Describe("Archive MinKNOW files", func() {
 	var (
 		workColl     string
 		tmpDir       string
@@ -946,13 +947,14 @@ var _ = Describe("Archive MINKnow files", func() {
 		Expect(cerr).NotTo(HaveOccurred())
 
 		cancelCtx, cancel := context.WithCancel(context.Background())
-		sweepInterval := 10 * time.Second
+		interval := 10 * time.Second
 
 		poolParams := ex.DefaultClientPoolParams
 		poolParams.MaxSize = 6
 		poolParams.GetTimeout = time.Second
 		clientPool = ex.NewClientPool(poolParams)
 		deleteLocal := true
+		cleanup := 1 * time.Hour
 
 		defaultPruneFn, err := valet.MakeDefaultPruneFunc(tmpDir)
 		Expect(err).NotTo(HaveOccurred())
@@ -965,7 +967,7 @@ var _ = Describe("Archive MINKnow files", func() {
 
 		go func() {
 			plan := valet.ArchiveFilesWorkPlan(tmpDir, workColl,
-				clientPool, deleteLocal)
+				clientPool, deleteLocal, cleanup)
 
 			matchFn := valet.Or(
 				valet.RequiresCopying,
@@ -976,7 +978,7 @@ var _ = Describe("Archive MINKnow files", func() {
 				MatchFunc:     matchFn,
 				PruneFunc:     defaultPruneFn,
 				Plan:          plan,
-				SweepInterval: sweepInterval,
+				SweepInterval: interval,
 				MaxProc:       4,
 			})
 		}()
@@ -1062,18 +1064,160 @@ var _ = Describe("Archive MINKnow files", func() {
 	})
 })
 
+var _ = Describe("Remove empty run directories after a delay", func() {
+	var (
+		tmpDir string
+		runDir string
+
+		// Remove any work directory more than 100 ms old
+		olderThan100ms = valet.RemoveDirectoryWorkPlan(time.Millisecond * 100)
+	)
+
+	BeforeEach(func() {
+		td, terr := ioutil.TempDir("", "ValetTests")
+		Expect(terr).NotTo(HaveOccurred())
+		tmpDir = td
+
+		runDir = filepath.Join(tmpDir, "66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f")
+		merr := os.MkdirAll(runDir, 0700)
+		Expect(merr).NotTo(HaveOccurred())
+
+		subDirs := []string{
+			"fast5_pass", "fast5_fail", "fastq_pass", "fastq_fail"}
+		for _, d := range subDirs {
+			err := os.Mkdir(filepath.Join(runDir, d), 0700)
+			Expect(err).NotTo(HaveOccurred())
+		}
+	})
+
+	AfterEach(func() {
+		err := os.RemoveAll(tmpDir)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	When("its descendants contain files", func() {
+		var f5File string
+
+		BeforeEach(func() {
+			f5Dir := filepath.Join(runDir, "fast5_pass")
+			f5File = filepath.Join(f5Dir, "test.fast5")
+			f, err := os.Create(f5File)
+			defer f.Close()
+			Expect(err).NotTo(HaveOccurred())
+
+			cancelCtx, cancel := context.WithCancel(context.Background())
+			interval := 500 * time.Millisecond
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			perr := make(chan error, 1)
+
+			go func() {
+				perr <- valet.ProcessFiles(cancelCtx, valet.ProcessParams{
+					Root:          tmpDir,
+					MatchFunc:     valet.IsDir,
+					PruneFunc:     valet.IsFalse,
+					Plan:          olderThan100ms,
+					SweepInterval: interval,
+					MaxProc:       1,
+				})
+			}()
+
+			timeout := time.After(5 * interval)
+
+			go func() {
+				defer wg.Done()
+				defer cancel()
+
+				for {
+					select {
+					case <-timeout:
+						return
+					default:
+						if _, err := os.Stat(runDir); err != nil {
+							if os.IsNotExist(err) {
+								return
+							}
+						}
+					}
+				}
+			}()
+
+			wg.Wait()
+
+			Expect(<-perr).NotTo(HaveOccurred())
+		})
+		It("is not removed", func() {
+			Expect(runDir).To(BeADirectory())
+			Expect(f5File).To(BeAnExistingFile())
+		})
+	})
+
+	When("its descendants contain no files", func() {
+		BeforeEach(func() {
+			cancelCtx, cancel := context.WithCancel(context.Background())
+			interval := 500 * time.Millisecond
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			perr := make(chan error, 1)
+
+			go func() {
+				perr <- valet.ProcessFiles(cancelCtx, valet.ProcessParams{
+					Root:          tmpDir,
+					MatchFunc:     valet.IsDir,
+					PruneFunc:     valet.IsFalse,
+					Plan:          olderThan100ms,
+					SweepInterval: interval,
+					MaxProc:       1,
+				})
+			}()
+
+			timeout := time.After(5 * interval)
+
+			go func() {
+				defer wg.Done()
+				defer cancel()
+
+				for {
+					select {
+					case <-timeout:
+						return
+					default:
+						if _, err := os.Stat(runDir); err != nil {
+							if os.IsNotExist(err) {
+								return
+							}
+						}
+					}
+				}
+			}()
+
+			wg.Wait()
+
+			Expect(<-perr).NotTo(HaveOccurred())
+		})
+
+		It("is removed", func() {
+			Expect(runDir).NotTo(Or(BeADirectory(), BeAnExistingFile()))
+		})
+	})
+})
+
 var _ = Describe("Count files without a checksum", func() {
 	// We expect checksums for files that either don't need to be compressed, or
 	// do need to be compressed and have been e.g. bam, csv.gz, fast5, fastq.gz
 	// and md (reports).
 	//
 	// We don't expect checksums for files that need to be compressed and
-	// haven't been e.g. fastq. Ideally we would also checksum the uncompressed
-	// data.
+	// haven't been e.g. fastq. Ideally we would also record a checksum of the
+	// uncompressed data.
 	//
 	// iRODS doesn't support this (it will calculate a checksum of the
 	// compressed file once uploaded, but has no specific place for an original
-	// checksum. We could add an original checksum to the file metadata.
+	// checksum). We could add an original checksum to the file metadata.
 	// However, we're already adding the compressed file checksum there (because
 	// iRODS has a history of checksum-related bugs) and it would be potentially
 	// confusing for customers.

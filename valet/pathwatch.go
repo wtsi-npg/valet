@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022 Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,6 +74,12 @@ func WatchFiles(
 			case event := <-w.Events:
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
 					// Don't try to create FilePaths for removed files
+
+					// Note: in the currently used version of fsnotify,
+					// duplicate events are generated for removal. You will see
+					// this message twice
+					log.Info().Str("path", event.Name).
+						Msg("was removed")
 					continue
 				}
 
@@ -80,7 +87,8 @@ func WatchFiles(
 				p, err := NewFilePath(event.Name)
 				if err != nil {
 					if os.IsNotExist(err) {
-						log.Warn().Err(err).Msg("path deleted externally")
+						log.Warn().Err(err).Str("path", event.Name).
+							Msg("path deleted externally")
 						continue
 					}
 
@@ -156,7 +164,7 @@ func addWatchDirs(watcher *fsnotify.Watcher, root string, prune FilePredicate) e
 
 	// Pruning/skipping in go works by throwing the special error SkipDir, This
 	// means that the main return value of the prune predicate is ignored.
-	// Therefore we can say
+	// Therefore, we can say
 	//
 	// include := And(IsDir, prune)
 	//
