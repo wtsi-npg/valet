@@ -103,6 +103,7 @@ jobs:
 
       - name: "Get release version"
         run: |
+          git status
           echo VALET_VERSION=$(git describe --always --tags --dirty) >> $GITHUB_ENV
 
       - name: "Create release"
