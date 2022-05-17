@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### [1.7.0] - 2022-05-17
+
+### Added
+
+- Remove run directories after a delay, if they are empty
+- Automated GitHub release on tagging
+- Add iRODS 4.2.11 to GitHub Actions workflow
+
+### Changed
+
+- Bump github.com/rs/zerolog from 1.26.0 to 1.26.1
+- Bump github.com/onsi/gomega from 1.17.0 to 1.19.0
+- Bump github.com/stretchr/testify from 1.7.0 to 1.7.1
+- Bump github.com/spf13/cobra from 1.2.1 to 1.4.0
+
 ## [1.6.0] - 2022-01-10
 
 ### Added
