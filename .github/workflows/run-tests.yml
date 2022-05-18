@@ -111,7 +111,7 @@ jobs:
 
     - name: "Install test runner"
       run: |
-        go get github.com/onsi/ginkgo/ginkgo
+        go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
         go get github.com/onsi/gomega/...
 
     - name: "Run tests"
