@@ -87,13 +87,13 @@ jobs:
           path: |
             "$HOME/go/pkg/mod"
             "$HOME/.cache/go-build"
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-key1-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-key1-go-
 
       - name: "Install test runner"
         run: |
-          go get github.com/onsi/ginkgo/ginkgo
+          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
           go get github.com/onsi/gomega/...
 
       - name: "Build distribution"
@@ -106,7 +106,7 @@ jobs:
           git status
           version=$(git describe --always --tags --dirty)
           echo "$version" | grep dirty && git diff
-          
+
           echo VALET_VERSION="version" >> $GITHUB_ENV
 
       - name: "Create release"
