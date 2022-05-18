@@ -104,7 +104,10 @@ jobs:
       - name: "Get release version"
         run: |
           git status
-          echo VALET_VERSION=$(git describe --always --tags --dirty) >> $GITHUB_ENV
+          version=$(git describe --always --tags --dirty)
+          echo "$version" | grep dirty && git diff
+          
+          echo VALET_VERSION="version" >> $GITHUB_ENV
 
       - name: "Create release"
         uses: ncipollo/release-action@v1.10.0
