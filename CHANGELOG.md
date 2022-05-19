@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-### [1.7.0] - 2022-05-17
+### [1.7.0] - 2022-05-19
 
 ### Added
 
@@ -19,8 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add iRODS 4.2.11 to GitHub Actions workflow
 
 ### Changed
-
-- Bump github.com/rs/zerolog from 1.26.0 to 1.26.1
+- Bump github.com/onsi/ginkgo from 1.16.5 to 2.1.4
 - Bump github.com/onsi/gomega from 1.17.0 to 1.19.0
 - Bump github.com/stretchr/testify from 1.7.0 to 1.7.1
 - Bump github.com/spf13/cobra from 1.2.1 to 1.4.0
