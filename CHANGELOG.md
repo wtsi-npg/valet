@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
+ - Include archive creation script in automatic release
  - Add default ignored directories 'Install_logs' and 'persistence'
+
 
 ### [1.7.0] - 2022-05-19
 

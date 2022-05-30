@@ -26,6 +26,8 @@ coverage:
 
 dist: build test
 	cp README.md COPYING ${build_path}
+	mkdir ${build_path}/scripts
+	cp scripts/valet_archive_create.sh ${build_path}/scripts/
 	tar -C ./build -cvj -f valet-${VERSION}.tar.bz2 valet-${VERSION}
 	shasum -a 256 valet-${VERSION}.tar.bz2 > valet-${VERSION}.tar.bz2.sha256
 
