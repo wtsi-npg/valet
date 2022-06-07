@@ -37,15 +37,23 @@ import (
 
 type FilePredicate func(path FilePath) (bool, error)
 
+// We match data files explicitly because various versions of MinKNOW have put
+// temporary files into the data area. If these were whisked off to iRODS, it
+// would at best put junk into the archive and at worst break the run processing
+// on the instrument.
+
 const Fast5Suffix string = "fast5"
 const FastqSuffix string = "fastq"
 const BAMSuffix string = "bam"
 const BEDSuffix string = "bed"
 const CSVSuffix string = "csv"
+const HTMLSuffix string = "html"
 const MarkdownSuffix string = "md"
+const JSONSuffix string = "json"
 const TxtSuffix string = "txt"
 const TSVSuffix string = "tsv"
 const PDFSuffix string = "pdf"
+const POD5Suffix string = "pod5"
 const MD5Suffix string = "md5" // The recognised suffix for MD5 checksum files
 const GzipSuffix string = "gz"
 
@@ -53,13 +61,60 @@ var fast5Regex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", Fast5Suffix))
 var fastqRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", FastqSuffix))
 var bamRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", BAMSuffix))
 var bedRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", BEDSuffix))
+var htmlRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", HTMLSuffix))
+var jsonRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", JSONSuffix))
 var txtRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", TxtSuffix))
 var tsvRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", TSVSuffix))
 var markdownRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", MarkdownSuffix))
 var pdfRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", PDFSuffix))
+var pod5Regex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", POD5Suffix))
 var csvRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", CSVSuffix))
 var gzipRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", GzipSuffix))
 var reportRegex = regexp.MustCompile(fmt.Sprintf("(?i)report.*[.]%s$", MarkdownSuffix))
+
+// IsFast5 returns true if path matches the recognised fast5 pattern.
+var IsFast5 = makeNoCompFilePredicate(fast5Regex)
+
+// IsPOD5 returns true if path matches the recognised pod5 pattern.
+var IsPOD5 = makeNoCompFilePredicate(pod5Regex)
+
+// IsFastq returns true if path matches the recognised fastq pattern. Supports
+// compressed versions.
+var IsFastq = makeCompFilePredicate(fastqRegex)
+
+// IsBED returns true if path matches the recognised BED file pattern.
+// Supports compressed versions.
+var IsBED = makeCompFilePredicate(bedRegex)
+
+// IsBAM returns true if path matches the recognised BAM file pattern.
+var IsBAM = makeNoCompFilePredicate(bamRegex)
+
+// IsTxt returns true if path matches the recognised text file pattern.
+// Supports compressed versions.
+var IsTxt = makeCompFilePredicate(txtRegex)
+
+// IsMarkdown returns true if path matches the recognised markdown file
+// pattern. Supports compressed versions.
+var IsMarkdown = makeCompFilePredicate(markdownRegex)
+
+// IsPDF returns true if path matches the recognised PDF file pattern.
+var IsPDF = makeNoCompFilePredicate(pdfRegex)
+
+// IsHTML returns true if path matches the recognised HTML file pattern.
+// Supports compressed versions.
+var IsHTML = makeCompFilePredicate(htmlRegex)
+
+// IsCSV returns true if path matches the recognised CSV file pattern.
+// Supports compressed versions.
+var IsCSV = makeCompFilePredicate(csvRegex)
+
+// IsTSV returns true if path matches the recognised TSV file pattern.
+// Supports compressed versions.
+var IsTSV = makeCompFilePredicate(tsvRegex)
+
+// IsJSON returns true if path matches the recognised JSON file pattern.
+// Supports compressed versions.
+var IsJSON = makeCompFilePredicate(jsonRegex)
 
 // MinKNOWRunIDRegex matches the run ID of MinKNOW c. August 2019 for GridION
 // and PromethION i.e. of the form:
@@ -69,15 +124,19 @@ var reportRegex = regexp.MustCompile(fmt.Sprintf("(?i)report.*[.]%s$", MarkdownS
 var MinKNOWRunIDRegex = regexp.MustCompile(`^\d+_\d+_\S+_[A-Za-z0-9]+_[A-Za-z0-9]+$`)
 
 var RequiresCopying = Or(
-	IsFast5,
-	IsBAM,
 	And(IsBED, IsCompressed),
-	And(IsFastq, IsCompressed),
-	And(IsTxt, IsCompressed),
 	And(IsCSV, IsCompressed),
+	And(IsFastq, IsCompressed),
+	And(IsJSON, IsCompressed),
+	And(IsTxt, IsCompressed),
+	IsBAM,
+	IsFast5,
+	IsHTML,
 	IsMarkdown,
 	IsPDF,
-	IsTSV)
+	IsPOD5,
+	IsTSV,
+)
 
 // RequiresChecksum returns true if the argument is a regular file that is
 // recognised as a checksum target and either has no checksum file, or has a
@@ -90,7 +149,13 @@ var RequiresChecksum = And(
 var HasValidChecksumFile = Not(HasStaleChecksumFile)
 
 var RequiresCompression = And(
-	Or(IsFastq, IsBED, IsTxt, IsCSV),
+	Or(
+		IsBED,
+		IsCSV,
+		IsFastq,
+		IsJSON,
+		IsTxt,
+	),
 	Not(IsCompressed),
 	Not(HasCompressedVersion))
 
@@ -160,56 +225,6 @@ func Not(predicate FilePredicate) FilePredicate {
 		}
 		return true, nil
 	}
-}
-
-// IsFast5 returns true if path matches the recognised fast5 pattern.
-func IsFast5(path FilePath) (bool, error) {
-	return fast5Regex.MatchString(path.Location), nil
-}
-
-// IsFastq returns true if path matches the recognised fastq pattern. Supports
-// compressed versions.
-func IsFastq(path FilePath) (bool, error) {
-	return fastqRegex.MatchString(path.UncompressedFilename()), nil
-}
-
-// IsBED returns true if path matches the recognised BED file pattern. Supports
-// compressed versions.
-func IsBED(path FilePath) (bool, error) {
-	return bedRegex.MatchString(path.UncompressedFilename()), nil
-}
-
-// IsBAM returns true if path matches the recognised BAM file pattern.
-func IsBAM(path FilePath) (bool, error) {
-	return bamRegex.MatchString(path.Location), nil
-}
-
-// IsTxt returns true if path matches the recognised text file pattern.
-// Supports compressed versions.
-func IsTxt(path FilePath) (bool, error) {
-	return txtRegex.MatchString(path.UncompressedFilename()), nil
-}
-
-// IsMarkdown returns true if path matches the recognised markdown file
-// pattern.
-func IsMarkdown(path FilePath) (bool, error) {
-	return markdownRegex.MatchString(path.UncompressedFilename()), nil
-}
-
-// IsPDF returns true if path matches the recognised PDF file pattern.
-func IsPDF(path FilePath) (bool, error) {
-	return pdfRegex.MatchString(path.Location), nil
-}
-
-// IsCSV returns true if path matches the recognised CSV file pattern. Supports
-// compressed versions.
-func IsCSV(path FilePath) (bool, error) {
-	return csvRegex.MatchString(path.UncompressedFilename()), nil
-}
-
-// IsTSV returns true if path matches the recognised TSV file pattern.
-func IsTSV(path FilePath) (bool, error) {
-	return tsvRegex.MatchString(path.UncompressedFilename()), nil
 }
 
 // IsCompressed returns true if the path matches the recognised compressed file
@@ -494,6 +509,18 @@ func HasValidReportAnnotation(obj *ex.DataObject, report MinKNOWReport) (bool, e
 	}
 
 	return true, nil
+}
+
+func makeNoCompFilePredicate(regex *regexp.Regexp) func(path FilePath) (bool, error) {
+	return func(path FilePath) (bool, error) {
+		return regex.MatchString(path.Location), nil
+	}
+}
+
+func makeCompFilePredicate(regex *regexp.Regexp) func(path FilePath) (bool, error) {
+	return func(path FilePath) (bool, error) {
+		return regex.MatchString(path.UncompressedFilename()), nil
+	}
 }
 
 // validateObjChecksum checks that the data file at path has a corresponding

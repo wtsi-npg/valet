@@ -581,6 +581,7 @@ var _ = Describe("Find MinKNOW files", func() {
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/other_reports",
 		}
 	)
 
@@ -861,57 +862,55 @@ var _ = Describe("Archive MinKNOW files", func() {
 		rootColl = "/testZone/home/irods"
 		dataDir  = "testdata/platform/ont/minknow/gridion"
 
+		collPath = "66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f"
+		f5FailColl = collPath + "/fast5_fail"
+		f5PassColl = collPath + "/fast5_pass"
+		fqFailColl = collPath + "/fastq_fail"
+		fqPassColl = collPath + "/fastq_pass"
+		reportColl = collPath + "/other_reports"
+
 		expectedArchived = []string{
 			".",
 			"66",
 			"66/DN585561I_A1",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
+			collPath,
+			f5FailColl,
+			f5PassColl,
+			fqFailColl,
+			fqPassColl,
+			reportColl,
 
 			// Ancillary files
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
-				"GXB02004_20190904_151413_FAL01979_gridion_sequencing_run_" +
-				"DN585561I_A1_sequencing_summary.txt.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
-				"final_summary.txt.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/duty_time.csv.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.md",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/report.pdf",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/throughput.csv.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/" +
-				"barcode_alignment_FAL01979_43578c8f.tsv",
+			collPath + "/barcode_alignment_FAL01979_43578c8f.tsv",
+			collPath + "/duty_time.csv.gz",
+			collPath + "/final_summary_FAL01979_43578c8f.txt.gz",
+			collPath + "/pore_activity_FAL01979_43578c8f.tsv",
+			collPath + "/report_FAL01979_20190904_1514_43578c8f.html",
+			collPath + "/report_FAL01979_20190904_1514_43578c8f.json.gz",
+			collPath + "/report_FAL01979_20190904_1514_43578c8f.md",
+			collPath + "/report_FAL01979_20190904_1514_43578c8f.pdf",
+			collPath + "/sample_sheet_FAL01979_20190904_1514_43578c8f.csv.gz",
+			collPath + "/sequencing_summary_FAL01979_43578c8f.txt.gz",
+			collPath + "/throughput_FAL01979_43578c8f.csv.gz",
 
-			// Fast5 fail
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
-			// Fast5 pass
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_0.fast5",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fast5",
-			// Fastq fail
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_fail/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
-			// Fastq pass
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fastq.gz",
-			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass/" +
-				"FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_4.fastq.gz",
+			f5FailColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
+			f5FailColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
+
+			f5PassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_0.fast5",
+			f5PassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
+			f5PassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",
+			f5PassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fast5",
+
+			fqFailColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
+			fqFailColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
+
+			fqPassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fastq.gz",
+			fqPassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fastq.gz",
+			fqPassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_3.fastq.gz",
+			fqPassColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_4.fastq.gz",
+
+			// Reports
+			reportColl + "/pore_scan_data_FAL01979_43578c8f.csv.gz",
 		}
 	)
 
@@ -1083,7 +1082,7 @@ var _ = Describe("Remove empty run directories after a delay", func() {
 		Expect(merr).NotTo(HaveOccurred())
 
 		subDirs := []string{
-			"fast5_pass", "fast5_fail", "fastq_pass", "fastq_fail"}
+			"fast5_pass", "fast5_fail", "fastq_pass", "fastq_fail", "other_reports"}
 		for _, d := range subDirs {
 			err := os.Mkdir(filepath.Join(runDir, d), 0700)
 			Expect(err).NotTo(HaveOccurred())
