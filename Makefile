@@ -19,10 +19,10 @@ lint:
 check: test
 
 test:
-	ginkgo -r -slowSpecThreshold=60 -race
+	ginkgo -r -slow-spec-threshold=60s -race
 
 coverage:
-	ginkgo -r -slowSpecThreshold=60 -cover -coverprofile=coverage.out
+	ginkgo -r -slow-spec-threshold=60s -cover -coverprofile=coverage.out
 
 dist: build test
 	cp README.md COPYING ${build_path}
