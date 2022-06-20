@@ -9,9 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+### [1.8.0] - 2022-06-20
+
+### Added
+
+ - Add JSON and HTML reports to archived files
+ - Add BAM indices (bai) to archived files
+
+### Changed
+
  - Include archive creation script in automatic release
  - Add default ignored directories 'Install_logs' and 'persistence'
-
 
 ### [1.7.0] - 2022-05-19
 
@@ -22,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add iRODS 4.2.11 to GitHub Actions workflow
 
 ### Changed
+
 - Bump github.com/onsi/ginkgo from 1.16.5 to 2.1.4
 - Bump github.com/onsi/gomega from 1.17.0 to 1.19.0
 - Bump github.com/stretchr/testify from 1.7.0 to 1.7.1
