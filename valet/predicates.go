@@ -89,7 +89,7 @@ var IsFastq = makeCompFilePredicate(fastqRegex)
 var IsBED = makeCompFilePredicate(bedRegex)
 
 // IsBAI returns true if path matches the recognised BAI file pattern.
-var isBAI = makeNoCompFilePredicate(baiRegex)
+var IsBAI = makeNoCompFilePredicate(baiRegex)
 
 // IsBAM returns true if path matches the recognised BAM file pattern.
 var IsBAM = makeNoCompFilePredicate(bamRegex)
@@ -134,7 +134,7 @@ var RequiresCopying = Or(
 	And(IsFastq, IsCompressed),
 	And(IsJSON, IsCompressed),
 	And(IsTxt, IsCompressed),
-	isBAI,
+	IsBAI,
 	IsBAM,
 	IsFast5,
 	IsHTML,

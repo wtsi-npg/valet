@@ -73,6 +73,7 @@ var _ = Describe("Find directories)", func() {
 			"1/reads/alignments",
 			"1/reads/fast5",
 			"1/reads/fastq",
+			"1/reads/pod5",
 			"testdir",
 		}
 
@@ -116,6 +117,7 @@ var _ = Describe("Find regular files)", func() {
 				"1/adaptive_sampling_roi1.bed",
 				"1/ancillary.csv.gz",
 				"1/reads/alignments/alignments1.bam",
+				"1/reads/alignments/alignments1.bam.bai",
 				"1/reads/fast5/reads1.fast5",
 				"1/reads/fast5/reads1.fast5.md5",
 				"1/reads/fast5/reads2.fast5",
@@ -125,6 +127,7 @@ var _ = Describe("Find regular files)", func() {
 				"1/reads/fastq/reads2.fastq",
 				"1/reads/fastq/reads2.fastq.gz",
 				"1/reads/fastq/reads3.fastq",
+				"1/reads/pod5/reads1.pod5",
 				"report_ABQ808_20200204_1257_e2e93dd1.md",
 				"report_PAE48813_20200130_0940_16917585.md",
 				"report_PAH48449_20211215_1420_227842f4.md",
@@ -294,6 +297,7 @@ var _ = Describe("Find files at intervals", func() {
 			"1/adaptive_sampling_roi1.bed",
 			"1/ancillary.csv.gz",
 			"1/reads/alignments/alignments1.bam",
+			"1/reads/alignments/alignments1.bam.bai",
 			"1/reads/fast5/reads1.fast5",
 			"1/reads/fast5/reads1.fast5.md5",
 			"1/reads/fast5/reads2.fast5",
@@ -387,6 +391,7 @@ var _ = Describe("Watch for file changes", func() {
 		expectedDirs = []string{
 			"1/reads/fast5/",
 			"1/reads/fastq/",
+			"1/reads/pod5/",
 		}
 	)
 
@@ -1239,7 +1244,7 @@ var _ = Describe("Count files without a checksum", func() {
 
 	var (
 		numFilesFound    uint64
-		numFilesExpected uint64 = 13
+		numFilesExpected uint64 = 15
 	)
 
 	BeforeEach(func() {

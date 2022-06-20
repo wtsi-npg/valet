@@ -74,6 +74,20 @@ func TestIsFast5Match(t *testing.T) {
 	}
 }
 
+func TestIsPOD5Match(t *testing.T) {
+	p5, _ := NewFilePath("./testdata/valet/1/reads/pod/reads1.pod5")
+	ok, err := IsPOD5(p5)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a pod5 file")
+	}
+
+	f5, _ := NewFilePath("./testdata/valet/1/reads/fast5/reads1.fast5")
+	ok, err = IsPOD5(f5)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a non-pod5 file")
+	}
+}
+
 func TestIsFastqMatch(t *testing.T) {
 	fq, _ := NewFilePath("./testdata/valet/1/reads/fastq/reads1.fastq")
 	ok, err := IsFastq(fq)
@@ -99,6 +113,20 @@ func TestIsBAMMatch(t *testing.T) {
 	ok, err = IsBAM(f5)
 	if assert.NoError(t, err) {
 		assert.False(t, ok, "expected false for a non-BAM file")
+	}
+}
+
+func TestIsBAIMatch(t *testing.T) {
+	bai, _ := NewFilePath("./testdata/valet/1/reads/alignments/alignments1.bam.bai")
+	ok, err := IsBAI(bai)
+	if assert.NoError(t, err) {
+		assert.True(t, ok, "expected true for a BAI file")
+	}
+
+	bam, _ := NewFilePath("./testdata/valet/1/reads/alignments/alignments1.bam")
+	ok, err = IsBAI(bam)
+	if assert.NoError(t, err) {
+		assert.False(t, ok, "expected false for a non-BAI file")
 	}
 }
 
