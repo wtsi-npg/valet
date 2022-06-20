@@ -577,6 +577,8 @@ var _ = Describe("Find MinKNOW files", func() {
 			"66",
 			"66/DN585561I_A1",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/bam_fail",
+			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/bam_pass",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_pass",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fast5_fail",
 			"66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f/fastq_pass",
@@ -863,6 +865,8 @@ var _ = Describe("Archive MinKNOW files", func() {
 		dataDir  = "testdata/platform/ont/minknow/gridion"
 
 		collPath = "66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f"
+		bmFailColl = collPath + "/bam_fail"
+		bmPassColl = collPath + "/bam_pass"
 		f5FailColl = collPath + "/fast5_fail"
 		f5PassColl = collPath + "/fast5_pass"
 		fqFailColl = collPath + "/fastq_fail"
@@ -874,6 +878,8 @@ var _ = Describe("Archive MinKNOW files", func() {
 			"66",
 			"66/DN585561I_A1",
 			collPath,
+			bmFailColl,
+			bmPassColl,
 			f5FailColl,
 			f5PassColl,
 			fqFailColl,
@@ -892,6 +898,16 @@ var _ = Describe("Archive MinKNOW files", func() {
 			collPath + "/sample_sheet_FAL01979_20190904_1514_43578c8f.csv.gz",
 			collPath + "/sequencing_summary_FAL01979_43578c8f.txt.gz",
 			collPath + "/throughput_FAL01979_43578c8f.csv.gz",
+
+			bmFailColl + "/FAL01979_fail_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.bam",
+			bmFailColl + "/FAL01979_fail_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.bam.bai",
+			bmFailColl + "/FAL01979_fail_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.bam",
+			bmFailColl + "/FAL01979_fail_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.bam.bai",
+
+			bmPassColl + "/FAL01979_pass_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.bam",
+			bmPassColl + "/FAL01979_pass_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.bam.bai",
+			bmPassColl + "/FAL01979_pass_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.bam",
+			bmPassColl + "/FAL01979_pass_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.bam.bai",
 
 			f5FailColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_1.fast5",
 			f5FailColl + "/FAL01979_9cd2a77baacfe99d6b16f3dad2c36ecf5a6283c3_2.fast5",

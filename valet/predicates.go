@@ -44,6 +44,7 @@ type FilePredicate func(path FilePath) (bool, error)
 
 const Fast5Suffix string = "fast5"
 const FastqSuffix string = "fastq"
+const BAISuffix string = "bai"
 const BAMSuffix string = "bam"
 const BEDSuffix string = "bed"
 const CSVSuffix string = "csv"
@@ -59,6 +60,7 @@ const GzipSuffix string = "gz"
 
 var fast5Regex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", Fast5Suffix))
 var fastqRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", FastqSuffix))
+var baiRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", BAISuffix))
 var bamRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", BAMSuffix))
 var bedRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", BEDSuffix))
 var htmlRegex = regexp.MustCompile(fmt.Sprintf("(?i).*[.]%s$", HTMLSuffix))
@@ -85,6 +87,9 @@ var IsFastq = makeCompFilePredicate(fastqRegex)
 // IsBED returns true if path matches the recognised BED file pattern.
 // Supports compressed versions.
 var IsBED = makeCompFilePredicate(bedRegex)
+
+// IsBAI returns true if path matches the recognised BAI file pattern.
+var isBAI = makeNoCompFilePredicate(baiRegex)
 
 // IsBAM returns true if path matches the recognised BAM file pattern.
 var IsBAM = makeNoCompFilePredicate(bamRegex)
@@ -129,6 +134,7 @@ var RequiresCopying = Or(
 	And(IsFastq, IsCompressed),
 	And(IsJSON, IsCompressed),
 	And(IsTxt, IsCompressed),
+	isBAI,
 	IsBAM,
 	IsFast5,
 	IsHTML,
