@@ -109,11 +109,15 @@ jobs:
 
           echo VALET_VERSION="version" >> $GITHUB_ENV
 
+      - name: "Get master shasum"
+        run: |
+          echo MASTER_SHA=$(git rev-parse origin/master) >> $GITHUB_ENV
+
       - name: "Create release"
         uses: ncipollo/release-action@v1.10.0
         with:
           name: ${{ env.VALET_VERSION }}
-          prerelease: ${{ !(github.ref == 'refs/heads/master') }}
+          prerelease: ${{ !(github.sha == env.MASTER_SHA) }}
           artifacts: "*.tar.bz2,*.tar.bz2.sha256"
           removeArtifacts: true
           artifactErrorsFailBuild: true
