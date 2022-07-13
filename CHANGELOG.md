@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+ - Update github actions test workflow baton to 3.3.0
+
+### Removed
+
+ - Remove irods 4.2.10 from github actions test workflow
+
 ### [1.8.0] - 2022-06-20
 
 ### Added
