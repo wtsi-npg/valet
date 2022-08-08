@@ -23,7 +23,7 @@ jobs:
           - go: "1.17"
             irods: "4.2.11"
             server_image: "wsinpg/ub-18.04-irods-4.2.11:latest"
-            baton: "3.2.0"
+            baton: "4.0.0"
 
     services:
       irods:

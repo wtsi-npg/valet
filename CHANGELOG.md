@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
- - Update github actions test workflow baton to 3.3.0
+ - Update github actions test workflow baton to 4.0.0
 
 ### Removed
 
