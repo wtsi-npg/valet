@@ -7,7 +7,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.7.1
 	github.com/onsi/gomega v1.26.0
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.28.0
+	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
 	github.com/wtsi-npg/extendo/v2 v2.5.0
