@@ -100,8 +100,8 @@ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
-github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
-github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
+github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/wtsi-npg/extendo/v2 v2.5.0 h1:Cz2xIn1+QlEaHmJX63w7U54C9BKao2H6XEfuRgIxR/s=
 github.com/wtsi-npg/extendo/v2 v2.5.0/go.mod h1:b2eEJtuLPWaDgtrrT48a3pTYSQcg5JTtBqpOWa61/nw=
 github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a h1:LmzJGJXUS8U69eZ08MjwKwii8mos8630pV3aSZRdmc0=
