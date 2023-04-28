@@ -1,6 +1,6 @@
 module github.com/wtsi-npg/valet
 
-go 1.17
+go 1.18
 
 require (
 	github.com/klauspost/pgzip v1.2.5
@@ -10,7 +10,7 @@ require (
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.2
-	github.com/wtsi-npg/extendo/v2 v2.6.0
+	github.com/wtsi-npg/extendo/v2 v2.6.1
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
 	github.com/wtsi-npg/logshim v1.3.0
 	github.com/wtsi-npg/logshim-zerolog v1.3.0
