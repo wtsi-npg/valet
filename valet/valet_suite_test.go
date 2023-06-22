@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021, 2022. Genome Research Ltd. All rights
- * reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022, 2023. Genome Research Ltd.
+ * All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ package valet_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -152,7 +151,7 @@ var _ = Describe("Handle errors while finding files", func() {
 	)
 
 	BeforeEach(func() {
-		td, terr := ioutil.TempDir("", "ValetHandleErrors")
+		td, terr := os.MkdirTemp("", "ValetHandleErrors")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
 
@@ -181,7 +180,7 @@ var _ = Describe("Handle errors while finding files", func() {
 	})
 
 	AfterEach(func() {
-		files, err := ioutil.ReadDir(tmpDir)
+		files, err := os.ReadDir(tmpDir)
 		Expect(err).NotTo(HaveOccurred())
 
 		for _, file := range files {
@@ -399,7 +398,7 @@ var _ = Describe("Watch for file changes", func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		interval := 500 * time.Millisecond
 
-		td, terr := ioutil.TempDir("", "ValetTests")
+		td, terr := os.MkdirTemp("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
 		pathTransform = makeLocalPathTransform(tmpDir)
@@ -496,7 +495,7 @@ var _ = Describe("Watch for file changes with pruning", func() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		interval := 1 * time.Second
 
-		td, terr := ioutil.TempDir("", "ValetTests")
+		td, terr := os.MkdirTemp("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
 		pathTransform = makeLocalPathTransform(tmpDir)
@@ -869,7 +868,7 @@ var _ = Describe("Archive MinKNOW files", func() {
 		rootColl = "/testZone/home/irods"
 		dataDir  = "testdata/platform/ont/minknow/gridion"
 
-		collPath = "66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f"
+		collPath   = "66/DN585561I_A1/20190904_1514_GA20000_FAL01979_43578c8f"
 		bmFailColl = collPath + "/bam_fail"
 		bmPassColl = collPath + "/bam_pass"
 		f5FailColl = collPath + "/fast5_fail"
@@ -952,7 +951,7 @@ var _ = Describe("Archive MinKNOW files", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
-		td, terr := ioutil.TempDir("", "ValetTests")
+		td, terr := os.MkdirTemp("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
 
@@ -1094,7 +1093,7 @@ var _ = Describe("Remove empty run directories after a delay", func() {
 	)
 
 	BeforeEach(func() {
-		td, terr := ioutil.TempDir("", "ValetTests")
+		td, terr := os.MkdirTemp("", "ValetTests")
 		Expect(terr).NotTo(HaveOccurred())
 		tmpDir = td
 

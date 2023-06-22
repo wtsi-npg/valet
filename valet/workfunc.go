@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019, 2020, 2021, 2022. Genome Research Ltd. All rights
- * reserved.
+ * Copyright (C) 2019, 2020, 2021, 2022, 2023. Genome Research Ltd. All
+ * rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -376,7 +376,7 @@ func CompressFile(path FilePath) (err error) { // NRV
 	// We use temp file and rename to add the compressed file to the data
 	// directory
 	var tmp *os.File
-	if tmp, err = ioutil.TempFile(os.TempDir(), "valet-"); err != nil {
+	if tmp, err = os.CreateTemp(os.TempDir(), "valet-"); err != nil {
 		return
 	}
 
@@ -564,8 +564,8 @@ func MakeCopier(localBase string, remoteBase string,
 //
 // -  MinKNOW report files.
 //
-//    The metadata contained in MinKNOW report files is parsed abd added to the
-//    collection containing the report data object in iRODS.
+//	The metadata contained in MinKNOW report files is parsed abd added to the
+//	collection containing the report data object in iRODS.
 func MakeAnnotator(localBase string, remoteBase string,
 	cPool *ex.ClientPool) WorkFunc {
 

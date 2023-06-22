@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021, 2023. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +23,6 @@ package valet_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -132,7 +132,7 @@ func readWriteFile(from string, to string) error {
 
 // A copyFn using os.Rename
 func moveFile(from string, to string) error {
-	stagingDir, err := ioutil.TempDir("", "ValetTests")
+	stagingDir, err := os.MkdirTemp("", "ValetTests")
 	defer os.RemoveAll(stagingDir)
 	if err != nil {
 		return err
