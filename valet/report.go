@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2020, 2021, 2023. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +23,7 @@ package valet
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -81,7 +82,7 @@ var promethion24DeviceIDMap = map[string]int{
 func ParseMinKNOWReport(path string) (MinKNOWReport, error) {
 	var report MinKNOWReport
 
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return report, err
 	}
@@ -148,7 +149,6 @@ func (report MinKNOWReport) AsMetadata() []ex.AVU {
 //
 // For the PromethION-24 we are following the column-major order used by ONT's
 // MinKNOW API i.e. 1A - 1H, 2A - 2H, 3A - 3H.
-//
 func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
 	avus := report.AsMetadata()
 
