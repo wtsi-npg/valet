@@ -82,7 +82,7 @@ jobs:
           baton-do --version
 
       - name: "Cache Go modules"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             "$HOME/go/pkg/mod"
