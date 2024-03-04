@@ -9,7 +9,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.32.0
 	github.com/spf13/cobra v1.8.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/wtsi-npg/extendo/v2 v2.6.1
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
 	github.com/wtsi-npg/logshim v1.4.0
