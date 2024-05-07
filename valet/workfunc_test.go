@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2019, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2019, 2021, 2023. Genome Research Ltd. All rights
+ * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +27,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +59,7 @@ func TestDoNothing(t *testing.T) {
 }
 
 func TestCreateMD5ChecksumFile(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestCreateMD5ChecksumFile")
+	tmpDir, err := os.MkdirTemp("", "TestCreateMD5ChecksumFile")
 	defer os.RemoveAll(tmpDir)
 	assert.NoError(t, err)
 
@@ -92,7 +92,7 @@ func TestReadMD5ChecksumFile(t *testing.T) {
 }
 
 func TestRemoveMD5ChecksumFile(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestCreateMD5ChecksumFile")
+	tmpDir, err := os.MkdirTemp("", "TestCreateMD5ChecksumFile")
 	defer os.RemoveAll(tmpDir)
 	assert.NoError(t, err)
 
@@ -135,7 +135,7 @@ func TestCalculateFileMD5(t *testing.T) {
 }
 
 func TestCompressFile(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "TestCompressFile")
+	tmpDir, err := os.MkdirTemp("", "TestCompressFile")
 	defer os.RemoveAll(tmpDir)
 	assert.NoError(t, err)
 

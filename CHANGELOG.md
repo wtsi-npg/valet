@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+ - Update valet_archive_create script to remove reference to conda
+ - Update CI to use ubuntu latest
+ - Update github actions test workflow baton to 4.0.0
+
+### Removed
+
+ - Remove irods 4.2.10 from github actions test workflow
+
 ### [1.8.0] - 2022-06-20
 
 ### Added

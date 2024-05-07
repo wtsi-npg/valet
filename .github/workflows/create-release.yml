@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l -e -o pipefail {0}
@@ -22,8 +22,8 @@ jobs:
           # iRODS 4.2.11 clients vs 4.2.11 server
           - go: "1.17"
             irods: "4.2.11"
-            server_image: "wsinpg/ub-18.04-irods-4.2.11:latest"
-            baton: "3.2.0"
+            server_image: "ghcr.io/wtsi-npg/ub-18.04-irods-4.2.11:latest"
+            baton: "4.0.0"
 
     services:
       irods:
@@ -32,10 +32,10 @@ jobs:
           - 1247:1247
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: "Set up Go ${{ matrix.go }}"
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
 
@@ -82,7 +82,7 @@ jobs:
           baton-do --version
 
       - name: "Cache Go modules"
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             "$HOME/go/pkg/mod"
@@ -109,11 +109,15 @@ jobs:
 
           echo VALET_VERSION="version" >> $GITHUB_ENV
 
+      - name: "Get master shasum"
+        run: |
+          echo MASTER_SHA=$(git rev-parse origin/master) >> $GITHUB_ENV
+
       - name: "Create release"
-        uses: ncipollo/release-action@v1.10.0
+        uses: ncipollo/release-action@v1.14.0
         with:
           name: ${{ env.VALET_VERSION }}
-          prerelease: ${{ !(github.ref == 'refs/heads/master') }}
+          prerelease: ${{ !(github.sha == env.MASTER_SHA) }}
           artifacts: "*.tar.bz2,*.tar.bz2.sha256"
           removeArtifacts: true
           artifactErrorsFailBuild: true

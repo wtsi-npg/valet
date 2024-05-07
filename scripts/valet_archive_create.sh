@@ -28,9 +28,6 @@
 set -e
 
 # BEGIN ENVIRONMENT
-CONDA_ROOT=${CONDA_ROOT:-$HOME/miniconda}
-CONDA_ENV=${CONDA_ENV:-valet}
-
 HOSTNAME=${HOSTNAME:-$(hostname)}
 INSTRUMENT_MODEL=${INSTRUMENT_MODEL:-promethion}
 
@@ -45,12 +42,9 @@ LOG_FILE=${LOG_FILE:-"$HOME/valet.log"}
 TMPDIR=${TMPDIR:-"$SAFE_ROOT/tmp"}
 # END ENVIRONMENT
 
-source "$CONDA_ROOT/etc/profile.d/conda.sh"
-
 set -x
 
-conda activate "$CONDA_ENV" && \
-  TMPDIR="$TMPDIR" nice valet archive create \
+TMPDIR="$TMPDIR" nice valet archive create \
   --root "$DATA_ROOT" \
   --archive-root "$ARCHIVE_ROOT" \
   --exclude "$SAFE_ROOT" \
