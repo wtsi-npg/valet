@@ -37,7 +37,7 @@ import (
 	"github.com/wtsi-npg/valet/valet"
 )
 
-var _ = Describe("Find directories)", func() {
+var _ = Describe("Find directories", func() {
 	var (
 		foundDirs     []valet.FilePath
 		pathTransform localPathTransform
@@ -83,7 +83,7 @@ var _ = Describe("Find directories)", func() {
 	})
 })
 
-var _ = Describe("Find regular files)", func() {
+var _ = Describe("Find regular files", func() {
 	var (
 		foundFiles    []valet.FilePath
 		pathTransform localPathTransform
