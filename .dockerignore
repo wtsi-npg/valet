@@ -1,0 +1,10 @@
+.idea/**
+
+.DS_Store
+.env
+
+build
+
+# iRODS environment files should always be mounted into a container
+irods_environment.json
+.irodsA

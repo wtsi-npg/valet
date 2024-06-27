@@ -11,7 +11,7 @@ install:
 
 build:
 	mkdir -p ${build_path}
-	go build -v -ldflags ${ldflags} -o ${build_path}/valet github.com/wtsi-npg/valet
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -v -ldflags ${ldflags} -o ${build_path}/valet github.com/wtsi-npg/valet
 
 lint:
 	golangci-lint run ./...
@@ -19,10 +19,10 @@ lint:
 check: test
 
 test:
-	ginkgo -r --race
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ginkgo -r --race
 
 coverage:
-	ginkgo -r --cover -coverprofile=coverage.out
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ginkgo -r --cover -coverprofile=coverage.out
 
 dist: build test
 	cp README.md COPYING ${build_path}
