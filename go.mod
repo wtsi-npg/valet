@@ -10,7 +10,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
-	github.com/wtsi-npg/extendo/v2 v2.6.1
+	github.com/wtsi-npg/extendo/v2 v2.7.0
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
 	github.com/wtsi-npg/logshim v1.4.0
 	github.com/wtsi-npg/logshim-zerolog v1.4.0
