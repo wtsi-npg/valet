@@ -1,0 +1,28 @@
+services:
+  irods-server:
+    container_name: irods-server
+    image: "ghcr.io/wtsi-npg/ub-16.04-irods-4.2.7:latest"
+    ports:
+      - "127.0.0.1:1247:1247"
+      - "127.0.0.1:20000-20199:20000-20199"
+    restart: always
+    healthcheck:
+      test: ["CMD", "nc", "-z", "-v", "127.0.0.1", "1247"]
+      start_period: 30s
+      interval: 5s
+      timeout: 10s
+      retries: 12
+
+  valet-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: always
+    volumes:
+      - "./tests/.irods:/home/appuser/.irods/"
+    environment:
+      IRODS_ENVIRONMENT_FILE: "/home/appuser/.irods/irods_environment.json"
+      IRODS_PASSWORD: "irods"
+    depends_on:
+      irods-server:
+        condition: service_healthy
