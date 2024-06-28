@@ -1,17 +1,21 @@
 VERSION := $(shell git describe --always --tags --dirty)
 ldflags := "-X github.com/wtsi-npg/valet/valet.Version=${VERSION}"
+build_args := -a -v -ldflags ${ldflags}
+
 build_path = "build/valet-${VERSION}"
+
+CGO_ENABLED?=${CGO_ENABLED}
 
 .PHONY: build coverage dist install lint test check clean
 
 all: build
 
 install:
-	go install -ldflags ${ldflags}
+	go install ${build_args}
 
 build:
 	mkdir -p ${build_path}
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -v -ldflags ${ldflags} -o ${build_path}/valet github.com/wtsi-npg/valet
+	GOOS=linux GOARCH=amd64 go build ${build_args} -o ${build_path}/valet github.com/wtsi-npg/valet
 
 lint:
 	golangci-lint run ./...
@@ -19,10 +23,10 @@ lint:
 check: test
 
 test:
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ginkgo -r --race
+	GOOS=linux GOARCH=amd64 ginkgo -r --race
 
 coverage:
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 ginkgo -r --cover -coverprofile=coverage.out
+	GOOS=linux GOARCH=amd64 ginkgo -r --cover -coverprofile=coverage.out
 
 dist: build test
 	cp README.md COPYING ${build_path}
