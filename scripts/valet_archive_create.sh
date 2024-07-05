@@ -5,10 +5,7 @@
 # https://github.com/wtsi-npg/baton).
 #
 # The systemd unit may set the following environment variable to affect valet's
-# behaviour. Defaults are specified in the ENVRIRONMENT block below:
-#
-# CONDA_ROOT : the root of a Miniconda installation
-# CONDA_ENV : the name of a Conda environment
+# behaviour. Defaults are specified in the ENVIRONMENT block below:
 #
 # HOSTNAME : the sequencing instrument hostname
 # INSTRUMENT_MODEL : the sequencing instrument model (lower case)
@@ -44,7 +41,7 @@ TMPDIR=${TMPDIR:-"$SAFE_ROOT/tmp"}
 
 set -x
 
-TMPDIR="$TMPDIR" nice valet archive create \
+TMPDIR="$TMPDIR" nice valet-amd64 archive create \
   --root "$DATA_ROOT" \
   --archive-root "$ARCHIVE_ROOT" \
   --exclude "$SAFE_ROOT" \
@@ -53,4 +50,3 @@ TMPDIR="$TMPDIR" nice valet archive create \
   --interval "$INTERVAL" \
   --delete-on-archive \
   --verbose >> "$LOG_FILE" 2>&1
-

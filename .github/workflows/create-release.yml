@@ -12,113 +12,57 @@ jobs:
       run:
         shell: bash -l -e -o pipefail {0}
 
-    env:
-      WSI_CONDA_CHANNEL: "https://dnap.cog.sanger.ac.uk/npg/conda/devel/generic"
-      CONDA_TEST_ENVIRONMENT: "testenv"
-
-    strategy:
-      matrix:
-        include:
-          # iRODS 4.2.11 clients vs 4.2.11 server
-          - go: "1.17"
-            irods: "4.2.11"
-            server_image: "ghcr.io/wtsi-npg/ub-18.04-irods-4.2.11:latest"
-            baton: "4.0.0"
-
-    services:
-      irods:
-        image: ${{ matrix.server_image }}
-        ports:
-          - 1247:1247
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: "Set up Go ${{ matrix.go }}"
+      - name: "Fetch Tags"
+        # Workaround for https://github.com/actions/checkout/issues/290
+        run: git fetch --tags --force
+
+      - name: "Set up Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version-file: "go.mod"
 
-      - name: "Initialize Miniconda"
+      - name: "Get release variables"
         run: |
-          echo 'source $CONDA/etc/profile.d/conda.sh' >> "$HOME/.bash_profile"
+          echo 'RELEASE_VERSION='$(git describe --always --tags --dirty) >> $GITHUB_ENV
+          echo 'MASTER_SHA='$(git rev-parse origin/master) >> $GITHUB_ENV
+          
+          echo 'GIT_URL='$(git remote get-url origin) >> $GITHUB_ENV
+          echo 'GIT_COMMIT='$(git log --pretty=format:'%H' -n 1) >> $GITHUB_ENV
 
-      - name: "Configure Miniconda"
+      - name: "Build executables"
         run: |
-          conda config --prepend pkgs_dirs "$HOME/conda/pkgs"
-          conda config --prepend envs_dirs "$HOME/conda/envs"
-
-          conda config --set auto_update_conda False
-          conda config --prepend channels "$WSI_CONDA_CHANNEL"
-          conda info
-
-      - name: "Install iRODS clients"
-        run: |
-          conda create -y -n "$CONDA_TEST_ENVIRONMENT"
-          conda install -y -n "$CONDA_TEST_ENVIRONMENT" "irods-icommands=${{ matrix.irods }}"
-          conda install -y -n "$CONDA_TEST_ENVIRONMENT" "baton=${{ matrix.baton }}"
-
-      - name: "Configure iRODS clients"
-        run: |
-          conda activate "$CONDA_TEST_ENVIRONMENT"
-
-          mkdir -p "$HOME/.irods"
-          cat <<'EOF' > "$HOME/.irods/irods_environment.json"
-          {
-              "irods_host": "localhost",
-              "irods_port": 1247,
-              "irods_user_name": "irods",
-              "irods_zone_name": "testZone",
-              "irods_home": "/testZone/home/irods",
-              "irods_default_resource": "replResc",
-              "irods_default_hash_scheme": "MD5"
-          }
-          EOF
-
-          echo "irods" | script -q -c "iinit" /dev/null
-          ienv
-          ils
-
-          baton-do --version
-
-      - name: "Cache Go modules"
-        uses: actions/cache@v4
-        with:
-          path: |
-            "$HOME/go/pkg/mod"
-            "$HOME/.cache/go-build"
-          key: ${{ runner.os }}-key1-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-key1-go-
-
-      - name: "Install test runner"
-        run: |
-          go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
-          go get github.com/onsi/gomega/...
-
-      - name: "Build distribution"
-        run: |
-          conda activate "$CONDA_TEST_ENVIRONMENT"
           make dist
 
-      - name: "Get release version"
-        run: |
-          git status
-          version=$(git describe --always --tags --dirty)
-          echo "$version" | grep dirty && git diff
-
-          echo VALET_VERSION="version" >> $GITHUB_ENV
-
-      - name: "Get master shasum"
-        run: |
-          echo MASTER_SHA=$(git rev-parse origin/master) >> $GITHUB_ENV
-
-      - name: "Create release"
+      - name: "Create Release"
         uses: ncipollo/release-action@v1.14.0
         with:
-          name: ${{ env.VALET_VERSION }}
+          name: ${{ env.RELEASE_VERSION }}
           prerelease: ${{ !(github.sha == env.MASTER_SHA) }}
-          artifacts: "*.tar.bz2,*.tar.bz2.sha256"
+          artifacts: "build/*.tar.bz2,build/*.tar.bz2.sha256"
           removeArtifacts: true
           artifactErrorsFailBuild: true
           generateReleaseNotes: true
+
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+      - name: "Login to Docker registry"
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Build Docker image"
+        run: |
+          make docker GITHUB_ACTIONS=${GITHUB_ACTIONS} GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+
+      - name: "Push Docker image"
+        run: |
+          docker images
+          make push GITHUB_ACTIONS=${GITHUB_ACTIONS} GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}

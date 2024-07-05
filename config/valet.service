@@ -1,11 +1,10 @@
 [Unit]
 Description=The valet data manager service
-Documentation=https://github.com/kjsanger/valet
+Documentation=https://github.com/wtsi-npg/valet
 StartLimitBurst=3
 
 [Service]
 Environment=PATH=/home/{{ valet_user }}/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-Environment=CONDA_ENV={{ valet_conda_env }}
 Environment=INSTRUMENT_MODEL={{ valet_instrument }}
 Environment=INTERVAL={{ valet_interval }}
 Environment=MAX_PROC={{ valet_max_proc }}

@@ -6,4 +6,8 @@
 # IntelliJ / GoLand
 .idea/
 
+# Local outputs
 build
+
+# Local iRODS auth files
+.irodsA
