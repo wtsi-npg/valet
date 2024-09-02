@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/klauspost/pgzip v1.2.6
-	github.com/onsi/ginkgo/v2 v2.20.1
+	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
