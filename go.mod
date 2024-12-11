@@ -1,7 +1,6 @@
 module github.com/wtsi-npg/valet
 
-go 1.22
-toolchain go1.22.5
+go 1.23
 
 require (
 	github.com/klauspost/pgzip v1.2.6
