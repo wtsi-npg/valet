@@ -50,8 +50,8 @@ github.com/wtsi-npg/logshim v1.4.0 h1:5O4urpYxyGbAutS6wci0VSvCCpteVtP9PTIBt0fA0+
 github.com/wtsi-npg/logshim v1.4.0/go.mod h1:VnMVDZWHLrWeEXztdKog4ruSy0RIoaj3tuED9kw+cHc=
 github.com/wtsi-npg/logshim-zerolog v1.4.0 h1:y5Gz5KuKM4jrUyB5fr+pgtw1B1eEKBAiSB6JzE23PYM=
 github.com/wtsi-npg/logshim-zerolog v1.4.0/go.mod h1:UvSMVsS8F3amYbWwnf1QNOly2A9/joMREuLPZar1zl0=
-golang.org/x/crypto v0.30.0 h1:RwoQn3GkWiMkzlX562cLB7OxWvjH1L8xutO2WoJcRoY=
-golang.org/x/crypto v0.30.0/go.mod h1:kDsLvtWBEx7MV9tJOj9bnXsPbxwJQ6csT/x4KIN4Ssk=
+golang.org/x/crypto v0.31.0 h1:ihbySMvVjLAeSH1IbfcRTkD/iNscyz8rGzjF/E5hV6U=
+golang.org/x/crypto v0.31.0/go.mod h1:kDsLvtWBEx7MV9tJOj9bnXsPbxwJQ6csT/x4KIN4Ssk=
 golang.org/x/net v0.30.0 h1:AcW1SDZMkb8IpzCdQUaIq2sP4sZ4zw+55h6ynffypl4=
 golang.org/x/net v0.30.0/go.mod h1:2wGyMJ5iFasEhkwi13ChkO/t1ECNC4X4eBKkVFyYFlU=
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
