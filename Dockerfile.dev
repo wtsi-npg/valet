@@ -1,0 +1,60 @@
+FROM ghcr.io/wtsi-npg/ub-18.04-baton-irods-4.2.11:latest
+
+ARG GO_VERSION=1.22.4
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -q -y --no-install-recommends \
+    apt-transport-https \
+    apt-utils \
+    build-essential \
+    ca-certificates \
+    curl \
+    gcc \
+    git \
+    make
+
+# Install the iRODS icommands package because it's useful for interactions with \
+# the server during development
+RUN echo "deb [arch=amd64] https://packages.irods.org/apt/ $(lsb_release -sc) main" |\
+    tee /etc/apt/sources.list.d/renci-irods.list && \
+    apt-get update && \
+    apt-get install -q -y --no-install-recommends \
+    irods-icommands="4.2.11-1~$(lsb_release -sc)"
+
+# For development we want to be able to compile and run tests in the presence of iRODS
+# clients, it's more practical to use an iRODS client image and install recent Go than
+# to build from a recent Go image and install iRODS clients.
+#
+# For production we can use a standard Go image as a build stage and copy the compiled
+# binary into an iRODS client image.
+RUN curl -sSL -O "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+
+RUN tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz" && \
+    rm "go${GO_VERSION}.linux-amd64.tar.gz"
+
+ENV GOPATH="/home/appuser/go"
+ENV PATH="$GOPATH/bin:/usr/local/go/bin:$PATH"
+
+RUN mkdir -p "$GOPATH"
+
+WORKDIR /app
+
+COPY go.mod go.sum /app/
+
+RUN go mod download && go mod verify
+
+COPY . /app
+
+RUN go install github.com/onsi/ginkgo/v2/ginkgo && \
+    go get github.com/onsi/gomega/... && \
+    ginkgo version
+
+RUN chown -R appuser:appuser /app /home/appuser
+
+USER appuser
+
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
+
+CMD ["/bin/bash", "-c", "sleep infinity"]

@@ -1,1 +1,13 @@
-build/**
+.DS_store
+
+# Local environment
+.env
+
+# IntelliJ / GoLand
+.idea/
+
+# Local outputs
+build
+
+# Local iRODS auth files
+.irodsA
