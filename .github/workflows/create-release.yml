@@ -41,7 +41,7 @@ jobs:
         with:
           name: ${{ env.RELEASE_VERSION }}
           prerelease: ${{ !(github.sha == env.MASTER_SHA) }}
-          artifacts: "build/*.tar.bz2,build/*.tar.bz2.sha256"
+          artifacts: "./build/*.tar.bz2,./build/*.tar.bz2.sha256"
           removeArtifacts: true
           artifactErrorsFailBuild: true
           generateReleaseNotes: true
