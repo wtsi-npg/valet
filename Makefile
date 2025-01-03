@@ -1,11 +1,12 @@
 VERSION := $(shell git describe --always --tags --dirty)
 ldflags := "-X github.com/wtsi-npg/valet/valet.Version=${VERSION}"
 build_args := -a -v -ldflags ${ldflags}
+
 build_path = "build/valet-${VERSION}"
 
-CGO_ENABLED := 1
-GOARCH := amd64
-GOOS := linux
+export CGO_ENABLED := 0
+
+export GOARCH := $(shell go env GOARCH)
 
 ifeq ($(GITHUB_ACTIONS),true)
 DOCKER_REGISTRY?=ghcr.io
@@ -32,9 +33,12 @@ git_commit=$(shell git log --pretty=format:'%H' -n 1)
 
 all: build
 
-build:
+build: build-linux
+
+build-linux: export GOOS = linux
+build-linux:
 	mkdir -p ${build_path}
-	go build ${build_args} -o ${build_path}/valet-${GOARCH} ./main.go
+	go build ${build_args} -o ${build_path}/valet-${GOOS}-${GOARCH} ./main.go
 
 install:
 	go install ${build_args}
@@ -44,10 +48,13 @@ lint:
 
 check: test
 
-test:
-	ginkgo -r --race
+test-install:
+	go install github.com/onsi/ginkgo/v2/ginkgo
 
-coverage:
+test: test-install
+	CGO_ENABLED=1 ginkgo -r --race
+
+coverage: test-install
 	ginkgo -r --cover -coverprofile=coverage.out
 
 dist: build
