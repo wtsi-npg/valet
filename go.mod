@@ -13,7 +13,7 @@ require (
 	github.com/wtsi-npg/extendo/v2 v2.7.0
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
 	github.com/wtsi-npg/logshim v1.5.0
-	github.com/wtsi-npg/logshim-zerolog v1.4.0
+	github.com/wtsi-npg/logshim-zerolog v1.5.0
 	golang.org/x/crypto v0.36.0
 )
 
