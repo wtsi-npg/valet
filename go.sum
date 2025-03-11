@@ -50,8 +50,8 @@ github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a h1:LmzJGJXUS8U
 github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a/go.mod h1:/ux2ROeuYmj0JshWH6r5f+gvLIJP2ZbMutVFrW6/8Pg=
 github.com/wtsi-npg/logshim v1.5.0 h1:Ror+LE2DCbTytMTYGEpYpoAOX2Qpat5vYa8BPvyglyI=
 github.com/wtsi-npg/logshim v1.5.0/go.mod h1:e3+dd6fWzRpX+Lk2JM6s13F7BRypHutzatIxZklY1NI=
-github.com/wtsi-npg/logshim-zerolog v1.4.0 h1:y5Gz5KuKM4jrUyB5fr+pgtw1B1eEKBAiSB6JzE23PYM=
-github.com/wtsi-npg/logshim-zerolog v1.4.0/go.mod h1:UvSMVsS8F3amYbWwnf1QNOly2A9/joMREuLPZar1zl0=
+github.com/wtsi-npg/logshim-zerolog v1.5.0 h1:i6lE9Y99PRPGmJ7IkMiTm4a7QwLHYe/gsykSDS+g4KI=
+github.com/wtsi-npg/logshim-zerolog v1.5.0/go.mod h1:5/ZUS1GI7kAx6iXi7Ntx4o3xRtZc2RqPABKlRZ0E0Y8=
 golang.org/x/crypto v0.36.0 h1:AnAEvhDddvBdpY+uR+MyHmuZzzNqXSe/GvuDeob5L34=
 golang.org/x/crypto v0.36.0/go.mod h1:Y4J0ReaxCR1IMaabaSMugxJES1EpwhBHhv2bDHklZvc=
 golang.org/x/net v0.37.0 h1:1zLorHbz+LYj7MQlSf1+2tPIIgibq2eL5xkrGk6f+2c=
