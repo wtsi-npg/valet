@@ -41,7 +41,7 @@ TMPDIR=${TMPDIR:-"$SAFE_ROOT/tmp"}
 
 set -x
 
-TMPDIR="$TMPDIR" nice valet-amd64 archive create \
+TMPDIR="$TMPDIR" nice valet-linux-amd64 archive create \
   --root "$DATA_ROOT" \
   --archive-root "$ARCHIVE_ROOT" \
   --exclude "$SAFE_ROOT" \
