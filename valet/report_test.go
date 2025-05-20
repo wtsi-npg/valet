@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020, 2021. Genome Research Ltd. All rights reserved.
+ * Copyright (C) 2020, 2021, 2025 Genome Research Ltd. All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -130,5 +130,28 @@ func TestPromethion24InstrumentSlots(t *testing.T) {
 						"metadata for %s", path)
 			}
 		}
+	}
+}
+
+func TestEnancedMetadataEmptySampleID(t *testing.T) {
+	path := "./testdata/valet/report_ABQ808_20200204_1257_e2e93dd1.md"
+	report, _ := ParseMinKNOWReport(path)
+	report.SampleID = ""
+	metadata, err := report.AsEnhancedMetadata()
+	if assert.NoError(t, err) {
+		expected := []ex.AVU{
+			{Attr: "ont:device_id", Value: "X2"},
+			{Attr: "ont:device_type", Value: "gridion"},
+			{Attr: "ont:distribution_version", Value: "19.12.2"},
+			{Attr: "ont:flowcell_id", Value: "ABQ808"},
+			{Attr: "ont:guppy_version", Value: "3.2.8+bd67289"},
+			{Attr: "ont:hostname", Value: "GXB02004"},
+			{Attr: "ont:protocol_group_id", Value: "85"},
+			{Attr: "ont:run_id", Value: "5531cbcf622d2d98dbff00af0261c6f19f91340f"},
+			// "ont:sample_id" removed
+			{Attr: "ont:instrument_slot", Value: "2"},
+			{Attr: "ont:experiment_name", Value: "85"}}
+
+		assert.ElementsMatch(t, expected, metadata)
 	}
 }

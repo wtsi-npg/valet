@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020, 2021, 2023. Genome Research Ltd. All rights
+ * Copyright (C) 2020, 2021, 2023, 2025 Genome Research Ltd. All rights
  * reserved.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,6 +30,7 @@ import (
 
 	"github.com/pkg/errors"
 	ex "github.com/wtsi-npg/extendo/v2"
+	logs "github.com/wtsi-npg/logshim"
 )
 
 const dutyTimeField = "Duty Time"
@@ -149,7 +150,16 @@ func (report MinKNOWReport) AsMetadata() []ex.AVU {
 //
 // For the PromethION-24 we are following the column-major order used by ONT's
 // MinKNOW API i.e. 1A - 1H, 2A - 2H, 3A - 3H.
+//
+// It also removes any metadata that has an empty value (such metadata cannot be
+// represented in iRODS) and logs a warning while doing so.
+//
+// Since the valet predicate that checks for a full complement of metadata on an iRODS
+// collection uses the output of this function as its reference, changes to this
+// function will also affect the predicate, so there is no need to make compensatory
+// changes to it.
 func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
+	log := logs.GetLogger()
 	avus := report.AsMetadata()
 
 	if report.DeviceType == "gridion" {
@@ -183,5 +193,16 @@ func (report MinKNOWReport) AsEnhancedMetadata() ([]ex.AVU, error) {
 
 	avus = append(avus, expt)
 
-	return avus, nil
+	filtered := make([]ex.AVU, 0, len(avus))
+	for _, avu := range avus {
+		if avu.Value != "" {
+			filtered = append(filtered, avu)
+		} else {
+			log.Warn().Str("report", report.Path).
+				Str("attribute", avu.Attr).
+				Msg("AVU has an empty value in the MinKNOW report")
+		}
+	}
+
+	return filtered, nil
 }
