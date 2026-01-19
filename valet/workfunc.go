@@ -36,7 +36,7 @@ import (
 
 	"github.com/klauspost/pgzip"
 	"github.com/pkg/errors"
-	ex "github.com/wtsi-npg/extendo/v2"
+	ex "github.com/wtsi-npg/extendo/v3"
 
 	"github.com/wtsi-npg/valet/utilities"
 

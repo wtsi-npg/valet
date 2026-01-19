@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	ex "github.com/wtsi-npg/extendo/v2"
+	ex "github.com/wtsi-npg/extendo/v3"
 	logs "github.com/wtsi-npg/logshim"
 
 	"github.com/wtsi-npg/valet/utilities"

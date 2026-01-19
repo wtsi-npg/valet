@@ -10,7 +10,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	github.com/wtsi-npg/extendo/v2 v2.7.0
+	github.com/wtsi-npg/extendo/v3 v3.1.0
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
 	github.com/wtsi-npg/logshim v1.5.0
 	github.com/wtsi-npg/logshim-zerolog v1.5.0
@@ -42,4 +42,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-// replace github.com/wtsi-npg/extendo/v2 => ../extendo
+// replace github.com/wtsi-npg/extendo/v3 => ../extendo

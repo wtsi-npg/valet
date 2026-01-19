@@ -31,7 +31,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	ex "github.com/wtsi-npg/extendo/v2"
+	ex "github.com/wtsi-npg/extendo/v3"
 
 	"github.com/wtsi-npg/valet/cmd"
 	"github.com/wtsi-npg/valet/valet"
