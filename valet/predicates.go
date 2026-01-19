@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	ex "github.com/wtsi-npg/extendo/v2"
+	ex "github.com/wtsi-npg/extendo/v3"
 	logs "github.com/wtsi-npg/logshim"
 
 	"github.com/wtsi-npg/valet/utilities"
@@ -125,7 +125,6 @@ var IsJSON = makeCompFilePredicate(jsonRegex)
 // and PromethION i.e. of the form:
 //
 // 20190701_1522_GA10000_FAK83493_3bba1763
-//
 var MinKNOWRunIDRegex = regexp.MustCompile(`^\d+_\d+_\S+_[A-Za-z0-9]+_[A-Za-z0-9]+$`)
 
 var RequiresCopying = Or(
@@ -344,16 +343,16 @@ func MakeRequiresRemoval(duration time.Duration) FilePredicate {
 //
 // The criteria for copied state are:
 //
-// 1. The file has a valid checksum file (not stale), otherwise there could
-//    be no way to test the checksum against the checksum in the archive.
+//  1. The file has a valid checksum file (not stale), otherwise there could
+//     be no way to test the checksum against the checksum in the archive.
 //
 // 2. The data object exists in the archive.
 //
-// 3. The checksum of the data object in the archive matches the expected
-//    checksum.
+//  3. The checksum of the data object in the archive matches the expected
+//     checksum.
 //
-// 4. The data object has metadata under the "md5" key whose value matches the
-//    checksum.
+//  4. The data object has metadata under the "md5" key whose value matches the
+//     checksum.
 func MakeIsCopied(localBase string, remoteBase string,
 	cPool *ex.ClientPool) FilePredicate {
 
@@ -409,8 +408,8 @@ func MakeIsCopied(localBase string, remoteBase string,
 //
 // The criteria for annotated state are:
 //
-// 1. The metadata associated with the file has been obtained e.g. parsed from
-//    a file.
+//  1. The metadata associated with the file has been obtained e.g. parsed from
+//     a file.
 //
 // 2. The metadata are annotated in iRODS.
 //

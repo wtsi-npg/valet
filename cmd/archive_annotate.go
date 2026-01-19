@@ -25,7 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	ex "github.com/wtsi-npg/extendo/v2"
+	ex "github.com/wtsi-npg/extendo/v3"
 	logs "github.com/wtsi-npg/logshim"
 
 	"github.com/wtsi-npg/valet/utilities"
@@ -105,7 +105,7 @@ func AnnotateArchive(localPath string, archivePath string) (err error) { // NRV
 		return
 	}
 	if !ok {
-		return errors.Errorf("'%s' does not appear to be a MinKNOW " +
+		return errors.Errorf("'%s' does not appear to be a MinKNOW "+
 			"report file", localPath)
 	}
 
@@ -133,7 +133,7 @@ func AnnotateArchive(localPath string, archivePath string) (err error) { // NRV
 		return
 	}
 	if !ok {
-		return errors.Errorf("metadata from MinNOW report file '%s' " +
+		return errors.Errorf("metadata from MinNOW report file '%s' "+
 			"was not confirmed for '%s'", localPath, archivePath)
 	}
 
