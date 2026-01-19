@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
-	ex "github.com/wtsi-npg/extendo/v2"
+	ex "github.com/wtsi-npg/extendo/v3"
 
 	"github.com/wtsi-npg/valet/utilities"
 	"github.com/wtsi-npg/valet/valet"

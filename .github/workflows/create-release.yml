@@ -13,14 +13,14 @@ jobs:
         shell: bash -l -e -o pipefail {0}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: "Fetch Tags"
         # Workaround for https://github.com/actions/checkout/issues/290
         run: git fetch --tags --force
 
       - name: "Set up Go"
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
 
@@ -37,7 +37,7 @@ jobs:
           make dist
 
       - name: "Create Release"
-        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b
         with:
           name: ${{ env.RELEASE_VERSION }}
           prerelease: ${{ !(github.sha == env.MASTER_SHA) }}
