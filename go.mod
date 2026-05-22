@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/klauspost/pgzip v1.2.6
 	github.com/onsi/ginkgo/v2 v2.28.1
-	github.com/onsi/gomega v1.39.1
+	github.com/onsi/gomega v1.41.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.35.0
 	github.com/spf13/cobra v1.10.2
