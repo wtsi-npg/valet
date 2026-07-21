@@ -72,8 +72,8 @@ github.com/wtsi-npg/extendo/v3 v3.1.0 h1:4s7QNMgUib+XqppGlc8BuggjoMyLYZEcbSpBg1e
 github.com/wtsi-npg/extendo/v3 v3.1.0/go.mod h1:28EmJyuu8ClNDpFY/yCDxjcyw//RpAhriLgn/XHf9G4=
 github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a h1:LmzJGJXUS8U69eZ08MjwKwii8mos8630pV3aSZRdmc0=
 github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a/go.mod h1:/ux2ROeuYmj0JshWH6r5f+gvLIJP2ZbMutVFrW6/8Pg=
-github.com/wtsi-npg/logshim v1.5.0 h1:Ror+LE2DCbTytMTYGEpYpoAOX2Qpat5vYa8BPvyglyI=
-github.com/wtsi-npg/logshim v1.5.0/go.mod h1:e3+dd6fWzRpX+Lk2JM6s13F7BRypHutzatIxZklY1NI=
+github.com/wtsi-npg/logshim v1.6.0 h1:mKoRc88N9yuBAtn02f4qpW21ZoFBc+Ye8Lk03aWizc0=
+github.com/wtsi-npg/logshim v1.6.0/go.mod h1:ambfhxmKumviaoDeJbgjeU/a/ArLTZge2QQHtl+zL68=
 github.com/wtsi-npg/logshim-zerolog v1.5.0 h1:i6lE9Y99PRPGmJ7IkMiTm4a7QwLHYe/gsykSDS+g4KI=
 github.com/wtsi-npg/logshim-zerolog v1.5.0/go.mod h1:5/ZUS1GI7kAx6iXi7Ntx4o3xRtZc2RqPABKlRZ0E0Y8=
 go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=

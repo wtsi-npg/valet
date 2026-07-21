@@ -1,6 +1,6 @@
 module github.com/wtsi-npg/valet
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/klauspost/pgzip v1.2.6
@@ -12,7 +12,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/wtsi-npg/extendo/v3 v3.1.0
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
-	github.com/wtsi-npg/logshim v1.5.0
+	github.com/wtsi-npg/logshim v1.6.0
 	github.com/wtsi-npg/logshim-zerolog v1.5.0
 	golang.org/x/crypto v0.53.0
 )
