@@ -1,6 +1,6 @@
 module github.com/wtsi-npg/valet
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/klauspost/pgzip v1.2.6
@@ -14,7 +14,7 @@ require (
 	github.com/wtsi-npg/fsnotify v1.4.8-0.20190705153444-45ca73e9793a
 	github.com/wtsi-npg/logshim v1.6.0
 	github.com/wtsi-npg/logshim-zerolog v1.6.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 )
 
 require (
