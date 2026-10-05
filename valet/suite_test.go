@@ -37,8 +37,7 @@ func TestValet(t *testing.T) {
 	loggerImpl := zlog.New(os.Stderr, logs.ErrorLevel)
 
 	writer := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	consoleLogger := loggerImpl.Logger.Output(zerolog.SyncWriter(writer))
-	loggerImpl.Logger = &consoleLogger
+	loggerImpl.Logger = new(loggerImpl.Logger.Output(zerolog.SyncWriter(writer)))
 
 	logs.InstallLogger(loggerImpl)
 
